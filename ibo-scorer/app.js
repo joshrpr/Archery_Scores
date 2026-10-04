@@ -8,7 +8,7 @@
 const KEY = 'ibo-scorer-v1';
 const VALUES = [11, 10, 8, 5, 0];           // IBO scoring; 0 = miss
 const label = v => (v === 0 ? 'M' : String(v));
-const SERIES_COLORS = ['#ffd400', '#4aa8ff', '#2fd47f', '#ff8a00', '#ff5a5f', '#c792ff'];
+const SERIES_COLORS = ['#2f96eb', '#f2621a', '#6faf2f', '#d8bc84', '#ff6b6b', '#c792ff'];
 
 const app = document.getElementById('app');
 let db = load();
@@ -191,14 +191,21 @@ function render() {
 /* ---------- views ---------- */
 function viewHome() {
   const open = db.rounds.filter(r => r.status !== 'finished').sort((a, b) => b.createdAt - a.createdAt);
-  return `${header('🎯 Ropers Archery Scorecard')}
+  return `<section class="hero">
+    <img class="hero-logo" src="icons/logo.webp" alt="" width="168" height="168">
+    <h1 class="brand"><span>Ropers</span>Archery Scorecard</h1>
+    <svg class="ridge" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" fill="#1e4175"/>
+      <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" fill="#0e2240"/>
+    </svg>
+  </section>
   <main>
     <button class="big primary" data-action="new-round">Start new round</button>
-    ${open.length ? `<h2>Resume</h2>` + open.map(r => `
-      <button class="card-row" data-action="nav" data-to="#/round/${r.id}">
-        <strong>${fmtDate(r.createdAt)}</strong>${r.note ? ` · ${esc(r.note)}` : ''}
-        <div class="muted">${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
-        <div class="muted">Target ${r.current + 1} of ${r.targets}</div>
+    ${open.length ? `<h2>Pick up where you left off</h2>` + open.map(r => `
+      <button class="card-row resume" data-action="nav" data-to="#/round/${r.id}">
+        <div class="title">Target ${r.current + 1} of ${r.targets}</div>
+        <div>${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
+        <div class="muted small">${fmtDate(r.createdAt)}${r.note ? `, ${esc(r.note)}` : ''}</div>
       </button>`).join('') : ''}
     <div class="grid2">
       <button class="big" data-action="nav" data-to="#/history">History</button>
@@ -239,7 +246,7 @@ function viewNew() {
     <input data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
 
     <button class="big primary" data-action="start-round" ${draft.selected.length ? '' : 'disabled'}>
-      Start round${draft.selected.length ? ` · ${draft.selected.length} archer${draft.selected.length > 1 ? 's' : ''}` : ''}
+      Start round${draft.selected.length ? ` with ${draft.selected.length} archer${draft.selected.length > 1 ? 's' : ''}` : ''}
     </button>
   </main>`;
 }
@@ -259,10 +266,10 @@ function viewRound(id) {
   const rows = r.archerIds.map(aid => {
     const { total, elevens } = tally(r, aid);
     const v = r.scores[aid][t];
-    return `<div class="arow ${v == null ? 'blank' : ''}">
+    return `<div class="arow" data-v="${v == null ? '' : v}">
       <div class="ahead">
         <span class="aname">${esc(nameOf(aid))}</span>
-        <span class="atot">${total}<small> · ${elevens}×11</small></span>
+        <span class="atot"><span class="elev" title="11s">${elevens}× 11</span><b>${total}</b></span>
       </div>
       <div class="sbtns">
         ${VALUES.map(x => `<button class="s s${x} ${v === x ? 'sel' : ''}" data-action="score"
@@ -270,7 +277,7 @@ function viewRound(id) {
       </div></div>`;
   }).join('');
 
-  return `${header(`Target ${t + 1} <small>of ${r.targets}${editing ? ' · editing' : ''}</small>`,
+  return `${header(`Target ${t + 1} <small>of ${r.targets}${editing ? ', editing' : ''}</small>`,
                    editing ? `#/card/${r.id}` : '#/')}
   <nav class="strip">${chips}</nav>
   <main class="with-dock">
@@ -280,7 +287,7 @@ function viewRound(id) {
       <button class="btn" data-action="add-target">+ Target</button>
       <button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
     </div>
-    <button class="big ${isLast ? 'primary' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
+    <button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
   </main>
   <div class="dock">
     <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
@@ -297,28 +304,28 @@ function viewCard(id) {
   const rank = ranking(r);
   const cell = v => `<td class="v${v == null ? 'null' : v}">${v == null ? '–' : label(v)}</td>`;
 
-  return `${header(finished ? 'Scorecard' : 'Scorecard <small>· in progress</small>',
+  return `${header(finished ? 'Scorecard' : 'Scorecard <small>in progress</small>',
                    finished ? '#/history' : `#/round/${r.id}`)}
   <main>
-    <div><strong>${fmtDate(r.createdAt)}</strong>${r.note ? ` · ${esc(r.note)}` : ''}</div>
-    <div class="muted small">${r.targets} targets</div>
+    <div class="meta"><strong>${fmtDate(r.createdAt)}</strong>${r.note ? `<span>${esc(r.note)}</span>` : ''}
+      <span class="muted">${r.targets} targets</span></div>
 
     <h2>Standings</h2>
     <div class="tablewrap"><table>
       <thead><tr><th>#</th><th class="name">Archer</th><th>Total</th><th>11s</th></tr></thead>
       <tbody>${rank.map(x => `<tr class="${x.rank === 1 && finished ? 'first' : ''}">
-        <td>${x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.elevens}</td></tr>`).join('')}
+        <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.elevens}</td></tr>`).join('')}
       </tbody></table></div>
 
     <h2>Card</h2>
     <div class="tablewrap"><table>
       <thead><tr><th>Tgt</th>${r.archerIds.map(aid => `<th>${esc(nameOf(aid))}</th>`).join('')}</tr></thead>
       <tbody>${Array.from({ length: r.targets }, (_, i) =>
-        `<tr><td class="muted">${i + 1}</td>${r.archerIds.map(aid => cell(r.scores[aid][i])).join('')}</tr>`).join('')}
+        `<tr><td class="muted" style="font-size:1rem">${i + 1}</td>${r.archerIds.map(aid => cell(r.scores[aid][i])).join('')}</tr>`).join('')}
       </tbody>
       <tfoot>
-        <tr><td>Total</td>${r.archerIds.map(aid => `<td>${tally(r, aid).total}</td>`).join('')}</tr>
-        <tr><td>11s</td>${r.archerIds.map(aid => `<td>${tally(r, aid).elevens}</td>`).join('')}</tr>
+        <tr><td class="name">Total</td>${r.archerIds.map(aid => `<td>${tally(r, aid).total}</td>`).join('')}</tr>
+        <tr><td class="name">11s</td>${r.archerIds.map(aid => `<td>${tally(r, aid).elevens}</td>`).join('')}</tr>
       </tfoot></table></div>
 
     ${finished
@@ -338,12 +345,12 @@ function viewHistory() {
     ${rounds.length ? rounds.map(r => {
       const finished = r.status === 'finished';
       const summary = finished
-        ? ranking(r).map(x => `${esc(nameOf(x.id))} ${x.total}`).join(' · ')
-        : r.archerIds.map(id => esc(nameOf(id))).join(', ');
+        ? ranking(r).map(x => `<span>${esc(nameOf(x.id))} <b>${x.total}</b></span>`).join('')
+        : r.archerIds.map(id => `<span>${esc(nameOf(id))}</span>`).join('');
       return `<button class="card-row" data-action="nav" data-to="${finished ? '#/card/' : '#/round/'}${r.id}">
-        <strong>${fmtDate(r.createdAt)}</strong>${finished ? '' : '<span class="badge">In progress</span>'}
-        <div class="muted">${r.note ? esc(r.note) + ' · ' : ''}${r.targets} targets</div>
-        <div>${summary}</div>
+        <div class="title">${fmtDate(r.createdAt)}${finished ? '' : '<span class="badge">In progress</span>'}</div>
+        <div class="muted small">${r.note ? esc(r.note) + ', ' : ''}${r.targets} targets</div>
+        <div class="scores-line">${summary}</div>
       </button>`;
     }).join('') : '<p class="empty">No rounds yet.</p>'}
   </main>`;
@@ -372,10 +379,11 @@ function viewArchers() {
     </form>
     ${list.length ? list.map(a => {
       const rows = archerRounds(a.id);
-      const pbs = personalBests(rows).map(x => `PB ${x.n}: ${x.total}`).join(' · ');
+      const pbs = personalBests(rows).map(x => `<span>Best ${x.n}-target <b>${x.total}</b></span>`).join('');
       return `<button class="card-row" data-action="nav" data-to="#/archer/${a.id}">
-        <strong>${esc(a.name)}</strong>
-        <div class="muted">${rows.length} finished round${rows.length === 1 ? '' : 's'}${pbs ? ' · ' + pbs : ''}</div>
+        <div class="title">${esc(a.name)}</div>
+        <div class="muted small">${rows.length} finished round${rows.length === 1 ? '' : 's'}</div>
+        ${pbs ? `<div class="scores-line">${pbs}</div>` : ''}
       </button>`;
     }).join('') : '<p class="empty">No archers yet. Add one above.</p>'}
   </main>`;
@@ -394,22 +402,22 @@ function viewArcher(id) {
     ${rows.length ? `
     <h2>Personal bests</h2>
     <div class="tiles">
-      ${pbs.map(x => `<div class="tile"><div class="k">PB · ${x.n} targets</div>
-        <div class="v">${x.total}</div><div class="d">${x.elevens}×11 · ${fmtShort(x.r.createdAt)}</div></div>`).join('')}
+      ${pbs.map(x => `<div class="tile pb"><div class="k">${x.n} targets</div>
+        <div class="v">${x.total}</div><div class="d">${x.elevens}× 11, ${fmtShort(x.r.createdAt)}</div></div>`).join('')}
     </div>
     <h2>11s</h2>
     <div class="tiles">
-      <div class="tile"><div class="k">Total 11s</div><div class="v">${total11}</div>
+      <div class="tile eleven"><div class="k">Total 11s</div><div class="v">${total11}</div>
         <div class="d">over ${rows.length} round${rows.length === 1 ? '' : 's'}</div></div>
-      <div class="tile"><div class="k">Best 11s in a round</div><div class="v">${best11.elevens}</div>
+      <div class="tile eleven"><div class="k">Best in one round</div><div class="v">${best11.elevens}</div>
         <div class="d">${fmtShort(best11.r.createdAt)}</div></div>
     </div>
     <h2>Trend</h2>
     ${trendChart(rows)}
     <h2>Rounds</h2>
     ${[...rows].reverse().map(x => `<button class="card-row" data-action="nav" data-to="#/card/${x.r.id}">
-      <strong>${x.total}</strong> <span class="muted">· ${x.elevens}×11 · ${x.n} targets</span>
-      <div class="muted">${fmtDate(x.r.createdAt)}${x.r.note ? ' · ' + esc(x.r.note) : ''}</div>
+      <div class="scores-line"><b>${x.total}</b><span class="muted">${x.elevens}× 11</span><span class="muted">${x.n} targets</span></div>
+      <div class="muted small">${fmtDate(x.r.createdAt)}${x.r.note ? ', ' + esc(x.r.note) : ''}</div>
     </button>`).join('')}`
     : '<p class="empty">No finished rounds yet. Stats appear here after a round is finished.</p>'}
 
@@ -436,19 +444,19 @@ function trendChart(rows) {
   const color = n => SERIES_COLORS[counts.indexOf(n) % SERIES_COLORS.length];
 
   const ticks = [lo, Math.round((lo + hi) / 2), hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#3a3a3a"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#b8b8b8" font-size="15" text-anchor="end">${v}</text>`).join('');
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
+    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${v}</text>`).join('');
 
   const series = counts.map(n => {
     const pts = rows.map((r, i) => ({ r, i })).filter(p => p.r.n === n);
     const path = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.r.total).toFixed(1)}`).join(' ');
     return `<path d="${path}" fill="none" stroke="${color(n)}" stroke-width="3" stroke-linejoin="round"/>` +
-      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#1a1a1a" stroke-width="2">
-        <title>${p.r.total} · ${fmtShort(p.r.r.createdAt)}</title></circle>`).join('');
+      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#16325c" stroke-width="2">
+        <title>${p.r.total}, ${fmtShort(p.r.r.createdAt)}</title></circle>`).join('');
   }).join('');
 
-  const xl = `<text x="${L}" y="${H - 10}" fill="#b8b8b8" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#b8b8b8" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
+  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
 
   return `<div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Round totals over time">${grid}${series}${xl}</svg>
@@ -627,6 +635,12 @@ app.addEventListener('input', e => {
 /* ---------- offline support ---------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  // When a new version finishes installing, reload once so it shows right away.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && !reloaded && !document.querySelector('.modal-wrap')) { reloaded = true; location.reload(); }
+  });
 }
 
 render();
