@@ -1,7 +1,7 @@
 'use strict';
 
 /* =========================================================
-   IBO Scorer — offline 3D archery scorecard
+   Ropers Archery Scorecard — offline 3D archery scorecard
    All data lives in this phone's browser storage (localStorage).
    ========================================================= */
 
@@ -191,7 +191,7 @@ function render() {
 /* ---------- views ---------- */
 function viewHome() {
   const open = db.rounds.filter(r => r.status !== 'finished').sort((a, b) => b.createdAt - a.createdAt);
-  return `${header('🎯 IBO Scorer')}
+  return `${header('🎯 Ropers Archery Scorecard')}
   <main>
     <button class="big primary" data-action="new-round">Start new round</button>
     ${open.length ? `<h2>Resume</h2>` + open.map(r => `

@@ -1,4 +1,4 @@
-# IBO Scorer
+# Ropers Archery Scorecard
 
 An offline IBO 3D archery scorecard for Android, as an installable web app (PWA). One phone scores a whole group. All data stays on the phone.
 

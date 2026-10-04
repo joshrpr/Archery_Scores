@@ -1,8 +1,8 @@
-// Offline cache for IBO Scorer.
+// Offline cache for Ropers Archery Scorecard.
 // Serves the app from cache instantly (works with no signal) and quietly
 // fetches a fresh copy in the background whenever a connection is available,
 // so updates show up the next time the app is opened.
-const CACHE = 'ibo-scorer-v1';
+const CACHE = 'ibo-scorer-v2';
 const ASSETS = [
   './',
   './index.html',
