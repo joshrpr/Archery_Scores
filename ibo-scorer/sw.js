@@ -12,6 +12,8 @@ const ASSETS = [
   './app.js',
   './target.js',
   './plot.js',
+  './stats.js',
+  './stats.css',
   './manifest.webmanifest',
   './icons/logo.webp',
   './icons/icon-192.png',
