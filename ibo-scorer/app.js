@@ -1093,15 +1093,45 @@ app.addEventListener('change', e => {
   if (file) importBackup(file);
 });
 
-/* ---------- offline support ---------- */
+/* ---------- offline support and automatic updates ---------- */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-  // When a new version finishes installing, reload once so it shows right away.
-  const hadController = !!navigator.serviceWorker.controller;
-  let reloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (hadController && !reloaded && !document.querySelector('.modal-wrap')) { reloaded = true; location.reload(); }
+  const sw = navigator.serviceWorker;
+  let pending = false, reloaded = false, touching = false;
+  // Reload only when nothing would be lost: no dialog open, no new-round form
+  // being filled in, and no finger on the screen (e.g. mid-plot).
+  const safe = () => !document.querySelector('.modal-wrap') && !(draft && route().page === 'new') && !touching;
+  const applyUpdate = () => {
+    if (!pending || reloaded) return;
+    if (safe()) { reloaded = true; location.reload(); }
+  };
+  const updateReady = () => { pending = true; applyUpdate(); };
+  const check = () => {
+    if (!navigator.onLine) return;
+    sw.getRegistration().then(reg => {
+      if (!reg) return;
+      reg.update().catch(() => {});                       // picks up a changed sw.js
+      if (sw.controller) sw.controller.postMessage({ type: 'check-update' });  // and changed app files
+    });
+  };
+
+  window.addEventListener('load', () => sw.register('sw.js').then(check).catch(() => {}));
+  // A new service worker took over: its files are new, so reload into them.
+  const hadController = !!sw.controller;
+  sw.addEventListener('controllerchange', () => { if (hadController) updateReady(); });
+  sw.addEventListener('message', e => { if (e.data && e.data.type === 'updated') updateReady(); });
+
+  // Check whenever the app comes back on screen, comes back online, and every
+  // half hour while it stays open; apply a waiting update once it is safe.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') check(); else applyUpdate();
   });
+  window.addEventListener('online', check);
+  setInterval(() => { if (document.visibilityState === 'visible') check(); }, 30 * 60 * 1000);
+  document.addEventListener('pointerdown', () => { touching = true; }, true);
+  const lift = () => { touching = false; setTimeout(applyUpdate, 300); };
+  document.addEventListener('pointerup', lift, true);
+  document.addEventListener('pointercancel', lift, true);
+  window.addEventListener('hashchange', () => setTimeout(applyUpdate, 0));
 }
 
 render();
