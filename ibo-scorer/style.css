@@ -22,6 +22,11 @@
   --s5: var(--hill);
   --s0: #8fa3bf;
 
+  /* Vegas face rings */
+  --vg: #f5c84c;           /* gold: X, 10, 9 */
+  --vr: #ef5350;           /* red: 8, 7 */
+  --vb: #42a5f5;           /* blue: 6 */
+
   --display: "Roboto Condensed", "sans-serif-condensed", "Arial Narrow", system-ui, sans-serif;
   --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
@@ -127,6 +132,9 @@ h2 {
 .scores-line { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .scores-line b { font-family: var(--display); font-size: 1.2rem; color: var(--cloud); }
 
+.badge.type { background: transparent; color: var(--haze); border: 1px solid var(--line); font-weight: 700; }
+.meta .badge.type { margin-left: 0; }
+
 /* ---------- forms ---------- */
 input[type=text], input:not([type]) {
   width: 100%; min-height: 52px; padding: 10px 14px;
@@ -156,6 +164,17 @@ input::placeholder { color: #7f95b5; }
   background: var(--ridge); font-size: 2rem; font-weight: 800;
 }
 .stepper span { font-family: var(--display); font-size: 2.6rem; font-weight: 800; min-width: 64px; text-align: center; }
+
+/* round type picker */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg button {
+  min-height: 64px; padding: 10px 12px; border-radius: 14px; text-align: left;
+  border: 2px solid var(--line); background: var(--ridge);
+}
+.seg b { display: block; font-family: var(--display); font-size: 1.3rem; }
+.seg span { display: block; color: var(--haze); font-size: .85rem; }
+.seg .on { border-color: var(--arrow); background: linear-gradient(160deg, rgba(242, 98, 26, .25), var(--ridge) 70%); }
+.seg .on span { color: var(--cloud); }
 
 /* ---------- scoring ---------- */
 .strip {
@@ -208,6 +227,25 @@ input::placeholder { color: #7f95b5; }
 }
 .dock .big { margin: 0; }
 
+/* Vegas: three arrow slots plus a 7-value pad */
+.vrow.full { --rowc: var(--meadow); }
+.slots { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.slot {
+  width: 56px; height: 52px; border-radius: 12px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  font-family: var(--display); font-size: 1.6rem; font-weight: 800;
+  border: 2px solid var(--c, var(--line)); background: var(--c, var(--ridge-2)); color: var(--night);
+}
+.slot.empty { border-style: dashed; background: transparent; }
+.slot.next { border-color: var(--arrow); border-style: solid; }
+.endtot { margin-left: auto; text-align: right; font-family: var(--display); font-size: 1.7rem; font-weight: 800; line-height: 1; }
+.endtot small { display: block; font-size: .8rem; color: var(--haze); font-weight: 700; }
+.vbtns { grid-template-columns: repeat(4, 1fr); }
+.vbtns .s { height: 58px; font-size: 1.7rem; }
+.vbtns .s:last-child { grid-column: span 2; }
+.vbtns .s:active:not(:disabled) { background: var(--c); color: var(--night); }
+.rg { --c: var(--vg); } .rr { --c: var(--vr); } .rb { --c: var(--vb); } .rm { --c: var(--s0); }
+
 /* ---------- tables ---------- */
 .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
 .meta strong { font-size: 1.15rem; }
@@ -225,6 +263,10 @@ td.v8 { color: var(--s8); font-weight: 800; }
 td.v5 { color: var(--s5); font-weight: 800; }
 td.v0 { color: var(--s0); }
 td.vnull { color: #5e7699; }
+td.vend { font-size: 1rem; }
+td.vend .arr { display: inline-flex; gap: 5px; margin-right: 8px; }
+td.vend i { font-style: normal; color: var(--c, var(--haze)); font-weight: 800; min-width: 1.1em; }
+td.vend b { font-size: 1.2rem; }
 tr.first td { color: var(--arrow-hi); }
 .rank1 { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--arrow); color: var(--night); font-weight: 800; }
 
@@ -232,7 +274,9 @@ tr.first td { color: var(--arrow-hi); }
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .tile { background: var(--ridge); border: 2px solid var(--line); border-radius: 16px; padding: 12px 14px; }
 .tile.pb { border-top: 5px solid var(--arrow); }
+.tile.pb.vegas { border-top-color: var(--vg); }
 .tile.eleven { border-top: 5px solid var(--sky); }
+h2 small { font-size: .85rem; font-weight: 600; }
 .tile .k { color: var(--haze); font-size: .92rem; font-weight: 700; }
 .tile .v { font-family: var(--display); font-size: 2.4rem; font-weight: 800; line-height: 1.1; }
 .tile .d { color: var(--haze); font-size: .85rem; }

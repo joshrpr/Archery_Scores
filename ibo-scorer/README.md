@@ -1,6 +1,6 @@
 # Ropers Archery Scorecard
 
-An offline IBO 3D archery scorecard for Android, as an installable web app (PWA). One phone scores a whole group. All data stays on the phone.
+An offline IBO 3D and Vegas 300 archery scorecard for Android, as an installable web app (PWA). One phone scores a whole group. All data stays on the phone.
 
 ## Put it on GitHub Pages (one time, about 5 minutes)
 
@@ -25,6 +25,7 @@ Upload the changed files to the same repo (they replace the old ones). The next 
 ## Good to know
 
 - Scores, archers and stats are saved only in this app's storage on the phone. Uninstalling the app or clearing Chrome's site data for it erases them. The app asks Android to keep its storage persistent, so automatic cleanup won't remove it.
-- Only finished rounds count toward personal bests and stats.
+- Pick **IBO 3D** or **Vegas 300** when you start a round. Vegas is 10 ends of 3 arrows scored X, 10 to 6 and M; X counts 10 and breaks ties. Tap a score to fill the next arrow, and tap an arrow to clear it.
+- Only finished rounds count toward personal bests and stats. Vegas 300 bests are kept separate from IBO bests.
 - Tap a score again to clear it. Blank targets count as 0 (miss) when you finish a round.
 - The screen stays on while you're on the scoring screen.

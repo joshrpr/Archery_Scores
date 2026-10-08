@@ -7,11 +7,17 @@
 
 const KEY = 'ibo-scorer-v1';
 const VALUES = [11, 10, 8, 5, 0];           // IBO scoring; 0 = miss
+const VEGAS_VALUES = ['X', 10, 9, 8, 7, 6, 0]; // Vegas 300; X scores 10, 0 = miss
+const VEGAS_ENDS = 10, VEGAS_ARROWS = 3;
 const label = v => (v === 0 ? 'M' : String(v));
+const points = v => (v === 'X' ? 10 : v);
+// Vegas face colour for a value: gold (X-9), red (8-7), blue (6), miss.
+const ring = v => (v === 'X' || v >= 9 ? 'g' : v >= 7 ? 'r' : v === 6 ? 'b' : 'm');
 const SERIES_COLORS = ['#2f96eb', '#f2621a', '#6faf2f', '#d8bc84', '#ff6b6b', '#c792ff'];
 
 const app = document.getElementById('app');
 let db = load();
+if (migrate(db)) save();
 let draft = null;        // new-round form state
 let wakeLock = null;
 let lastPath = null;
@@ -23,6 +29,12 @@ function load() {
     if (d && Array.isArray(d.archers) && Array.isArray(d.rounds)) return d;
   } catch (e) { /* fall through */ }
   return { archers: [], rounds: [] };
+}
+// Rounds saved before round types existed are IBO rounds.
+function migrate(d) {
+  let changed = false;
+  for (const r of d.rounds) if (!r.type) { r.type = 'ibo'; changed = true; }
+  return changed;
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); }
@@ -45,21 +57,35 @@ const fmtDate = ts => new Date(ts).toLocaleDateString(undefined,
   { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const fmtShort = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
+/* ---------- round types ---------- */
+const isVegas = r => r.type === 'vegas';
+const typeName = r => (isVegas(r) ? 'Vegas 300' : 'IBO 3D');
+const unit = r => (isVegas(r) ? 'End' : 'Target');
+const unitsLabel = r => (isVegas(r) ? `${r.targets} ends` : `${r.targets} targets`);
+const bonusLabel = r => (isVegas(r) ? 'Xs' : '11s');
+const bonusMark = r => (isVegas(r) ? 'X' : '11');
+// One target (IBO) or one end (Vegas) is complete for an archer.
+const slotDone = (r, aid, i) => (isVegas(r)
+  ? r.scores[aid][i].every(v => v != null)
+  : r.scores[aid][i] != null);
+const endTotal = end => end.reduce((s, v) => s + (v == null ? 0 : points(v)), 0);
+
 function tally(r, aid) {
-  let total = 0, elevens = 0, scored = 0;
-  for (const v of r.scores[aid] || []) {
-    if (v != null) { total += v; scored++; if (v === 11) elevens++; }
+  let total = 0, elevens = 0, xs = 0, scored = 0;
+  const arrows = isVegas(r) ? (r.scores[aid] || []).flat() : r.scores[aid] || [];
+  for (const v of arrows) {
+    if (v != null) { total += points(v); scored++; if (v === 11) elevens++; if (v === 'X') xs++; }
   }
-  return { total, elevens, scored };
+  return { total, elevens, xs, scored, bonus: isVegas(r) ? xs : elevens };
 }
 
-// Highest total first, 11s as tiebreak; equal total+11s share a rank.
+// Highest total first, 11s (IBO) or Xs (Vegas) as tiebreak; equal total+bonus share a rank.
 function ranking(r) {
   const rows = r.archerIds.map(id => ({ id, ...tally(r, id) }))
-    .sort((a, b) => b.total - a.total || b.elevens - a.elevens);
+    .sort((a, b) => b.total - a.total || b.bonus - a.bonus);
   rows.forEach((row, i) => {
     const prev = rows[i - 1];
-    row.rank = prev && prev.total === row.total && prev.elevens === row.elevens ? prev.rank : i + 1;
+    row.rank = prev && prev.total === row.total && prev.bonus === row.bonus ? prev.rank : i + 1;
   });
   return rows;
 }
@@ -68,7 +94,7 @@ function gapsOf(r) {
   const gaps = [];
   for (const aid of r.archerIds) {
     const missing = [];
-    r.scores[aid].forEach((v, i) => { if (v == null) missing.push(i + 1); });
+    r.scores[aid].forEach((_, i) => { if (!slotDone(r, aid, i)) missing.push(i + 1); });
     if (missing.length) gaps.push({ aid, missing });
   }
   return gaps;
@@ -203,7 +229,7 @@ function viewHome() {
     <button class="big primary" data-action="new-round">Start new round</button>
     ${open.length ? `<h2>Pick up where you left off</h2>` + open.map(r => `
       <button class="card-row resume" data-action="nav" data-to="#/round/${r.id}">
-        <div class="title">Target ${r.current + 1} of ${r.targets}</div>
+        <div class="title">${unit(r)} ${r.current + 1} of ${r.targets}<span class="badge type">${typeName(r)}</span></div>
         <div>${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
         <div class="muted small">${fmtDate(r.createdAt)}${r.note ? `, ${esc(r.note)}` : ''}</div>
       </button>`).join('') : ''}
@@ -215,11 +241,23 @@ function viewHome() {
 }
 
 function viewNew() {
-  if (!draft) draft = { selected: [], targets: 20, note: '' };
+  if (!draft) {
+    const last = [...db.rounds].sort((a, b) => b.createdAt - a.createdAt)[0];
+    draft = { selected: [], targets: 20, note: '', type: last && isVegas(last) ? 'vegas' : 'ibo' };
+  }
+  const vegas = draft.type === 'vegas';
   draft.selected = draft.selected.filter(id => { const a = archerById(id); return a && !a.deleted; });
   const list = activeArchers();
   return `${header('New round', '#/')}
   <main>
+    <h2>Round</h2>
+    <div class="seg" role="radiogroup" aria-label="Round type">
+      <button role="radio" aria-checked="${!vegas}" class="${vegas ? '' : 'on'}" data-action="draft-type" data-type="ibo">
+        <b>IBO 3D</b><span>11, 10, 8, 5</span></button>
+      <button role="radio" aria-checked="${vegas}" class="${vegas ? 'on' : ''}" data-action="draft-type" data-type="vegas">
+        <b>Vegas 300</b><span>10 ends × 3 arrows</span></button>
+    </div>
+
     <h2>Archers</h2>
     <p class="muted small">Tap archers in shooting order.</p>
     <div class="pick">
@@ -234,13 +272,15 @@ function viewNew() {
       <button class="btn">Add</button>
     </form>
 
+    ${vegas ? `
+    <p class="muted small">Vegas 300: ${VEGAS_ENDS} ends of ${VEGAS_ARROWS} arrows, scored X, 10 to 6 and M. X counts 10 and breaks ties.</p>` : `
     <h2>Targets</h2>
     <div class="stepper">
       <button data-action="draft-targets" data-d="-1" aria-label="Fewer targets">−</button>
       <span>${draft.targets}</span>
       <button data-action="draft-targets" data-d="1" aria-label="More targets">+</button>
     </div>
-    <p class="muted small">You can also add or remove targets during the round.</p>
+    <p class="muted small">You can also add or remove targets during the round.</p>`}
 
     <h2>Note (optional)</h2>
     <input data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
@@ -258,43 +298,73 @@ function viewRound(id) {
   const editing = r.status === 'finished';
   const isLast = t === r.targets - 1;
 
+  const vegas = isVegas(r);
   const chips = Array.from({ length: r.targets }, (_, i) => {
-    const done = r.archerIds.every(aid => r.scores[aid][i] != null);
+    const done = r.archerIds.every(aid => slotDone(r, aid, i));
     return `<button class="chip ${i === t ? 'cur' : done ? 'done' : ''}" data-action="jump" data-t="${i}">${i + 1}</button>`;
   }).join('');
 
-  const rows = r.archerIds.map(aid => {
-    const { total, elevens } = tally(r, aid);
-    const v = r.scores[aid][t];
-    return `<div class="arow" data-v="${v == null ? '' : v}">
-      <div class="ahead">
-        <span class="aname">${esc(nameOf(aid))}</span>
-        <span class="atot"><span class="elev" title="11s">${elevens}× 11</span><b>${total}</b></span>
-      </div>
-      <div class="sbtns">
-        ${VALUES.map(x => `<button class="s s${x} ${v === x ? 'sel' : ''}" data-action="score"
-            data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}">${label(x)}</button>`).join('')}
-      </div></div>`;
-  }).join('');
+  const rows = r.archerIds.map(aid => vegas ? vegasRow(r, aid, t) : iboRow(r, aid, t)).join('');
 
-  return `${header(`Target ${t + 1} <small>of ${r.targets}${editing ? ', editing' : ''}</small>`,
+  return `${header(`${unit(r)} ${t + 1} <small>of ${r.targets}${editing ? ', editing' : ''}</small>`,
                    editing ? `#/card/${r.id}` : '#/')}
   <nav class="strip">${chips}</nav>
   <main class="with-dock">
     ${rows}
-    <div class="grid3">
+    ${vegas
+      ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
+      : `<div class="grid3">
       <button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>
       <button class="btn" data-action="add-target">+ Target</button>
       <button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
-    </div>
+    </div>`}
     <button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
   </main>
   <div class="dock">
     <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
-    ${isLast
-      ? `<button class="big primary" data-action="add-target">+ Add target</button>`
-      : `<button class="big primary" data-action="move" data-d="1">Next ▶</button>`}
+    ${!isLast
+      ? `<button class="big primary" data-action="move" data-d="1">Next ▶</button>`
+      : vegas
+        ? `<button class="big go" data-action="finish">${editing ? 'Done editing' : 'Finish'}</button>`
+        : `<button class="big primary" data-action="add-target">+ Add target</button>`}
   </div>`;
+}
+
+function iboRow(r, aid, t) {
+  const { total, elevens } = tally(r, aid);
+  const v = r.scores[aid][t];
+  return `<div class="arow" data-v="${v == null ? '' : v}">
+    <div class="ahead">
+      <span class="aname">${esc(nameOf(aid))}</span>
+      <span class="atot"><span class="elev" title="11s">${elevens}× 11</span><b>${total}</b></span>
+    </div>
+    <div class="sbtns">
+      ${VALUES.map(x => `<button class="s s${x} ${v === x ? 'sel' : ''}" data-action="score"
+          data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}">${label(x)}</button>`).join('')}
+    </div></div>`;
+}
+
+// Vegas: three arrow slots per end. Score buttons fill the next empty slot;
+// tapping a filled slot clears it so it can be re-entered.
+function vegasRow(r, aid, t) {
+  const { total, xs } = tally(r, aid);
+  const end = r.scores[aid][t];
+  const next = end.indexOf(null);
+  const full = next < 0;
+  const slots = end.map((v, k) => v == null
+    ? `<span class="slot empty ${k === next ? 'next' : ''}" aria-label="Arrow ${k + 1} not scored"></span>`
+    : `<button class="slot r${ring(v)}" data-action="vclear" data-aid="${aid}" data-k="${k}"
+        aria-label="Arrow ${k + 1}: ${label(v)}. Tap to clear">${label(v)}</button>`).join('');
+  return `<div class="arow vrow ${full ? 'full' : ''}">
+    <div class="ahead">
+      <span class="aname">${esc(nameOf(aid))}</span>
+      <span class="atot"><span class="elev" title="Xs">${xs}× X</span><b>${total}</b></span>
+    </div>
+    <div class="slots">${slots}<span class="endtot"><small>End</small>${endTotal(end)}</span></div>
+    <div class="sbtns vbtns">
+      ${VEGAS_VALUES.map(x => `<button class="s r${ring(x)}" data-action="vscore"
+          data-aid="${aid}" data-v="${x}" ${full ? 'disabled' : ''}>${label(x)}</button>`).join('')}
+    </div></div>`;
 }
 
 function viewCard(id) {
@@ -302,30 +372,34 @@ function viewCard(id) {
   if (!r) { go('#/history'); return null; }
   const finished = r.status === 'finished';
   const rank = ranking(r);
+  const vegas = isVegas(r);
   const cell = v => `<td class="v${v == null ? 'null' : v}">${v == null ? '–' : label(v)}</td>`;
+  const endCell = end => end.every(v => v == null) ? '<td class="vnull">–</td>'
+    : `<td class="vend"><span class="arr">${end.map(v => v == null ? '<i>·</i>'
+        : `<i class="r${ring(v)}">${label(v)}</i>`).join('')}</span><b>${endTotal(end)}</b></td>`;
 
   return `${header(finished ? 'Scorecard' : 'Scorecard <small>in progress</small>',
                    finished ? '#/history' : `#/round/${r.id}`)}
   <main>
     <div class="meta"><strong>${fmtDate(r.createdAt)}</strong>${r.note ? `<span>${esc(r.note)}</span>` : ''}
-      <span class="muted">${r.targets} targets</span></div>
+      <span class="badge type">${typeName(r)}</span><span class="muted">${unitsLabel(r)}</span></div>
 
     <h2>Standings</h2>
     <div class="tablewrap"><table>
-      <thead><tr><th>#</th><th class="name">Archer</th><th>Total</th><th>11s</th></tr></thead>
+      <thead><tr><th>#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
       <tbody>${rank.map(x => `<tr class="${x.rank === 1 && finished ? 'first' : ''}">
-        <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.elevens}</td></tr>`).join('')}
+        <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
       </tbody></table></div>
 
     <h2>Card</h2>
     <div class="tablewrap"><table>
-      <thead><tr><th>Tgt</th>${r.archerIds.map(aid => `<th>${esc(nameOf(aid))}</th>`).join('')}</tr></thead>
+      <thead><tr><th>${vegas ? 'End' : 'Tgt'}</th>${r.archerIds.map(aid => `<th>${esc(nameOf(aid))}</th>`).join('')}</tr></thead>
       <tbody>${Array.from({ length: r.targets }, (_, i) =>
-        `<tr><td class="muted" style="font-size:1rem">${i + 1}</td>${r.archerIds.map(aid => cell(r.scores[aid][i])).join('')}</tr>`).join('')}
+        `<tr><td class="muted" style="font-size:1rem">${i + 1}</td>${r.archerIds.map(aid => (vegas ? endCell : cell)(r.scores[aid][i])).join('')}</tr>`).join('')}
       </tbody>
       <tfoot>
         <tr><td class="name">Total</td>${r.archerIds.map(aid => `<td>${tally(r, aid).total}</td>`).join('')}</tr>
-        <tr><td class="name">11s</td>${r.archerIds.map(aid => `<td>${tally(r, aid).elevens}</td>`).join('')}</tr>
+        <tr><td class="name">${bonusLabel(r)}</td>${r.archerIds.map(aid => `<td>${tally(r, aid).bonus}</td>`).join('')}</tr>
       </tfoot></table></div>
 
     ${finished
@@ -349,7 +423,7 @@ function viewHistory() {
         : r.archerIds.map(id => `<span>${esc(nameOf(id))}</span>`).join('');
       return `<button class="card-row" data-action="nav" data-to="${finished ? '#/card/' : '#/round/'}${r.id}">
         <div class="title">${fmtDate(r.createdAt)}${finished ? '' : '<span class="badge">In progress</span>'}</div>
-        <div class="muted small">${r.note ? esc(r.note) + ', ' : ''}${r.targets} targets</div>
+        <div class="muted small">${typeName(r)}, ${r.note ? esc(r.note) + ', ' : ''}${unitsLabel(r)}</div>
         <div class="scores-line">${summary}</div>
       </button>`;
     }).join('') : '<p class="empty">No rounds yet.</p>'}
@@ -360,14 +434,21 @@ function archerRounds(id) {
   return db.rounds
     .filter(r => r.status === 'finished' && r.archerIds.includes(id))
     .sort((a, b) => a.createdAt - b.createdAt)
-    .map(r => ({ r, n: r.targets, ...tally(r, id) }));
+    .map(r => ({ r, n: r.targets, vegas: isVegas(r), ...tally(r, id) }))
+    .map(x => ({ ...x, key: x.vegas ? 'vegas' : 'ibo-' + x.n, what: x.vegas ? 'Vegas 300' : `${x.n} targets` }));
 }
 
+// Best per round kind: Vegas 300 is kept apart from each IBO target count.
+// Ties on total go to the higher 11s / Xs count.
 function personalBests(rows) {
   const best = {};
-  for (const x of rows) if (!best[x.n] || x.total > best[x.n].total) best[x.n] = x;
-  return Object.keys(best).map(Number).sort((a, b) => a - b).map(n => best[n]);
+  for (const x of rows) {
+    const b = best[x.key];
+    if (!b || x.total > b.total || (x.total === b.total && x.bonus > b.bonus)) best[x.key] = x;
+  }
+  return Object.values(best).sort((a, b) => a.vegas - b.vegas || a.n - b.n);
 }
+const markOf = x => (x.vegas ? 'X' : '11');
 
 function viewArchers() {
   const list = activeArchers();
@@ -379,7 +460,7 @@ function viewArchers() {
     </form>
     ${list.length ? list.map(a => {
       const rows = archerRounds(a.id);
-      const pbs = personalBests(rows).map(x => `<span>Best ${x.n}-target <b>${x.total}</b></span>`).join('');
+      const pbs = personalBests(rows).map(x => `<span>Best ${x.vegas ? 'Vegas 300' : `${x.n}-target`} <b>${x.total}</b></span>`).join('');
       return `<button class="card-row" data-action="nav" data-to="#/archer/${a.id}">
         <div class="title">${esc(a.name)}</div>
         <div class="muted small">${rows.length} finished round${rows.length === 1 ? '' : 's'}</div>
@@ -394,29 +475,34 @@ function viewArcher(id) {
   if (!a || a.deleted) { go('#/archers'); return null; }
   const rows = archerRounds(id);
   const pbs = personalBests(rows);
-  const total11 = rows.reduce((s, x) => s + x.elevens, 0);
-  const best11 = rows.reduce((b, x) => (!b || x.elevens > b.elevens ? x : b), null);
+  const kinds = [false, true].map(vegas => rows.filter(x => x.vegas === vegas)).filter(k => k.length);
+  const bonusTiles = list => {
+    const sum = list.reduce((s, x) => s + x.bonus, 0);
+    const top = list.reduce((b, x) => (!b || x.bonus > b.bonus ? x : b), null);
+    const m = markOf(list[0]);
+    return `<h2>${m}s${kinds.length > 1 ? ` <small class="muted">${list[0].vegas ? 'Vegas 300' : 'IBO 3D'}</small>` : ''}</h2>
+    <div class="tiles">
+      <div class="tile eleven"><div class="k">Total ${m}s</div><div class="v">${sum}</div>
+        <div class="d">over ${list.length} round${list.length === 1 ? '' : 's'}</div></div>
+      <div class="tile eleven"><div class="k">Best in one round</div><div class="v">${top.bonus}</div>
+        <div class="d">${fmtShort(top.r.createdAt)}</div></div>
+    </div>`;
+  };
 
   return `${header(esc(a.name), '#/archers')}
   <main>
     ${rows.length ? `
     <h2>Personal bests</h2>
     <div class="tiles">
-      ${pbs.map(x => `<div class="tile pb"><div class="k">${x.n} targets</div>
-        <div class="v">${x.total}</div><div class="d">${x.elevens}× 11, ${fmtShort(x.r.createdAt)}</div></div>`).join('')}
+      ${pbs.map(x => `<div class="tile pb ${x.vegas ? 'vegas' : ''}"><div class="k">${x.what}</div>
+        <div class="v">${x.total}</div><div class="d">${x.bonus}× ${markOf(x)}, ${fmtShort(x.r.createdAt)}</div></div>`).join('')}
     </div>
-    <h2>11s</h2>
-    <div class="tiles">
-      <div class="tile eleven"><div class="k">Total 11s</div><div class="v">${total11}</div>
-        <div class="d">over ${rows.length} round${rows.length === 1 ? '' : 's'}</div></div>
-      <div class="tile eleven"><div class="k">Best in one round</div><div class="v">${best11.elevens}</div>
-        <div class="d">${fmtShort(best11.r.createdAt)}</div></div>
-    </div>
-    <h2>Trend</h2>
-    ${trendChart(rows)}
+    ${kinds.map(bonusTiles).join('')}
+    ${kinds.map(list => `<h2>${kinds.length > 1 ? (list[0].vegas ? 'Vegas 300 trend' : 'IBO trend') : 'Trend'}</h2>
+    ${trendChart(list)}`).join('')}
     <h2>Rounds</h2>
     ${[...rows].reverse().map(x => `<button class="card-row" data-action="nav" data-to="#/card/${x.r.id}">
-      <div class="scores-line"><b>${x.total}</b><span class="muted">${x.elevens}× 11</span><span class="muted">${x.n} targets</span></div>
+      <div class="scores-line"><b>${x.total}</b><span class="muted">${x.bonus}× ${markOf(x)}</span><span class="muted">${x.what}</span></div>
       <div class="muted small">${fmtDate(x.r.createdAt)}${x.r.note ? ', ' + esc(x.r.note) : ''}</div>
     </button>`).join('')}`
     : '<p class="empty">No finished rounds yet. Stats appear here after a round is finished.</p>'}
@@ -429,7 +515,7 @@ function viewArcher(id) {
   </main>`;
 }
 
-// Raw totals over time, one line per target count.
+// Raw totals over time, one line per round kind (target count, or Vegas 300).
 function trendChart(rows) {
   if (rows.length < 2) return '<p class="muted">Finish at least two rounds to see a trend.</p>';
   const W = 360, H = 220, L = 42, R = 12, T = 14, B = 34;
@@ -440,15 +526,16 @@ function trendChart(rows) {
   const x = i => L + (rows.length === 1 ? 0 : i * (W - L - R) / (rows.length - 1));
   const y = v => T + (hi - v) * (H - T - B) / (hi - lo);
 
-  const counts = [...new Set(rows.map(r => r.n))].sort((a, b) => a - b);
+  const counts = [...new Set(rows.map(r => r.key))];
   const color = n => SERIES_COLORS[counts.indexOf(n) % SERIES_COLORS.length];
+  const what = n => rows.find(r => r.key === n).what;
 
   const ticks = [lo, Math.round((lo + hi) / 2), hi];
   const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
     <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${v}</text>`).join('');
 
   const series = counts.map(n => {
-    const pts = rows.map((r, i) => ({ r, i })).filter(p => p.r.n === n);
+    const pts = rows.map((r, i) => ({ r, i })).filter(p => p.r.key === n);
     const path = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.r.total).toFixed(1)}`).join(' ');
     return `<path d="${path}" fill="none" stroke="${color(n)}" stroke-width="3" stroke-linejoin="round"/>` +
       pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#16325c" stroke-width="2">
@@ -460,7 +547,7 @@ function trendChart(rows) {
 
   return `<div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Round totals over time">${grid}${series}${xl}</svg>
-    <div class="legend">${counts.map(n => `<span><i style="background:${color(n)}"></i>${n} targets</span>`).join('')}</div>
+    <div class="legend">${counts.map(n => `<span><i style="background:${color(n)}"></i>${what(n)}</span>`).join('')}</div>
   </div>`;
 }
 
@@ -478,6 +565,8 @@ const actions = {
     render();
   },
 
+  'draft-type': d => { draft.type = d.type === 'vegas' ? 'vegas' : 'ibo'; render(); },
+
   'draft-targets': d => {
     draft.targets = Math.min(100, Math.max(1, draft.targets + Number(d.d)));
     render();
@@ -485,12 +574,17 @@ const actions = {
 
   'start-round': () => {
     if (!draft || !draft.selected.length) return;
+    const vegas = draft.type === 'vegas';
     const r = {
-      id: uid(), createdAt: Date.now(), note: draft.note.trim(),
-      targets: draft.targets, archerIds: [...draft.selected],
+      id: uid(), createdAt: Date.now(), note: draft.note.trim(), type: vegas ? 'vegas' : 'ibo',
+      targets: vegas ? VEGAS_ENDS : draft.targets, archerIds: [...draft.selected],
       scores: {}, current: 0, status: 'in_progress'
     };
-    r.archerIds.forEach(aid => { r.scores[aid] = Array(r.targets).fill(null); });
+    r.archerIds.forEach(aid => {
+      r.scores[aid] = vegas
+        ? Array.from({ length: VEGAS_ENDS }, () => Array(VEGAS_ARROWS).fill(null))
+        : Array(r.targets).fill(null);
+    });
     db.rounds.push(r);
     save();
     draft = null;
@@ -502,6 +596,20 @@ const actions = {
     const v = Number(d.v);
     const arr = r.scores[d.aid];
     arr[r.current] = arr[r.current] === v ? null : v;   // tap again to clear
+    save(); render();
+  },
+
+  vscore: d => {
+    const r = currentRound(); if (!r || !isVegas(r)) return;
+    const end = r.scores[d.aid][r.current];
+    const k = end.indexOf(null); if (k < 0) return;
+    end[k] = d.v === 'X' ? 'X' : Number(d.v);
+    save(); render();
+  },
+
+  vclear: d => {
+    const r = currentRound(); if (!r || !isVegas(r)) return;
+    r.scores[d.aid][r.current][Number(d.k)] = null;
     save(); render();
   },
 
@@ -518,7 +626,7 @@ const actions = {
   },
 
   'add-target': () => {
-    const r = currentRound(); if (!r) return;
+    const r = currentRound(); if (!r || isVegas(r)) return;
     r.targets++;
     r.archerIds.forEach(aid => r.scores[aid].push(null));
     r.current = r.targets - 1;
@@ -526,7 +634,7 @@ const actions = {
   },
 
   'remove-target': async () => {
-    const r = currentRound(); if (!r || r.targets <= 1) return;
+    const r = currentRound(); if (!r || isVegas(r) || r.targets <= 1) return;
     const last = r.targets - 1;
     const hasScores = r.archerIds.some(aid => r.scores[aid][last] != null);
     if (hasScores && !(await confirmBox(`Remove target ${last + 1}?`,
@@ -542,12 +650,16 @@ const actions = {
     const editing = r.status === 'finished';
     const gaps = gapsOf(r);
     if (gaps.length) {
-      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: target${g.missing.length > 1 ? 's' : ''} ${g.missing.join(', ')}</li>`).join('');
-      const ok = await confirmBox('Some targets are blank',
-        `<ul>${list}</ul><p>Blank targets will be scored as <b>0 (miss)</b>.</p>`,
+      const u = unit(r).toLowerCase();
+      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${u}${g.missing.length > 1 ? 's' : ''} ${g.missing.join(', ')}</li>`).join('');
+      const ok = await confirmBox(isVegas(r) ? 'Some arrows are blank' : 'Some targets are blank',
+        `<ul>${list}</ul><p>Blank ${isVegas(r) ? 'arrows' : 'targets'} will be scored as <b>0 (miss)</b>.</p>`,
         editing ? 'Save as 0' : 'Finish anyway');
       if (!ok) return;
-      gaps.forEach(g => g.missing.forEach(n => { r.scores[g.aid][n - 1] = 0; }));
+      gaps.forEach(g => g.missing.forEach(n => {
+        if (isVegas(r)) r.scores[g.aid][n - 1] = r.scores[g.aid][n - 1].map(v => (v == null ? 0 : v));
+        else r.scores[g.aid][n - 1] = 0;
+      }));
     } else if (!editing && !(await confirmBox('Finish round?',
         '<p>You can still edit scores afterwards from History.</p>', 'Finish'))) {
       return;
