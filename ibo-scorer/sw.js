@@ -10,6 +10,7 @@ const ASSETS = [
   './index.html',
   './style.css',
   './app.js',
+  './native.js',
   './target.js',
   './plot.js',
   './groups.js',

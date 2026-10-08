@@ -1,6 +1,6 @@
 # Ropers Archery Scorecard
 
-An offline IBO 3D and Vegas 300 archery scorecard for Android, as an installable web app (PWA). One phone scores a whole group. All data stays on the phone.
+An offline IBO 3D and Vegas 300 archery scorecard for Android, as an installable web app (PWA) and as an Android app. One phone scores a whole group. All data stays on the phone.
 
 ## Put it on GitHub Pages (one time, about 5 minutes)
 
@@ -8,7 +8,7 @@ The app lives in the `ibo-scorer` folder of the [Archery_Scores](https://github.
 
 1. Open the repository on github.com and go to **Settings → Pages**.
 2. Under **Build and deployment**, set Source to **Deploy from a branch**, Branch to **main** and folder to **/ (root)**, then click **Save**.
-3. After a minute or two the app is live at **`https://joshrpr.github.io/Archery_Scores/ibo-scorer/`**. Note the `/ibo-scorer/` on the end: the repository root has no app of its own.
+3. After a minute or two the app is live at **`https://joshrpr.github.io/Archery_Scores/ibo-scorer/`**. Note the `/ibo-scorer/` on the end: the repository root (`https://joshrpr.github.io/Archery_Scores/`) is the download page for the Android app, the one to share with friends and family.
 
 To use your own copy instead, fork the repository and follow the same steps; the address becomes `https://YOUR-USERNAME.github.io/Archery_Scores/ibo-scorer/`.
 
@@ -23,6 +23,35 @@ To use your own copy instead, fork the repository and follow the same steps; the
 Commit the changed files to the `ibo-scorer` folder on the `main` branch (they replace the old ones). There is no version number to bump. Whenever the app is opened or brought back to the screen with a connection (and every half hour while it stays open), it checks for changed files, downloads them, and reloads itself into the new version. It waits to reload until it is safe: never while a dialog is open, the new-round form is being filled in, or a finger is on the screen. GitHub Pages can take a minute or two to publish a commit, and the phone can take up to 10 minutes after that to see it.
 
 If you add a new file to the app, also add it to the `ASSETS` list in `sw.js` so it is available offline.
+
+## Android app
+
+The same app also comes as a real Android app (an APK), built from these files with [Capacitor](https://capacitorjs.com). The web app above keeps working exactly as before; use whichever you like. The app adds the phone's own haptics (a crisp tick on each ring line while plotting, a firmer tap when an arrow is placed, feedback on scoring, undo and finishing a round), a reliable keep-screen-on while scoring, and saves backups and spreadsheets through Android's share menu so they can go straight to Google Drive.
+
+### Install it
+
+1. On the phone, open **https://github.com/joshrpr/Archery_Scores/releases/latest** in Chrome and tap **ropers-archery.apk**.
+2. Open the download. Android asks to allow installs from Chrome the first time; allow it, then tap **Install**.
+3. The app is called **Ropers Archery** on the home screen.
+
+When a newer version is published, the app shows **A new version of the app is ready** at the top. Tap **Get it**, open the download and tap **Update**. Installing over the top keeps every score. Every APK is signed with the same key for this reason; uninstalling the app instead erases its scores.
+
+### Move your scores from the web app
+
+The app keeps its own storage, separate from the web app's, so scores need moving across once:
+
+1. In the **web app**, tap **Backup and export → Save backup file**, and keep the file somewhere the phone can reach (Downloads is fine, or Google Drive).
+2. In the **Android app**, tap **Moving from the web app?** on the home screen (or **Backup and export**), then **Restore from backup file** and pick that file.
+
+Nothing is removed from the web app, so you can keep it as a fallback.
+
+### How it is built
+
+Every push to `main` that changes the app runs the **Android app** workflow in GitHub Actions. It copies `ibo-scorer/` into the Android project, builds the APK and publishes it as a release tagged `android-<build>`. A pull request gets a test build on the **android-preview** pre-release instead, so a change can be tried on the phone before it is merged.
+
+To build on a computer instead, install Node 22, JDK 21 and the Android SDK, then run `npm ci && npm run apk` in the repository root; the APK lands in `android/app/build/outputs/apk/release/`. `npm run sync` then opening the `android` folder in Android Studio works too.
+
+`native.js` holds everything that behaves differently in the app; everything else is shared. The app's icon and splash screen are generated from `assets/` with `npx @capacitor/assets generate --android`. Publishing to the Play Store would need a Google Play developer account and a private signing key; the key in `android/keystore/` is only for sideloading.
 
 ## Good to know
 

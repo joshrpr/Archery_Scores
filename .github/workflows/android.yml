@@ -1,0 +1,82 @@
+# Builds the Android app from ibo-scorer/ and publishes the APK.
+#   Push to main: a GitHub release tagged android-<build>, marked latest. The
+#     app checks this to offer updates, and the phone can always download
+#     https://github.com/joshrpr/Archery_Scores/releases/latest/download/ropers-archery.apk
+#   Pull request: a test build on the "android-preview" pre-release, replaced on
+#     every push, so a change can be tried on the phone before it is merged.
+name: Android app
+
+on:
+  push:
+    branches: [main]
+    paths: ['ibo-scorer/**', 'android/**', 'scripts/**', 'package.json', 'package-lock.json', 'capacitor.config.json', '.github/workflows/android.yml']
+  pull_request:
+    paths: ['ibo-scorer/**', 'android/**', 'scripts/**', 'package.json', 'package-lock.json', 'capacitor.config.json', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install
+        run: npm ci
+
+      - name: Test the web app
+        run: npm test
+
+      - name: Copy the web app into the Android project
+        run: npm run sync
+
+      - name: Build the APK
+        working-directory: android
+        run: ./gradlew assembleRelease -PbuildNumber=${{ github.run_number }} --no-daemon
+
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk ropers-archery.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ropers-archery-build-${{ github.run_number }}
+          path: ropers-archery.apk
+
+      - name: Publish release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "android-${{ github.run_number }}" ropers-archery.apk \
+            --target "${{ github.sha }}" --latest \
+            --title "Ropers Archery app, build ${{ github.run_number }}" \
+            --notes "Install on the phone: open this page in Chrome, tap ropers-archery.apk, then open the download and tap Install (Update if the app is already on the phone). Your scores stay in place when installing over the top."
+
+      - name: Publish test build for this pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          gh release delete android-preview --cleanup-tag --yes || true
+          gh release create android-preview ropers-archery.apk \
+            --target "${{ github.event.pull_request.head.sha }}" --prerelease \
+            --title "Test build: $PR_TITLE" \
+            --notes "Test build ${{ github.run_number }} from pull request #${{ github.event.pull_request.number }}. Install it the same way as a normal release; it installs over the app and keeps your scores."
