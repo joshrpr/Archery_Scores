@@ -52,6 +52,61 @@ const Target = (() => {
     return { n, cx, cy, offset: Math.hypot(cx, cy), spread, meanR };
   }
 
+  // Outlier trimming: drop the arrow farthest from the group centre, recompute
+  // the centre, and repeat n times. Returns the arrows kept and those dropped
+  // (in the order they were dropped).
+  function trim(pts, n) {
+    const kept = (pts || []).filter(Boolean);
+    const removed = [];
+    for (let i = 0; i < n && kept.length > 1; i++) {
+      const g = group(kept);
+      let far = 0;
+      kept.forEach((q, j) => {
+        if (Math.hypot(q.x - g.cx, q.y - g.cy) > Math.hypot(kept[far].x - g.cx, kept[far].y - g.cy)) far = j;
+      });
+      removed.push(kept.splice(far, 1)[0]);
+    }
+    return { kept, removed };
+  }
+
+  // Convex hull (Andrew's monotone chain), counter-clockwise, no repeated point.
+  function hull(pts) {
+    const p = [...(pts || []).filter(Boolean)].sort((a, b) => a.x - b.x || a.y - b.y);
+    if (p.length < 3) return p;
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lower = [], upper = [];
+    for (const q of p) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop();
+      lower.push(q);
+    }
+    for (const q of [...p].reverse()) {
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop();
+      upper.push(q);
+    }
+    return lower.slice(0, -1).concat(upper.slice(0, -1));
+  }
+
+  // Shot density on a size x size grid covering [-view, view] cm, as a
+  // Gaussian kernel sum normalised to 0..1. Used to paint the heatmap.
+  function density(pts, view, size, sigma) {
+    const p = (pts || []).filter(Boolean);
+    const out = new Float32Array(size * size);
+    const step = (view * 2) / size, k = -1 / (2 * sigma * sigma);
+    let max = 0;
+    for (let j = 0; j < size; j++) {
+      const y = -view + (j + 0.5) * step;
+      for (let i = 0; i < size; i++) {
+        const x = -view + (i + 0.5) * step;
+        let d = 0;
+        for (const q of p) { const dx = x - q.x, dy = y - q.y; d += Math.exp((dx * dx + dy * dy) * k); }
+        out[j * size + i] = d;
+        if (d > max) max = d;
+      }
+    }
+    if (max) for (let i = 0; i < out.length; i++) out[i] /= max;
+    return out;
+  }
+
   // Compass-style direction of the group centre, e.g. "high left". Empty when centred.
   function direction(cx, cy, dead = 0.5) {
     const v = cy < -dead ? 'high' : cy > dead ? 'low' : '';
@@ -64,7 +119,7 @@ const Target = (() => {
   /* ---------- drawing ---------- */
   const f = v => +v.toFixed(2);
 
-  // opts.arrows: [{x, y, label?, color?, cls?}]; opts.showGroup: result of group() to mark the centre.
+  // opts.arrows: [{x, y, label?, color?, cls?, r?}]; opts.showGroup: result of group() to mark the centre.
   // opts.view: half-width shown in cm (defaults to the whole face); smaller zooms in.
   function faceSvg({ arrows = [], showGroup = null, cls = '', ariaLabel = 'Target face', view = VIEW_R } = {}) {
     const rings = [...RINGS].reverse().map(ring =>
@@ -74,8 +129,8 @@ const Target = (() => {
     const labels = RINGS.slice(1).map(ring =>
       `<text x="0" y="${f(-ring.r + 0.75)}" class="tf-ring">${ring.score}</text>`).join('');
     const dots = arrows.map(a => `<g class="tf-arrow ${a.cls || ''}">
-        <circle cx="${f(a.x)}" cy="${f(a.y)}" r="${ARROW_R + 0.12}" fill="${a.color || '#0e2240'}" stroke="#fff" stroke-width="0.12"/>
-        ${a.label != null ? `<text x="${f(a.x)}" y="${f(a.y + 0.22)}" class="tf-num">${a.label}</text>` : ''}
+        <circle cx="${f(a.x)}" cy="${f(a.y)}" r="${a.r || ARROW_R + 0.12}" fill="${a.color || '#0e2240'}" stroke="#fff" stroke-width="0.12"/>
+        ${a.label != null ? `<text x="${f(a.x)}" y="${f(a.y + (a.r ? 0.3 : 0.22))}" class="tf-num${a.r ? ' big' : ''}">${a.label}</text>` : ''}
       </g>`).join('');
     const g = showGroup ? `<g class="tf-group">
         <circle cx="${f(showGroup.cx)}" cy="${f(showGroup.cy)}" r="${f(Math.max(showGroup.meanR, 0.2))}"
@@ -106,7 +161,7 @@ const Target = (() => {
     };
   }
 
-  return { RINGS, X_R, FACE_R, VIEW_R, ARROW_R, scoreAt, group, direction, fmtCm, faceSvg, fit, toCm };
+  return { RINGS, X_R, FACE_R, VIEW_R, ARROW_R, scoreAt, group, trim, hull, density, direction, fmtCm, faceSvg, fit, toCm };
 })();
 
 if (typeof module !== 'undefined') module.exports = Target;
