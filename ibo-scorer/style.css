@@ -288,6 +288,22 @@ h2 small { font-size: .85rem; font-weight: 600; }
 .legend { display: flex; flex-wrap: wrap; gap: 16px; padding: 6px 8px 2px; font-weight: 700; font-size: .95rem; }
 .legend i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; }
 
+/* ---------- Android app: new version available ---------- */
+.app-update {
+  position: fixed; left: 12px; right: 12px; z-index: 40;
+  top: calc(env(safe-area-inset-top) + 10px);
+  display: flex; align-items: center; gap: 10px;
+  max-width: 520px; margin: 0 auto; padding: 10px 10px 10px 14px;
+  background: var(--ridge-2); border: 2px solid var(--line); border-left: 5px solid var(--arrow);
+  border-radius: 14px; box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  font-weight: 700; animation: rise .18s ease-out;
+}
+.app-update span { flex: 1; }
+.app-update .btn { width: auto; min-height: 0; padding: 8px 14px; color: var(--night); text-decoration: none; }
+.app-update-x {
+  background: none; border: 0; color: var(--haze); font-size: 1.1rem; padding: 6px; cursor: pointer;
+}
+
 /* ---------- modal ---------- */
 .modal-wrap {
   position: fixed; inset: 0; z-index: 50; background: rgba(6, 16, 32, .78);

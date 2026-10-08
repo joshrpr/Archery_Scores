@@ -17,7 +17,6 @@ const Plot = (() => {
   // ramping up to 1:1 for quick moves so big corrections are still easy.
   const FINE = 0.4, FAST_PX = 14;
 
-  const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { /* unsupported */ } };
   const scoreText = s => (s.x ? 'X' : s.score ? String(s.score) : 'M');
 
   // Attach to every face inside root that has data-plot set.
@@ -68,7 +67,7 @@ const Plot = (() => {
 
       const score = scoreText(Target.scoreAt(x, y));
       if (score !== s.score) {
-        if (s.score != null) buzz(4);          // a tick each time a line is crossed
+        if (s.score != null) Native.haptic.tick();   // a tick each time a line is crossed
         s.score = score;
         readout.textContent = score;
         box.dataset.ring = score;
@@ -109,6 +108,7 @@ const Plot = (() => {
         cmPerPx: (Target.VIEW_R * 2) / svg.getBoundingClientRect().width
       };
       s.ui.box.style.width = s.ui.box.style.height = LOUPE_PX + 'px';
+      Native.haptic.dragStart();
       paint();
       requestAnimationFrame(() => s && s.ui.box.classList.add('on'));
     };
@@ -129,8 +129,9 @@ const Plot = (() => {
       const { ui, pt } = s;
       s = null;
       ui.marker.remove(); ui.box.remove();
+      Native.haptic.dragEnd();
       if (cancelled) return;
-      buzz(12);
+      Native.haptic.place();
       onPlace(svg.dataset, { x: Math.round(pt.x * 100) / 100, y: Math.round(pt.y * 100) / 100 });
     };
 

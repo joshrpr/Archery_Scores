@@ -20,7 +20,6 @@ let db = load();
 if (migrate(db)) save();
 let draft = null;        // new-round form state
 let pendingImport = null; // rounds read from another app's export, awaiting confirmation
-let wakeLock = null;
 let lastPath = null;
 
 /* ---------- storage ---------- */
@@ -158,18 +157,7 @@ function alertBox(title, html) {
 }
 
 /* ---------- screen wake lock (keeps screen on while scoring) ---------- */
-async function setWakeLock(on) {
-  if (!('wakeLock' in navigator)) return;
-  try {
-    if (on && !wakeLock) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', () => { wakeLock = null; });
-    } else if (!on && wakeLock) {
-      await wakeLock.release();
-      wakeLock = null;
-    }
-  } catch (e) { /* not allowed right now; ignore */ }
-}
+const setWakeLock = on => Native.keepAwake(on);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') setWakeLock(route().page === 'round');
 });
@@ -233,6 +221,11 @@ function viewHome() {
     </svg>
   </section>
   <main>
+    ${Native.isApp && !db.rounds.length && !db.archers.length ? `
+      <button class="card-row resume" data-action="nav" data-to="#/backup">
+        <div class="title">Moving from the web app?</div>
+        <div class="muted small">Save a backup in the web app, then tap here and choose Restore from backup file to bring your archers and scores across.</div>
+      </button>` : ''}
     <button class="big primary" data-action="new-round">Start new round</button>
     ${open.length ? `<h2>Pick up where you left off</h2>` + open.map(r => `
       <button class="card-row resume" data-action="nav" data-to="#/round/${r.id}">
@@ -744,7 +737,7 @@ function viewBackup() {
       ${db.rounds.length} round${db.rounds.length === 1 ? '' : 's'} (${finished} finished) on this phone.</p>
 
     <h2>Backup</h2>
-    <p class="muted small">Saves every archer, round and score to one file. Keep it somewhere safe, like Google Drive, so you can restore after a new phone or a reinstall.</p>
+    <p class="muted small">Saves every archer, round and score to one file. Keep it somewhere safe, like Google Drive, so you can restore after a new phone or a reinstall.${Native.isApp ? ' Pick Drive or Files from the share menu that opens.' : ''}</p>
     <button class="big primary" data-action="export-json">Save backup file</button>
 
     <h2>Restore</h2>
@@ -841,11 +834,8 @@ const BACKUP_FORMAT = 1;
 const today = () => new Date().toISOString().slice(0, 10);
 
 function download(name, text, type) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  Native.saveFile(name, text, type).catch(e =>
+    alertBox('Could not save the file', `<p>${esc(e && e.message || 'Something went wrong.')}</p>`));
 }
 
 function backupText() {
@@ -988,6 +978,7 @@ const actions = {
     const v = Number(d.v);
     const arr = r.scores[d.aid];
     arr[r.current] = arr[r.current] === v ? null : v;   // tap again to clear
+    if (arr[r.current] != null) Native.haptic.tap();
     save(); render();
   },
 
@@ -996,6 +987,7 @@ const actions = {
     const end = r.scores[d.aid][r.current];
     const k = end.indexOf(null); if (k < 0) return;
     end[k] = d.v === 'X' ? 'X' : Number(d.v);
+    Native.haptic.tap();
     save(); render();
   },
 
@@ -1019,6 +1011,7 @@ const actions = {
     r.plots[u.aid][u.end][u.k] = null;
     plotHistory = plotHistory.filter(h => h !== u);
     r.plotAid = u.aid;      // back to that archer so the arrow can be re-plotted
+    Native.haptic.undo();
     save(); render();
   },
 
@@ -1081,6 +1074,7 @@ const actions = {
     }
     r.status = 'finished';
     r.finishedAt = r.finishedAt || Date.now();
+    Native.haptic.success();
     save();
     go('#/card/' + r.id);
   },
@@ -1192,7 +1186,9 @@ app.addEventListener('change', e => {
 });
 
 /* ---------- offline support and automatic updates ---------- */
-if ('serviceWorker' in navigator) {
+// The Android app ships its files inside the APK and checks for a newer APK
+// instead (see native.js), so only the web app uses the service worker.
+if ('serviceWorker' in navigator && !Native.isApp) {
   const sw = navigator.serviceWorker;
   let pending = false, reloaded = false, touching = false;
   // Reload only when nothing would be lost: no dialog open, no new-round form

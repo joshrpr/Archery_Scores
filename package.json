@@ -1,0 +1,23 @@
+{
+  "name": "ropers-archery",
+  "private": true,
+  "description": "Android app wrapper (Capacitor) around the ibo-scorer web app.",
+  "scripts": {
+    "test": "node --test ibo-scorer/tests/*.test.js",
+    "web": "node scripts/build-web.mjs",
+    "sync": "npm run web && cap sync android",
+    "apk": "npm run sync && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor-community/keep-awake": "^8.0.1",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/share": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}
