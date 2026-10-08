@@ -69,42 +69,22 @@ const Target = (() => {
     return { kept, removed };
   }
 
-  // Convex hull (Andrew's monotone chain), counter-clockwise, no repeated point.
-  function hull(pts) {
-    const p = [...(pts || []).filter(Boolean)].sort((a, b) => a.x - b.x || a.y - b.y);
-    if (p.length < 3) return p;
-    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-    const lower = [], upper = [];
-    for (const q of p) {
-      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop();
-      lower.push(q);
-    }
-    for (const q of [...p].reverse()) {
-      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop();
-      upper.push(q);
-    }
-    return lower.slice(0, -1).concat(upper.slice(0, -1));
-  }
-
-  // Shot density on a size x size grid covering [-view, view] cm, as a
-  // Gaussian kernel sum normalised to 0..1. Used to paint the heatmap.
-  function density(pts, view, size, sigma) {
+  // Group shape: the ellipse that holds about `share` of the arrows, taken from
+  // their spread along the group's long and short axes. Returns its centre,
+  // radii in cm and tilt in degrees, or null when there are too few arrows.
+  function ellipse(pts, share = 0.8) {
     const p = (pts || []).filter(Boolean);
-    const out = new Float32Array(size * size);
-    const step = (view * 2) / size, k = -1 / (2 * sigma * sigma);
-    let max = 0;
-    for (let j = 0; j < size; j++) {
-      const y = -view + (j + 0.5) * step;
-      for (let i = 0; i < size; i++) {
-        const x = -view + (i + 0.5) * step;
-        let d = 0;
-        for (const q of p) { const dx = x - q.x, dy = y - q.y; d += Math.exp((dx * dx + dy * dy) * k); }
-        out[j * size + i] = d;
-        if (d > max) max = d;
-      }
-    }
-    if (max) for (let i = 0; i < out.length; i++) out[i] /= max;
-    return out;
+    const n = p.length;
+    if (n < 3) return null;
+    const cx = p.reduce((s, q) => s + q.x, 0) / n, cy = p.reduce((s, q) => s + q.y, 0) / n;
+    let a = 0, b = 0, c = 0;
+    for (const q of p) { const dx = q.x - cx, dy = q.y - cy; a += dx * dx; b += dx * dy; c += dy * dy; }
+    a /= n; b /= n; c /= n;
+    const mid = (a + c) / 2, d = Math.hypot((a - c) / 2, b);
+    const k = Math.sqrt(-2 * Math.log(1 - share));   // radius scale for a 2D normal
+    const min = 0.3;                                  // never thinner than an arrow hole
+    const ang = Math.abs(b) < 1e-9 ? (a >= c ? 0 : 90) : Math.atan2(mid + d - a, b) * 180 / Math.PI;
+    return { cx, cy, rx: Math.max(min, k * Math.sqrt(mid + d)), ry: Math.max(min, k * Math.sqrt(Math.max(0, mid - d))), ang };
   }
 
   // Compass-style direction of the group centre, e.g. "high left". Empty when centred.
@@ -161,7 +141,7 @@ const Target = (() => {
     };
   }
 
-  return { RINGS, X_R, FACE_R, VIEW_R, ARROW_R, scoreAt, group, trim, hull, density, direction, fmtCm, faceSvg, fit, toCm };
+  return { RINGS, X_R, FACE_R, VIEW_R, ARROW_R, scoreAt, group, trim, ellipse, direction, fmtCm, faceSvg, fit, toCm };
 })();
 
 if (typeof module !== 'undefined') module.exports = Target;

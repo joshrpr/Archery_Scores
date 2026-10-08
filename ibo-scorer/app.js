@@ -676,23 +676,14 @@ function placeArrow(data, pt) {
   save(); render();
 }
 
-// Scorecard: every plotted arrow of the round, coloured by end, with group stats.
+// Scorecard: a shot map of the round's plotted arrows, then end by end.
 function roundGroups(r) {
   const who = r.archerIds.filter(aid => hasPlots(r, aid));
   if (!who.length) return '';
-  return `<h2>Arrow groups</h2>` + who.map(aid => {
-    const plots = r.plots[aid];
-    const ends = plots.map((end, i) => ({ i, g: Target.group(end) })).filter(e => e.g);
-    return `<div class="gcard">
-      ${Groups.card(plots.flat().filter(Boolean), r.archerIds.length > 1 ? esc(nameOf(aid)) : '')}
-      <div class="tablewrap"><table class="gtable">
-        <thead><tr><th>End</th><th>Group</th><th>Centre</th></tr></thead>
-        <tbody>${ends.map(e => `<tr><td>${e.i + 1}</td>
-          <td>${e.g.n > 1 ? Target.fmtCm(e.g.spread) : '–'}</td>
-          <td>${Target.fmtCm(e.g.offset)} <span class="muted">${Target.direction(e.g.cx, e.g.cy)}</span></td></tr>`).join('')}
-        </tbody></table></div>
-    </div>`;
-  }).join('');
+  return `<h2>Arrow groups</h2>` + who.map(aid => `<div class="gcard">
+      ${Groups.card(r.plots[aid], r.archerIds.length > 1 ? esc(nameOf(aid)) : '')}
+      ${Groups.ends(r.scores[aid], r.plots[aid])}
+    </div>`).join('');
 }
 
 // Per round: average end group size, and how far the whole round's centre sat from the middle.

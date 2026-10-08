@@ -358,8 +358,6 @@ h2 small { font-size: .85rem; font-weight: 600; }
 .face-wrap.small { max-width: 320px; }
 .gcard { background: var(--ridge); border: 2px solid var(--line); border-radius: 16px; padding: 12px; margin-bottom: 12px; }
 .gcard h3 { margin: 0 0 8px; font-family: var(--display); font-size: 1.2rem; }
-.gcard .tablewrap { margin-top: 8px; }
-.gtable td { font-size: 1rem; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: 0; border: 1px solid #fff; }
 .tile .v small { font-size: 1rem; color: var(--haze); }
 .undo {
@@ -390,17 +388,19 @@ h2 small { font-size: .85rem; font-weight: 600; }
 .ptot small { display: block; font-size: .7rem; color: var(--haze); font-weight: 700; }
 .plot-head { gap: 10px; }
 
-/* ---------- end-of-round group heatmap ---------- */
-.g-card h3 { margin: 0 0 8px; font-family: var(--display); font-size: 1.2rem; }
-.g-face { max-width: 360px; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(4, 14, 30, .35); }
-.g-face .g-base { filter: grayscale(1) contrast(.32) brightness(1.62); }
-.g-face canvas, .g-face .g-over { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* ---------- end-of-round shot map ---------- */
+.g-card h3, .g-ends h3 { margin: 0 0 8px; font-family: var(--display); font-size: 1.2rem; }
+.g-face { max-width: 400px; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(4, 14, 30, .35); }
+.g-face .g-over { position: absolute; inset: 0; width: 100%; height: 100%; }
 .g-over * { vector-effect: non-scaling-stroke; }
-.g-hull { fill: rgba(14, 34, 64, .05); stroke: #0e2240; stroke-width: 1.6px; stroke-dasharray: 5 4; stroke-linejoin: round; }
-.g-dot { fill: #0e2240; stroke: #fff; stroke-width: 1px; }
-.g-gone { fill: none; stroke: #5d7290; stroke-width: 1.4px; stroke-dasharray: 3 2; }
-.g-centre path { stroke: #0e2240; stroke-width: 2px; }
-.g-centre circle { fill: #fff; stroke: #0e2240; stroke-width: 2px; }
+.g-bubble { fill: rgba(255, 255, 255, .32); stroke: #fff; stroke-width: 2.5px; }
+.g-dot { stroke: var(--night); stroke-width: 1.6px; }
+.g-gone { fill: none; stroke: var(--night); stroke-width: 1.6px; stroke-dasharray: 3 2; opacity: .6; }
+.g-centre path { stroke: var(--night); stroke-width: 2.5px; }
+.g-centre .g-lead { stroke-width: 1.5px; stroke-dasharray: 4 3; }
+.g-centre circle { fill: var(--arrow); stroke: #fff; stroke-width: 2px; }
+.g-legend { display: flex; align-items: center; gap: 8px; max-width: 400px; margin: 10px auto 0; font-size: .78rem; color: var(--haze); }
+.g-legend i { flex: 1; height: 8px; border-radius: 4px; }
 .g-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 4px; }
 .g-stats div { background: var(--ridge-2); border-radius: 12px; padding: 8px 10px; }
 .g-stats small { display: block; color: var(--haze); font-size: .75rem; font-weight: 700; }
@@ -415,6 +415,29 @@ h2 small { font-size: .85rem; font-weight: 600; }
 .g-slider span { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .g-slider output { color: var(--arrow); font-weight: 800; }
 .g-slider input { width: 100%; height: 36px; accent-color: var(--arrow); }
+.g-ends { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.g-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.g-tile { background: var(--ridge-2); border: 2px solid transparent; border-radius: 10px; padding: 4px; text-align: center; }
+.g-tile.best { border-color: var(--meadow); }
+.g-tile.worst { border-color: var(--danger); }
+.g-tface { position: relative; aspect-ratio: 1; border-radius: 7px; overflow: hidden; }
+.g-tface svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.g-tface .tf-ring { display: none; }
+.g-tile span { display: block; font-size: .68rem; color: var(--haze); margin-top: 3px; }
+.g-tile b { font-family: var(--display); font-size: 1.05rem; }
+.g-bar { display: flex; height: 38px; border-radius: 10px; overflow: hidden; margin-top: 12px; gap: 2px; }
+.g-bar i {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 22px;
+  background: var(--c); color: var(--night); font-style: normal; line-height: 1.05;
+}
+.g-bar em { font-style: normal; font-family: var(--display); font-weight: 800; font-size: .85rem; }
+.g-bar small { font-size: .7rem; font-weight: 700; }
+.g-shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.g-shots div { background: var(--ridge-2); border-radius: 10px; padding: 6px 8px; }
+.g-shots span { display: block; font-size: .75rem; color: var(--haze); font-weight: 700; }
+.g-shots span i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+.g-shots b { display: block; font-family: var(--display); font-size: 1.05rem; }
+.g-shots small { display: block; color: var(--haze); font-size: .72rem; }
 /* Import from another app */
 .imp-row .title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .imp-score { font-family: var(--display); font-size: 1.5rem; color: var(--cloud); white-space: nowrap; }
