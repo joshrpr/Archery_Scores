@@ -91,3 +91,38 @@ test('niceRange brackets the data within limits', () => {
   const [a, b] = A.niceRange(5, 5, 0);
   assert.ok(a < 5 && b > 5 && a >= 0);
 });
+
+test('compare splits the last 5 plotted rounds from the rest', () => {
+  const plotted = (i, dx) => A.summarize(vegasRound('p' + i, i, [[9, 9, 9], [9, 9, 9]],
+    [[{ x: dx, y: 0 }, { x: dx + 1, y: 1 }, { x: dx, y: 2 }], [{ x: dx + 2, y: 0 }, null, null]]), 'a');
+  const rows = [0, 1, 2, 3, 4, 5, 6].map(i => plotted(i, i < 2 ? 4 : 0));
+  rows.splice(3, 0, A.summarize(vegasRound('n', 2.5, [[9, 9, 9]]), 'a'));   // unplotted rounds are skipped
+  const c = A.compare(rows);
+  assert.strictEqual(c.recent.rounds, 5);
+  assert.strictEqual(c.earlier.rounds, 2);
+  assert.strictEqual(c.all.n, 28);
+  assert.ok(c.earlier.g.cx > c.recent.g.cx);
+  assert.ok(c.recent.el && c.earlier.el);
+  const few = A.compare(rows.slice(0, 4));
+  assert.strictEqual(few.recent, null);
+  assert.strictEqual(few.all.rounds, 3);
+});
+
+test('heat peaks where arrows cluster and is scaled to 1', () => {
+  const pts = [{ x: 2, y: 2 }, { x: 2.1, y: 1.9 }, { x: 1.9, y: 2 }, { x: -5, y: -5 }];
+  const h = A.heat(pts, 8, 32);
+  assert.strictEqual(h.values.length, 32 * 32);
+  let max = 0, at = 0;
+  h.values.forEach((v, k) => { if (v > max) { max = v; at = k; } });
+  assert.strictEqual(max, 1);
+  const x = -8 + (at % 32 + 0.5) * h.cell, y = -8 + (Math.floor(at / 32) + 0.5) * h.cell;
+  assert.ok(Math.hypot(x - 2, y - 2) < 0.6);
+});
+
+test('drift reports centre right and high as positive', () => {
+  const r = vegasRound('d', 1, [[9, 9, 9]], [[{ x: 1, y: -2 }, { x: 3, y: -2 }, null]]);
+  const d = A.drift([A.summarize(r, 'a'), A.summarize(vegasRound('n', 2, [[9, 9, 9]]), 'a')]);
+  assert.strictEqual(d.length, 1);
+  assert.strictEqual(d[0].x, 2);
+  assert.strictEqual(d[0].y, 2);
+});
