@@ -8,7 +8,7 @@ The app lives in the `ibo-scorer` folder of the [Archery_Scores](https://github.
 
 1. Open the repository on github.com and go to **Settings → Pages**.
 2. Under **Build and deployment**, set Source to **Deploy from a branch**, Branch to **main** and folder to **/ (root)**, then click **Save**.
-3. After a minute or two the app is live at **`https://joshrpr.github.io/Archery_Scores/ibo-scorer/`**. Note the `/ibo-scorer/` on the end: the repository root has no app of its own.
+3. After a minute or two the app is live at **`https://joshrpr.github.io/Archery_Scores/ibo-scorer/`**. Note the `/ibo-scorer/` on the end: the repository root (`https://joshrpr.github.io/Archery_Scores/`) is the download page for the Android app, the one to share with friends and family.
 
 To use your own copy instead, fork the repository and follow the same steps; the address becomes `https://YOUR-USERNAME.github.io/Archery_Scores/ibo-scorer/`.
 
