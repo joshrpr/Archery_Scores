@@ -7,7 +7,7 @@ An offline IBO 3D and Vegas 300 archery scorecard for Android, as an installable
 1. Sign in at github.com and click **New repository** (the **+** at top right).
 2. Name it, for example `ibo-scorer`, set it to **Public**, and click **Create repository**.
 3. On the new repo page, click **uploading an existing file**.
-4. Drag in **everything inside** the `ibo-scorer` folder: `index.html`, `app.js`, `style.css`, `sw.js`, `manifest.webmanifest`, `README.md` and the `icons` folder. Click **Commit changes**.
+4. Drag in **everything inside** the `ibo-scorer` folder: `index.html`, `app.js`, `target.js`, `plot.js`, `style.css`, `sw.js`, `manifest.webmanifest`, `README.md` and the `icons` folder. Click **Commit changes**.
    - Make sure `index.html` sits at the top level of the repo, not inside a sub-folder.
 5. Go to **Settings → Pages**. Under **Build and deployment**, set Source to **Deploy from a branch**, Branch to **main** and folder to **/ (root)**, then click **Save**.
 6. After a minute or two the page shows your address, for example `https://YOUR-USERNAME.github.io/ibo-scorer/`.
@@ -26,6 +26,7 @@ Upload the changed files to the same repo (they replace the old ones). The next 
 
 - Scores, archers and stats are saved only in this app's storage on the phone. Uninstalling the app or clearing Chrome's site data for it erases them. The app asks Android to keep its storage persistent, so automatic cleanup won't remove it.
 - Pick **IBO 3D** or **Vegas 300** when you start a round. Vegas is 10 ends of 3 arrows scored X, 10 to 6 and M; X counts 10 and breaks ties. Tap a score to fill the next arrow, and tap an arrow to clear it.
+- In a Vegas round, tap **Plot arrows on the target** to place each arrow where it landed: press, slide to fine-tune while the zoomed circle shows the spot, then lift. The score is filled in for you (an arrow touching a line gets the higher score). The scorecard then shows each archer's group and how far its centre sits from the middle, and the archer page tracks group size over time. You can mix plotted arrows and score buttons, or switch plotting off.
 - Only finished rounds count toward personal bests and stats. Vegas 300 bests are kept separate from IBO bests.
 - Tap a score again to clear it. Blank targets count as 0 (miss) when you finish a round.
 - The screen stays on while you're on the scoring screen.
