@@ -204,6 +204,7 @@ function render() {
     case 'archers': html = viewArchers(); break;
     case 'archer': html = viewArcher(id); break;
     case 'backup': html = viewBackup(); break;
+    case 'stats': html = Stats.view(id); break;
     default: html = viewHome();
   }
   if (html == null) return;            // view redirected
@@ -214,6 +215,7 @@ function render() {
   if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
   setWakeLock(page === 'round');
   Plot.bind(app, placeArrow);
+  if (page === 'stats') Stats.bind(app);
 }
 
 /* ---------- views ---------- */
@@ -235,6 +237,9 @@ function viewHome() {
         <div>${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
         <div class="muted small">${fmtDate(r.createdAt)}${r.note ? `, ${esc(r.note)}` : ''}</div>
       </button>`).join('') : ''}
+    <button class="big an-home" data-action="nav" data-to="#/stats">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16V11M11 16V6M16 16v-7M21 16V9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Analytics</button>
     <div class="grid2">
       <button class="big" data-action="nav" data-to="#/history">History</button>
       <button class="big" data-action="nav" data-to="#/archers">Archers</button>
@@ -514,6 +519,7 @@ function viewArcher(id) {
     </button>`).join('')}`
     : '<p class="empty">No finished rounds yet. Stats appear here after a round is finished.</p>'}
 
+    <button class="btn" data-action="nav" data-to="#/stats/${a.id}">Open in Analytics</button>
     <h2>Manage</h2>
     <div class="grid2">
       <button class="btn" data-action="rename-archer" data-id="${a.id}">Rename</button>
@@ -836,6 +842,8 @@ const actions = {
   nav: d => go(d.to),
 
   'new-round': () => { draft = null; go('#/new'); },
+
+  'stats-set': d => { Stats.set(d); render(); },
 
   'toggle-pick': d => {
     const i = draft.selected.indexOf(d.id);
