@@ -20,7 +20,9 @@ To use your own copy instead, fork the repository and follow the same steps; the
 
 ## Updating later
 
-Commit the changed files to the `ibo-scorer` folder on the `main` branch (they replace the old ones). The next time the phone opens the app with a connection, it quietly downloads the new version, and it shows up the time after that.
+Commit the changed files to the `ibo-scorer` folder on the `main` branch (they replace the old ones). There is no version number to bump. Whenever the app is opened or brought back to the screen with a connection (and every half hour while it stays open), it checks for changed files, downloads them, and reloads itself into the new version. It waits to reload until it is safe: never while a dialog is open, the new-round form is being filled in, or a finger is on the screen. GitHub Pages can take a minute or two to publish a commit, and the phone can take up to 10 minutes after that to see it.
+
+If you add a new file to the app, also add it to the `ASSETS` list in `sw.js` so it is available offline.
 
 ## Good to know
 
