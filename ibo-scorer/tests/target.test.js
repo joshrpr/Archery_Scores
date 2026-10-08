@@ -38,7 +38,7 @@ test('direction names the side the group sits on', () => {
 
 test('face svg draws every arrow', () => {
   const svg = T.faceSvg({ arrows: [{ x: 1, y: 2, label: 1 }, { x: -3, y: 0 }] });
-  assert.strictEqual((svg.match(/class="tf-arrow"/g) || []).length, 2);
+  assert.strictEqual((svg.match(/class="tf-arrow\b/g) || []).length, 2);
   assert.match(svg, /viewBox="-11 -11 22 22"/);
   assert.match(T.faceSvg({ view: 4 }), /viewBox="-4 -4 8 8"/);
 });
