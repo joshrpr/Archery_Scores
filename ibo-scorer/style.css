@@ -376,6 +376,45 @@ h2 small { font-size: .85rem; font-weight: 600; }
 }
 .plot-foot { text-align: center; }
 
+/* ---------- plotting: this end's scores ---------- */
+.tf-num.big { font-size: 0.75px; }
+.pend { display: flex; align-items: center; gap: 6px; }
+.pslot {
+  width: 42px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+  font-family: var(--display); font-size: 1.3rem; font-weight: 800;
+  background: var(--c, var(--ridge-2)); color: var(--night); border: 2px solid var(--c, var(--line));
+}
+.pslot.empty { background: transparent; color: var(--haze); font-size: .9rem; border-style: dashed; }
+.pslot.next { border-color: var(--arrow); border-style: solid; color: var(--arrow); }
+.ptot { margin-left: 6px; font-family: var(--display); font-size: 1.5rem; font-weight: 800; line-height: 1; }
+.ptot small { display: block; font-size: .7rem; color: var(--haze); font-weight: 700; }
+.plot-head { gap: 10px; }
+
+/* ---------- end-of-round group heatmap ---------- */
+.g-card h3 { margin: 0 0 8px; font-family: var(--display); font-size: 1.2rem; }
+.g-face { max-width: 360px; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(4, 14, 30, .35); }
+.g-face .g-base { filter: grayscale(1) contrast(.32) brightness(1.62); }
+.g-face canvas, .g-face .g-over { position: absolute; inset: 0; width: 100%; height: 100%; }
+.g-over * { vector-effect: non-scaling-stroke; }
+.g-hull { fill: rgba(14, 34, 64, .05); stroke: #0e2240; stroke-width: 1.6px; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.g-dot { fill: #0e2240; stroke: #fff; stroke-width: 1px; }
+.g-gone { fill: none; stroke: #5d7290; stroke-width: 1.4px; stroke-dasharray: 3 2; }
+.g-centre path { stroke: #0e2240; stroke-width: 2px; }
+.g-centre circle { fill: #fff; stroke: #0e2240; stroke-width: 2px; }
+.g-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 4px; }
+.g-stats div { background: var(--ridge-2); border-radius: 12px; padding: 8px 10px; }
+.g-stats small { display: block; color: var(--haze); font-size: .75rem; font-weight: 700; }
+.g-stats b { display: block; font-family: var(--display); font-size: 1.25rem; line-height: 1.15; white-space: nowrap; }
+.g-stats span { display: block; color: var(--haze); font-size: .78rem; }
+.g-dropped { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; font-size: .85rem; color: var(--haze); }
+.g-dropped i {
+  font-style: normal; font-family: var(--display); font-weight: 800; min-width: 26px; text-align: center;
+  padding: 0 5px; border-radius: 7px; background: var(--c); color: var(--night);
+}
+.g-slider { display: block; margin: 14px 0 6px; }
+.g-slider span { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.g-slider output { color: var(--arrow); font-weight: 800; }
+.g-slider input { width: 100%; height: 36px; accent-color: var(--arrow); }
 /* Import from another app */
 .imp-row .title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .imp-score { font-family: var(--display); font-size: 1.5rem; color: var(--cloud); white-space: nowrap; }

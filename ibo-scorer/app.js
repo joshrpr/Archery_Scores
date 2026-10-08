@@ -217,6 +217,7 @@ function render() {
   if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
   setWakeLock(page === 'round');
   Plot.bind(app, placeArrow);
+  if (page === 'card') Groups.bind(app);
   if (page === 'stats') Stats.bind(app);
 }
 
@@ -576,7 +577,6 @@ function plotsOf(r, aid) {
 }
 const hasPlots = (r, aid) => !!(r.plots && r.plots[aid] && r.plots[aid].some(e => e.some(Boolean)));
 const plotAid = r => (r.archerIds.includes(r.plotAid) ? r.plotAid : r.archerIds[0]);
-const END_COLORS = ['#0e2240', '#1767c4', '#6faf2f', '#f2621a', '#7a4fd0', '#0b8f8a', '#c2185b', '#5d4037', '#455a64', '#e0a100'];
 
 function groupLine(g, what) {
   if (!g) return '';
@@ -596,7 +596,7 @@ function plotPanel(r, t) {
   const earlier = plots.slice(0, t).flat().filter(Boolean).map(p => ({ ...p, color: 'rgba(14,34,64,.28)', ghost: true }));
   const fresh = justPlaced && justPlaced.aid === aid && justPlaced.end === t ? justPlaced.k : -1;
   justPlaced = null;
-  const now = end.map((p, k) => p && { ...p, label: k + 1, cls: k === fresh ? 'new' : '' }).filter(Boolean);
+  const now = end.map((p, k) => p && { ...p, label: k + 1, color: '#f2621a', r: 0.62, cls: k === fresh ? 'new' : '' }).filter(Boolean);
   const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: now.length > 1 ? Target.group(now) : null,
     ariaLabel: `Target face for ${nameOf(aid)}, end ${t + 1}` })
     .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
@@ -605,7 +605,7 @@ function plotPanel(r, t) {
     return `<button class="${id === aid ? 'on' : ''} ${done ? 'done' : ''}" data-action="plot-archer" data-aid="${id}">${esc(nameOf(id))}</button>`;
   }).join('')}</div>` : '';
   return `<section class="plot">
-    <div class="plot-head"><b>Plot arrows</b>${undoButton(r, t)}</div>
+    <div class="plot-head">${endStrip(r, aid, t)}${undoButton(r, t)}</div>
     ${tabs}
     <div class="face-wrap">${face}</div>
     <p class="muted small plot-hint">${full
@@ -614,6 +614,18 @@ function plotPanel(r, t) {
     ${groupLine(Target.group(now), 'This end')}
     <div class="plot-foot"><button class="link" data-action="plot-toggle">Use score buttons only</button></div>
   </section>`;
+}
+
+// This end's arrows for the archer being plotted, so the scores stay in view
+// while the target fills the screen.
+function endStrip(r, aid, t) {
+  const end = r.scores[aid][t];
+  const next = end.indexOf(null);
+  return `<div class="pend" aria-label="${esc(nameOf(aid))}, end ${t + 1}: ${end.map(v => v == null ? 'not shot' : label(v)).join(', ')}">
+    ${end.map((v, k) => v == null
+      ? `<span class="pslot empty ${k === next ? 'next' : ''}">${k + 1}</span>`
+      : `<span class="pslot r${ring(v)}">${label(v)}</span>`).join('')}
+    <span class="ptot"><small>End</small>${endTotal(end)}</span></div>`;
 }
 
 // Undo for a mis-tap: takes back the most recently plotted arrow on this end,
@@ -670,17 +682,12 @@ function roundGroups(r) {
   if (!who.length) return '';
   return `<h2>Arrow groups</h2>` + who.map(aid => {
     const plots = r.plots[aid];
-    const arrows = plots.flatMap((end, i) => end.filter(Boolean).map(p => ({ ...p, color: END_COLORS[i % END_COLORS.length] })));
-    const g = Target.group(arrows);
     const ends = plots.map((end, i) => ({ i, g: Target.group(end) })).filter(e => e.g);
     return `<div class="gcard">
-      ${r.archerIds.length > 1 ? `<h3>${esc(nameOf(aid))}</h3>` : ''}
-      <div class="face-wrap small">${Target.faceSvg({ arrows, showGroup: g, view: Target.fit(arrows), ariaLabel: `All plotted arrows for ${nameOf(aid)}` })}</div>
-      ${groupLine(g, 'Round group')}
-      ${g.n > 1 ? `<p class="muted small">Average distance from the group centre: ${Target.fmtCm(g.meanR)}, over ${g.n} plotted arrows.</p>` : ''}
+      ${Groups.card(plots.flat().filter(Boolean), r.archerIds.length > 1 ? esc(nameOf(aid)) : '')}
       <div class="tablewrap"><table class="gtable">
         <thead><tr><th>End</th><th>Group</th><th>Centre</th></tr></thead>
-        <tbody>${ends.map(e => `<tr><td><i class="dot" style="background:${END_COLORS[e.i % END_COLORS.length]}"></i>${e.i + 1}</td>
+        <tbody>${ends.map(e => `<tr><td>${e.i + 1}</td>
           <td>${e.g.n > 1 ? Target.fmtCm(e.g.spread) : '–'}</td>
           <td>${Target.fmtCm(e.g.offset)} <span class="muted">${Target.direction(e.g.cx, e.g.cy)}</span></td></tr>`).join('')}
         </tbody></table></div>
