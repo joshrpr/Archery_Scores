@@ -586,7 +586,9 @@ function plotPanel(r, t) {
   const full = !r.scores[aid][t].includes(null);
   // Earlier ends this round show faintly so you can see the group build up.
   const earlier = plots.slice(0, t).flat().filter(Boolean).map(p => ({ ...p, color: 'rgba(14,34,64,.28)', ghost: true }));
-  const now = end.map((p, k) => p && { ...p, label: k + 1 }).filter(Boolean);
+  const fresh = justPlaced && justPlaced.aid === aid && justPlaced.end === t ? justPlaced.k : -1;
+  justPlaced = null;
+  const now = end.map((p, k) => p && { ...p, label: k + 1, cls: k === fresh ? 'new' : '' }).filter(Boolean);
   const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: now.length > 1 ? Target.group(now) : null,
     ariaLabel: `Target face for ${nameOf(aid)}, end ${t + 1}` })
     .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
@@ -601,12 +603,13 @@ function plotPanel(r, t) {
     <div class="face-wrap">${face}</div>
     <p class="muted small plot-hint">${full
       ? 'End complete. Tap an arrow score below to clear and re-plot it.'
-      : `Press where ${r.archerIds.length > 1 ? esc(nameOf(aid)) + '’s' : 'the'} arrow ${r.scores[aid][t].indexOf(null) + 1} landed, slide to adjust, lift to place.`}</p>
+      : `Press where ${r.archerIds.length > 1 ? esc(nameOf(aid)) + '’s ' : ''}arrow ${r.scores[aid][t].indexOf(null) + 1} landed. Slide slowly to fine-tune, then lift to place.`}</p>
     ${groupLine(Target.group(now), 'This end')}
   </section>`;
 }
 
 // Called by Plot when a finger lifts off the face.
+let justPlaced = null;   // the arrow to animate in on the next render
 function placeArrow(data, pt) {
   const r = currentRound(); if (!r || !isVegas(r) || !r.plot) return;
   const aid = data.aid;
@@ -616,6 +619,7 @@ function placeArrow(data, pt) {
   const s = Target.scoreAt(pt.x, pt.y);
   end[k] = s.x ? 'X' : s.score;
   plotsOf(r, aid)[r.current][k] = { x: pt.x, y: pt.y };
+  justPlaced = { aid, end: r.current, k };
   // End done for this archer: move on to the next archer still shooting this end.
   if (!end.includes(null)) {
     const i = r.archerIds.indexOf(aid);

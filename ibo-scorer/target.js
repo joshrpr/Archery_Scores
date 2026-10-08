@@ -64,7 +64,7 @@ const Target = (() => {
   /* ---------- drawing ---------- */
   const f = v => +v.toFixed(2);
 
-  // opts.arrows: [{x, y, label?, color?}]; opts.showGroup: result of group() to mark the centre.
+  // opts.arrows: [{x, y, label?, color?, cls?}]; opts.showGroup: result of group() to mark the centre.
   // opts.view: half-width shown in cm (defaults to the whole face); smaller zooms in.
   function faceSvg({ arrows = [], showGroup = null, cls = '', ariaLabel = 'Target face', view = VIEW_R } = {}) {
     const rings = [...RINGS].reverse().map(ring =>
@@ -73,7 +73,7 @@ const Target = (() => {
       <path d="M-0.35 0H0.35M0 -0.35V0.35" stroke="${LINE[10]}" stroke-width="0.06"/>`;
     const labels = RINGS.slice(1).map(ring =>
       `<text x="0" y="${f(-ring.r + 0.75)}" class="tf-ring">${ring.score}</text>`).join('');
-    const dots = arrows.map(a => `<g class="tf-arrow">
+    const dots = arrows.map(a => `<g class="tf-arrow ${a.cls || ''}">
         <circle cx="${f(a.x)}" cy="${f(a.y)}" r="${ARROW_R + 0.12}" fill="${a.color || '#0e2240'}" stroke="#fff" stroke-width="0.12"/>
         ${a.label != null ? `<text x="${f(a.x)}" y="${f(a.y + 0.22)}" class="tf-num">${a.label}</text>` : ''}
       </g>`).join('');
