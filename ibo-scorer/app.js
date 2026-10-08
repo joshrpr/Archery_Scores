@@ -203,6 +203,7 @@ function render() {
     case 'history': html = viewHistory(); break;
     case 'archers': html = viewArchers(); break;
     case 'archer': html = viewArcher(id); break;
+    case 'backup': html = viewBackup(); break;
     default: html = viewHome();
   }
   if (html == null) return;            // view redirected
@@ -238,6 +239,7 @@ function viewHome() {
       <button class="big" data-action="nav" data-to="#/history">History</button>
       <button class="big" data-action="nav" data-to="#/archers">Archers</button>
     </div>
+    <button class="btn" data-action="nav" data-to="#/backup">Backup and export</button>
   </main>`;
 }
 
@@ -698,6 +700,131 @@ function groupTrend(rows, aid) {
   </div>`;
 }
 
+function viewBackup() {
+  const finished = db.rounds.filter(r => r.status === 'finished').length;
+  return `${header('Backup and export', '#/')}
+  <main>
+    <p class="muted">${activeArchers().length} archer${activeArchers().length === 1 ? '' : 's'},
+      ${db.rounds.length} round${db.rounds.length === 1 ? '' : 's'} (${finished} finished) on this phone.</p>
+
+    <h2>Backup</h2>
+    <p class="muted small">Saves every archer, round and score to one file. Keep it somewhere safe, like Google Drive, so you can restore after a new phone or a reinstall.</p>
+    <button class="big primary" data-action="export-json">Save backup file</button>
+
+    <h2>Restore</h2>
+    <p class="muted small">Replaces everything on this phone with the contents of a backup file. You will be asked to confirm first.</p>
+    <label class="btn file-btn">Restore from backup file
+      <input type="file" accept=".json,application/json" data-input="import-json">
+    </label>
+
+    <h2>Spreadsheet</h2>
+    <p class="muted small">Every score from every round as a CSV file that opens in Excel or Google Sheets. This file cannot be restored.</p>
+    <button class="btn" data-action="export-csv" ${db.rounds.length ? '' : 'disabled'}>Export scorecards (CSV)</button>
+  </main>`;
+}
+
+/* ---------- backup, restore and CSV ---------- */
+const BACKUP_APP = 'ropers-archery-scorecard';
+const BACKUP_FORMAT = 1;
+const today = () => new Date().toISOString().slice(0, 10);
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function backupText() {
+  return JSON.stringify({
+    app: BACKUP_APP, format: BACKUP_FORMAT, storageKey: KEY,
+    exportedAt: new Date().toISOString(), data: db
+  }, null, 2);
+}
+
+// Checks a parsed backup file and returns the data to restore, or throws a
+// readable message. Round objects are kept as-is (unknown fields included) so
+// newer round types survive a round trip.
+function parseBackup(obj) {
+  if (!obj || typeof obj !== 'object') throw new Error('The file is not a backup.');
+  if (obj.app !== undefined && obj.app !== BACKUP_APP) throw new Error('This backup is from a different app.');
+  if (typeof obj.format === 'number' && obj.format > BACKUP_FORMAT) {
+    throw new Error('This backup was made by a newer version of the app. Update the app and try again.');
+  }
+  const d = obj.data !== undefined ? obj.data : obj;
+  if (!d || !Array.isArray(d.archers) || !Array.isArray(d.rounds)) {
+    throw new Error('The file has no archers or rounds in it.');
+  }
+  const ids = new Set();
+  d.archers.forEach((a, i) => {
+    if (!a || typeof a.id !== 'string' || typeof a.name !== 'string') throw new Error(`Archer ${i + 1} is damaged.`);
+    if (ids.has(a.id)) throw new Error(`Archer "${a.name}" appears twice.`);
+    ids.add(a.id);
+  });
+  const roundIds = new Set();
+  d.rounds.forEach((r, i) => {
+    const bad = () => new Error(`Round ${i + 1} is damaged.`);
+    if (!r || typeof r.id !== 'string' || roundIds.has(r.id)) throw bad();
+    if (!Array.isArray(r.archerIds) || !r.scores || typeof r.scores !== 'object') throw bad();
+    if (!r.archerIds.every(id => typeof id === 'string' && Array.isArray(r.scores[id]))) throw bad();
+    roundIds.add(r.id);
+  });
+  return d;
+}
+
+const CSV_HEAD = ['Date', 'Round ID', 'Round type', 'Note', 'Status', 'Archer',
+  'Target or end', 'Arrow', 'Score', 'Points', 'Plot X (cm)', 'Plot Y (cm)'];
+const csvCell = v => {
+  let s = v == null ? '' : String(v);
+  if (typeof v === 'string' && /^[=+@\t-]/.test(s)) s = "'" + s;   // keep spreadsheets from running it as a formula
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+// One row per IBO target, or per Vegas arrow (with its plotted spot when there
+// is one), so the file pivots easily in a spreadsheet.
+function scorecardsCsv() {
+  const rows = [CSV_HEAD];
+  const rounds = [...db.rounds].sort((a, b) => a.createdAt - b.createdAt);
+  for (const r of rounds) {
+    const head = [new Date(r.createdAt).toISOString().slice(0, 10), r.id, typeName(r), r.note || '', r.status];
+    for (const aid of r.archerIds) {
+      const plots = r.plots && r.plots[aid];
+      (r.scores[aid] || []).forEach((v, i) => {
+        if (!Array.isArray(v)) { rows.push([...head, nameOf(aid), i + 1, '', v, v]); return; }
+        v.forEach((a, k) => {
+          const p = plots && plots[i] && plots[i][k];
+          rows.push([...head, nameOf(aid), i + 1, k + 1, a, a == null ? null : points(a),
+            p ? +p.x.toFixed(2) : null, p ? +p.y.toFixed(2) : null]);
+        });
+      });
+    }
+  }
+  return rows.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
+async function importBackup(file) {
+  let data;
+  try {
+    data = parseBackup(JSON.parse(await file.text()));
+  } catch (e) {
+    alertBox('Could not restore', `<p>${esc(e instanceof SyntaxError ? 'The file is not a valid backup.' : e.message)}</p>`);
+    return;
+  }
+  const archers = data.archers.filter(a => !a.deleted).length;
+  const ok = await confirmBox('Restore this backup?',
+    `<p>The backup has <b>${archers}</b> archer${archers === 1 ? '' : 's'} and <b>${data.rounds.length}</b> round${data.rounds.length === 1 ? '' : 's'}.</p>
+     <p>Everything on this phone now (${activeArchers().length} archers, ${db.rounds.length} rounds) will be replaced. Save a backup first if you might want it back.</p>`,
+    'Replace and restore', true);
+  if (!ok) return;
+  migrate(data);
+  db = data;
+  draft = null;
+  save();
+  await alertBox('Backup restored', `<p>${archers} archers and ${data.rounds.length} rounds restored.</p>`);
+  go('#/');
+}
+
 /* ---------- actions ---------- */
 const currentRound = () => roundById(route().id);
 
@@ -872,6 +999,10 @@ const actions = {
     save(); render();
   },
 
+  'export-json': () => download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'),
+
+  'export-csv': () => download(`ropers-archery-scorecards-${today()}.csv`, scorecardsCsv(), 'text/csv'),
+
   'delete-archer': async d => {
     const a = archerById(d.id); if (!a) return;
     if (!(await confirmBox(`Delete ${a.name}?`,
@@ -906,6 +1037,12 @@ app.addEventListener('submit', e => {
 });
 app.addEventListener('input', e => {
   if (e.target.dataset.input === 'draft-note' && draft) draft.note = e.target.value;
+});
+app.addEventListener('change', e => {
+  if (e.target.dataset.input !== 'import-json') return;
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';                  // let the same file be picked again
+  if (file) importBackup(file);
 });
 
 /* ---------- offline support ---------- */
