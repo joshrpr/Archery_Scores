@@ -4,7 +4,7 @@
 // worker to check GitHub for changed files. If any changed, the new copies are
 // cached together and the app is told to reload, so updates appear on their own.
 // The cache name no longer needs bumping by hand: changes are found by content.
-const CACHE = 'ibo-scorer-v9';
+const CACHE = 'ibo-scorer-v10';
 const ASSETS = [
   './',
   './index.html',

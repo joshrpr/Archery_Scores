@@ -60,16 +60,30 @@ test('trim drops the farthest arrow from the centre, one at a time', () => {
   assert.strictEqual(T.trim([{ x: 1, y: 1 }], 3).kept.length, 1);   // never empties the group
 });
 
-test('hull wraps the outside arrows only', () => {
-  const h = T.hull([{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 4 }, { x: 0, y: 4 }, { x: 2, y: 2 }, null]);
-  assert.strictEqual(h.length, 4);
-  assert.ok(!h.some(q => q.x === 2 && q.y === 2));
+test('ellipse follows the shape of the group', () => {
+  // Arrows strung out left to right: long axis horizontal.
+  const wide = T.ellipse([{ x: -4, y: 0 }, { x: -2, y: 0.5 }, { x: 0, y: -0.5 }, { x: 2, y: 0.5 }, { x: 4, y: -0.5 }]);
+  assert.ok(wide.rx > wide.ry * 3);
+  assert.ok(Math.abs(wide.ang) < 10 || Math.abs(wide.ang - 180) < 10);
+  // Same arrows turned upright: long axis vertical.
+  const tall = T.ellipse([{ x: 0, y: -4 }, { x: 0.5, y: -2 }, { x: -0.5, y: 0 }, { x: 0.5, y: 2 }, { x: -0.5, y: 4 }]);
+  assert.ok(Math.abs(Math.abs(tall.ang) - 90) < 10);
+  assert.ok(Math.abs(tall.rx - wide.rx) < 1e-9);
+  // Centre is the average position; too few arrows gives no shape.
+  assert.ok(Math.abs(wide.cx) < 1e-9 && Math.abs(wide.cy) < 1e-9);
+  assert.strictEqual(T.ellipse([{ x: 1, y: 1 }, { x: 2, y: 2 }, null]), null);
 });
 
-test('density peaks where arrows cluster', () => {
-  const d = T.density([{ x: -2, y: 0 }, { x: -2, y: 0.2 }, { x: 3, y: 0 }], 5, 10, 0.8);
-  const at = (x, y) => d[Math.floor((y + 5) / 1) * 10 + Math.floor((x + 5) / 1)];
-  assert.strictEqual(Math.max(...d), 1);
-  assert.ok(at(-2, 0) > at(3, 0));
-  assert.ok(at(3, 0) > at(0, -4));
+test('ellipse holds about the share of arrows asked for', () => {
+  let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd());
+  const pts = Array.from({ length: 2000 }, () => ({ x: 1 + gauss() * 2, y: -1 + gauss() }));
+  const e = T.ellipse(pts, 0.8);
+  const t = -e.ang * Math.PI / 180;
+  const inside = pts.filter(q => {
+    const dx = q.x - e.cx, dy = q.y - e.cy;
+    const u = dx * Math.cos(t) - dy * Math.sin(t), v = dx * Math.sin(t) + dy * Math.cos(t);
+    return (u / e.rx) ** 2 + (v / e.ry) ** 2 <= 1;
+  }).length / pts.length;
+  assert.ok(inside > 0.77 && inside < 0.83, `inside ${inside}`);
 });
