@@ -114,6 +114,45 @@ const Analytics = (() => {
     return out;
   }
 
+  // Plotted arrows split into the last `recent` plotted rounds and everything
+  // before them, with each side's group and 4-in-5 bubble. The split only
+  // happens when both sides have enough arrows to draw a bubble.
+  function compare(rows, recent = 5) {
+    const plotted = rows.filter(x => x.r.plots && x.r.plots[x.aid] && x.r.plots[x.aid].some(e => e && e.some(Boolean)));
+    const pts = list => list.flatMap(x => x.r.plots[x.aid].flat().filter(Boolean));
+    const side = list => { const p = pts(list); return { rounds: list.length, n: p.length, g: T.group(p), el: T.ellipse(p, 0.8) }; };
+    const all = side(plotted);
+    if (plotted.length <= recent) return { all, recent: null, earlier: null };
+    const r = side(plotted.slice(-recent)), e = side(plotted.slice(0, -recent));
+    if (!r.el || !e.el) return { all, recent: null, earlier: null };
+    return { all, recent: r, earlier: e };
+  }
+
+  // Arrow density on a square grid covering [-view, view] cm, from a Gaussian
+  // kernel of width bw cm around each arrow. Returns values scaled to 0..1.
+  function heat(pts, view, size = 48, bw = Math.max(0.5, view / 12)) {
+    const cell = (2 * view) / size, out = new Float64Array(size * size);
+    const reach = Math.ceil((3 * bw) / cell);
+    for (const p of pts) {
+      const ci = Math.floor((p.x + view) / cell), cj = Math.floor((p.y + view) / cell);
+      for (let j = Math.max(0, cj - reach); j <= Math.min(size - 1, cj + reach); j++) {
+        for (let i = Math.max(0, ci - reach); i <= Math.min(size - 1, ci + reach); i++) {
+          const dx = -view + (i + 0.5) * cell - p.x, dy = -view + (j + 0.5) * cell - p.y;
+          out[j * size + i] += Math.exp(-(dx * dx + dy * dy) / (2 * bw * bw));
+        }
+      }
+    }
+    let max = 0;
+    for (const v of out) if (v > max) max = v;
+    if (max) for (let k = 0; k < out.length; k++) out[k] /= max;
+    return { size, cell, view, values: out };
+  }
+
+  // Where each plotted round's group centre sat: x right of centre, y above it (cm).
+  function drift(rows) {
+    return rows.filter(x => x.group).map(x => ({ r: x.r, x: x.group.cx, y: -x.group.cy }));
+  }
+
   // Each archer's average over their last `limit` rounds of this kind (null = all), best first.
   function leaderboard(rounds, archers, kind, limit) {
     return archers.map(a => {
@@ -140,7 +179,7 @@ const Analytics = (() => {
     return [a, b, step];
   }
 
-  return { VALUES, points, roundsFor, summarize, groupStats, rolling, kpis, mix, endAverages, shots, leaderboard, niceRange };
+  return { VALUES, points, roundsFor, summarize, groupStats, rolling, kpis, mix, endAverages, shots, compare, heat, drift, leaderboard, niceRange };
 })();
 
 if (typeof module !== 'undefined') { module.exports = Analytics; }
@@ -421,62 +460,150 @@ const Stats = (() => {
     </section>`;
   }
 
+  // Heat colours, light to strong: sky blue, arrow orange, then warm white at the densest spot.
+  const HEAT = [[0, [47, 150, 235, 0]], [0.22, [47, 150, 235, 0.5]], [0.6, [242, 98, 26, 0.85]], [1, [255, 236, 200, 0.96]]];
+  function heatColor(v) {
+    let k = 1;
+    while (k < HEAT.length - 1 && v > HEAT[k][0]) k++;
+    const [a, ca] = HEAT[k - 1], [b, cb] = HEAT[k];
+    const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
+    const c = ca.map((x, i) => x + (cb[i] - x) * t);
+    return `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${c[3].toFixed(2)})`;
+  }
+  const HEAT_MIN = 60;   // below this many arrows (about two rounds), show the arrows themselves
+
+  const r2 = v => +v.toFixed(2);
+  const bubbleSvg = (el, cls) => `<ellipse cx="${r2(el.cx)}" cy="${r2(el.cy)}" rx="${r2(el.rx)}" ry="${r2(el.ry)}"
+    transform="rotate(${r2(el.ang)} ${r2(el.cx)} ${r2(el.cy)})" class="${cls}"/>`;
+  const crossSvg = (g, arm, cls) => `<path d="M${r2(g.cx - arm)} ${r2(g.cy)}H${r2(g.cx + arm)}M${r2(g.cx)} ${r2(g.cy - arm)}V${r2(g.cy + arm)}" class="${cls}"/>`;
+  const sizeText = el => `${(el.rx * 2).toFixed(1)} × ${(el.ry * 2).toFixed(1)}`;
+
   function groupsCard(rows) {
     const shots = A.shots(rows);
     if (!shots.length) {
       return `<section class="an-card"><div class="an-h"><h2>Arrow groups</h2></div>
-        <p class="muted an-note">Plot arrows on the target during a Vegas round and your shot map and group trends appear here.</p></section>`;
+        <p class="muted an-note">Plot arrows on the target during a Vegas round and your heat map and group trends appear here.</p></section>`;
     }
-    const lastRound = Math.max(...shots.map(s => s.round));
-    const n = rows.length;
-    // Older rounds fade back; the latest plotted round is drawn bright on top.
-    const arrows = shots.map(s => s.round === lastRound
-      ? { x: s.x, y: s.y, color: ORANGE, cls: shots.length > 60 ? 'latest dense-new' : 'latest' }
-      : { x: s.x, y: s.y, cls: shots.length > 60 ? 'old dense' : 'old', color: `rgba(14,34,64,${(0.3 + 0.45 * (s.round + 1) / n).toFixed(2)})` })
-      .sort((a, b) => (a.color === ORANGE ? 1 : 0) - (b.color === ORANGE ? 1 : 0));
-    const g = Target.group(shots);
-    const face = Target.faceSvg({ arrows, showGroup: g, view: Target.fit(shots), cls: 'an-face', ariaLabel: `${shots.length} plotted arrows` });
-    const plotted = rows.filter(x => x.group);
-    const dir = Target.direction(g.cx, g.cy);
-    const bias = dir === 'centred'
-      ? `Your arrows centre within ${Target.fmtCm(g.offset)} of the middle. Sight is on.`
-      : `Your arrows centre ${Target.fmtCm(g.offset)} <b>${dir}</b> of the middle.`;
+    const cmp = A.compare(rows);
+    // Frame the face on the bulk of the arrows; a stray flier or two shouldn't zoom the whole map out.
+    const byDist = [...shots].sort((a, b) => Math.hypot(a.x, a.y) - Math.hypot(b.x, b.y));
+    const v = Target.fit(byDist.slice(0, Math.max(1, Math.ceil(byDist.length * 0.98))));
+    const u = v / 11;   // marks are sized to the zoom so they stay the same size on screen
+    const useHeat = shots.length >= HEAT_MIN;
 
-    let trend = '';
-    if (plotted.length >= 2) {
-      const vals = plotted.flatMap(x => [x.group.size, x.group.offset]).filter(v => v != null);
-      const [lo, hi, step] = A.niceRange(0, Math.max(...vals), 0);
-      const fr = frame(plotted.length, lo, hi, step, { H: 200 });
-      const series = (key, color) => {
-        const p = plotted.map((x, i) => [i, x.group[key]]).filter(q => q[1] != null).map(([i, v]) => [fr.x(i), fr.y(v)]);
-        return p.length ? `<path d="${pathOf(p)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" pathLength="1" class="an-draw"/>` +
-          (plotted.length <= 30 ? p.map(([px, py]) => `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${color}" class="an-dot an-fade"/>`).join('') : '') : '';
-      };
-      const xl = `<text x="${fr.L}" y="${fr.H - 8}" class="an-tick">${day(plotted[0].r.createdAt)}</text>
-        <text x="${fr.W - fr.R}" y="${fr.H - 8}" class="an-tick" text-anchor="end">${day(plotted[plotted.length - 1].r.createdAt)}</text>`;
-      const tips = plotted.map((x, i) => ({ x: +fr.x(i).toFixed(1), y: null, t: dayLong(x.r.createdAt),
-        rows: [[Target.fmtCm(x.group.size), 'Avg end group', BLUE], [Target.fmtCm(x.group.offset), 'Centre offset', ORANGE],
-          [Target.direction(x.group.cx, x.group.cy), 'Centre sits', null]] }));
-      trend = `<div class="an-h sub"><h3>Group trend</h3><span>cm, lower is better</span></div>
-        ${chartBox(fr, 'Group size and centre offset over time', fr.grid + series('size', BLUE) + series('offset', ORANGE) + xl, tips,
-          legendOf([[BLUE, 'Avg end group', true], [ORANGE, 'Centre offset', true]]))}`;
+    let layer = '';
+    if (useHeat) {
+      const h = A.heat(shots, v);
+      for (let k = 0; k < h.values.length; k++) {
+        if (h.values[k] < 0.03) continue;
+        const i = k % h.size, j = Math.floor(k / h.size);
+        layer += `<rect x="${r2(-v + i * h.cell)}" y="${r2(-v + j * h.cell)}" width="${r2(h.cell + 0.02)}" height="${r2(h.cell + 0.02)}" fill="${heatColor(h.values[k])}"/>`;
+      }
+      layer = `<g class="an-heat" filter="url(#an-soft)">${layer}</g>`;
     } else {
-      trend = `<p class="muted an-note">Plot arrows in two rounds to see your group trend.</p>`;
+      layer = shots.map(q => `<circle cx="${r2(q.x)}" cy="${r2(q.y)}" r="${r2(0.42 * u)}" class="an-shot"/>`).join('');
+    }
+
+    let marks;
+    if (cmp.recent) {
+      const ge = cmp.earlier.g, gr = cmp.recent.g;
+      const moved = Math.hypot(gr.cx - ge.cx, gr.cy - ge.cy);
+      marks = bubbleSvg(cmp.earlier.el, 'an-bub-old') + bubbleSvg(cmp.recent.el, 'an-bub-new') +
+        crossSvg(ge, 0.7 * u, 'an-cross-old') + crossSvg(gr, 0.8 * u, 'an-cross-new') +
+        (moved > 0.3 ? `<path d="M${r2(ge.cx)} ${r2(ge.cy)}L${r2(gr.cx)} ${r2(gr.cy)}" class="an-move" marker-end="url(#an-head)"/>` : '');
+    } else {
+      marks = (cmp.all.el ? bubbleSvg(cmp.all.el, 'an-bub-new') : '') + crossSvg(cmp.all.g, 0.8 * u, 'an-cross-new');
+    }
+    const defs = `<defs><filter id="an-soft" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="${r2(0.4 * u)}"/></filter>
+      <marker id="an-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#fff"/></marker></defs>`;
+    const face = Target.faceSvg({ view: v, cls: useHeat ? 'an-dim' : '', ariaLabel:
+      `${useHeat ? 'Heat map' : 'Shot map'} of ${shots.length} plotted arrows` });
+    const over = `<svg class="an-over" viewBox="${-r2(v)} ${-r2(v)} ${r2(v * 2)} ${r2(v * 2)}" aria-hidden="true">${defs}${layer}<g class="an-marks">${marks}</g></svg>`;
+
+    const key = `<div class="an-mapkey">
+      ${useHeat ? '<span class="an-ramp">Fewer<i></i>More arrows</span>' : ''}
+      ${cmp.recent ? `<span><i class="old"></i>Before</span><span><i class="new"></i>Last ${cmp.recent.rounds} rounds</span>`
+        : '<span><i class="new"></i>4 in 5 arrows</span>'}</div>`;
+
+    let stats, insight;
+    if (cmp.recent) {
+      const ge = cmp.earlier.g, gr = cmp.recent.g;
+      const moved = Math.hypot(gr.cx - ge.cx, gr.cy - ge.cy);
+      const ratio = (cmp.recent.el.rx * cmp.recent.el.ry) / (cmp.earlier.el.rx * cmp.earlier.el.ry);
+      const change = Math.round(Math.abs(1 - ratio) * 100);
+      const way = Target.direction(gr.cx - ge.cx, gr.cy - ge.cy, 0.2);
+      stats = `<div><small>Before, cm</small><b>${sizeText(cmp.earlier.el)}</b><span>${cmp.earlier.rounds} round${cmp.earlier.rounds === 1 ? '' : 's'}</span></div>
+        <div><small>Last ${cmp.recent.rounds}, cm</small><b>${sizeText(cmp.recent.el)}</b><span>4 in 5 arrows</span></div>
+        <div><small>Centre now</small><b>${Target.fmtCm(gr.offset)}</b><span>${Target.direction(gr.cx, gr.cy)}</span></div>`;
+      insight = `Your last ${cmp.recent.rounds} rounds group ${change < 5 ? '<b>about the same</b> as' : `<b>${change}% ${ratio < 1 ? 'tighter' : 'wider'}</b> than`} before` +
+        (moved > 0.3 ? `, and the centre moved ${Target.fmtCm(moved)} ${way === 'centred' ? '' : way}.` : ', with the centre in the same place.');
+    } else {
+      const g = cmp.all.g, el = cmp.all.el;
+      stats = `<div><small>4 in 5, cm</small><b>${el ? sizeText(el) : '–'}</b><span>group size</span></div>
+        <div><small>Centre</small><b>${Target.fmtCm(g.offset)}</b><span>${Target.direction(g.cx, g.cy)}</span></div>
+        <div><small>Arrows</small><b>${shots.length}</b><span>${cmp.all.rounds} round${cmp.all.rounds === 1 ? '' : 's'}</span></div>`;
+      const dir = Target.direction(g.cx, g.cy);
+      insight = dir === 'centred'
+        ? `Your arrows centre within ${Target.fmtCm(g.offset)} of the middle. Sight is on.`
+        : `Your arrows centre ${Target.fmtCm(g.offset)} <b>${dir}</b> of the middle.`;
     }
 
     return `<section class="an-card">
-      <div class="an-h"><h2>Arrow groups</h2><span>${shots.length} plotted arrow${shots.length === 1 ? '' : 's'}</span></div>
-      <div class="an-map">
-        <div class="an-face-wrap">${face}</div>
-        <div class="an-map-side">
-          <div><small>Group centre</small><b>${Target.fmtCm(g.offset)}</b><span>${dir}</span></div>
-          <div><small>Spread</small><b>${Target.fmtCm(g.meanR)}</b><span>avg from centre</span></div>
-          <div class="an-key"><i style="background:${ORANGE}"></i>Latest round<br><i style="background:#0e2240"></i>Earlier rounds</div>
-        </div>
-      </div>
-      <p class="an-insight">${bias}</p>
-      ${trend}
+      <div class="an-h"><h2>Arrow groups</h2><span>${shots.length.toLocaleString()} plotted arrow${shots.length === 1 ? '' : 's'}</span></div>
+      <div class="an-face-wrap an-face">${face}${over}</div>
+      ${key}
+      <div class="an-gstats">${stats}</div>
+      <p class="an-insight">${insight}</p>
+      ${driftChart(rows)}
+      ${groupTrend(rows)}
     </section>`;
+  }
+
+  // Where each round's centre sat, left-right and high-low, on one cm axis centred on zero.
+  function driftChart(rows) {
+    const d = A.drift(rows);
+    if (d.length < 2) return '';
+    const far = Math.max(1, ...d.flatMap(p => [Math.abs(p.x), Math.abs(p.y)]));
+    const [, hi, step] = A.niceRange(-far, far);
+    const top = Math.max(hi, step);
+    const fr = frame(d.length, -top, top, step, { H: 200 });
+    const zero = `<line x1="${fr.L}" x2="${fr.W - fr.R}" y1="${fr.y(0).toFixed(1)}" y2="${fr.y(0).toFixed(1)}" class="an-zero"/>`;
+    const series = (key, color) => {
+      const p = d.map((q, i) => [fr.x(i), fr.y(q[key])]);
+      return `<path d="${pathOf(p)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" pathLength="1" class="an-draw"/>` +
+        (d.length <= 30 ? p.map(([px, py]) => `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${color}" class="an-dot an-fade"/>`).join('') : '');
+    };
+    const side = (v, horiz) => (Math.abs(v) < 0.05 ? 'on centre' : `${Math.abs(v).toFixed(1)} cm ${horiz ? (v > 0 ? 'right' : 'left') : (v > 0 ? 'high' : 'low')}`);
+    const labels = `<text x="${fr.W - fr.R}" y="${(fr.T + 12).toFixed(1)}" class="an-tick" text-anchor="end">right / high</text>
+      <text x="${fr.W - fr.R}" y="${(fr.H - fr.B - 6).toFixed(1)}" class="an-tick" text-anchor="end">left / low</text>
+      <text x="${fr.L}" y="${fr.H - 8}" class="an-tick">${day(d[0].r.createdAt)}</text>
+      <text x="${fr.W - fr.R}" y="${fr.H - 8}" class="an-tick" text-anchor="end">${day(d[d.length - 1].r.createdAt)}</text>`;
+    const tips = d.map((q, i) => ({ x: +fr.x(i).toFixed(1), y: null, t: dayLong(q.r.createdAt),
+      rows: [[side(q.x, true), 'Left–right', BLUE], [side(q.y, false), 'High–low', ORANGE]] }));
+    return `<div class="an-h sub"><h3>Sight drift</h3><span>group centre per round</span></div>
+      ${chartBox(fr, 'Group centre left-right and high-low per round', fr.grid + zero + series('x', BLUE) + series('y', ORANGE) + labels, tips,
+        legendOf([[BLUE, 'Left–right', true], [ORANGE, 'High–low', true]]))}`;
+  }
+
+  function groupTrend(rows) {
+    const plotted = rows.filter(x => x.group);
+    if (plotted.length < 2) return `<p class="muted an-note">Plot arrows in two rounds to see your sight drift and group trend.</p>`;
+    const vals = plotted.flatMap(x => [x.group.size, x.group.offset]).filter(v => v != null);
+    const [lo, hi, step] = A.niceRange(0, Math.max(...vals), 0);
+    const fr = frame(plotted.length, lo, hi, step, { H: 200 });
+    const series = (key, color) => {
+      const p = plotted.map((x, i) => [i, x.group[key]]).filter(q => q[1] != null).map(([i, v]) => [fr.x(i), fr.y(v)]);
+      return p.length ? `<path d="${pathOf(p)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" pathLength="1" class="an-draw"/>` +
+        (plotted.length <= 30 ? p.map(([px, py]) => `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${color}" class="an-dot an-fade"/>`).join('') : '') : '';
+    };
+    const xl = `<text x="${fr.L}" y="${fr.H - 8}" class="an-tick">${day(plotted[0].r.createdAt)}</text>
+      <text x="${fr.W - fr.R}" y="${fr.H - 8}" class="an-tick" text-anchor="end">${day(plotted[plotted.length - 1].r.createdAt)}</text>`;
+    const tips = plotted.map((x, i) => ({ x: +fr.x(i).toFixed(1), y: null, t: dayLong(x.r.createdAt),
+      rows: [[Target.fmtCm(x.group.size), 'Avg end group', BLUE], [Target.fmtCm(x.group.offset), 'Centre offset', ORANGE],
+        [Target.direction(x.group.cx, x.group.cy), 'Centre sits', null]] }));
+    return `<div class="an-h sub"><h3>Group trend</h3><span>cm, lower is better</span></div>
+      ${chartBox(fr, 'Group size and centre offset over time', fr.grid + series('size', BLUE) + series('offset', ORANGE) + xl, tips,
+        legendOf([[BLUE, 'Avg end group', true], [ORANGE, 'Centre offset', true]]))}`;
   }
 
   function leaderCard(st, kind) {
