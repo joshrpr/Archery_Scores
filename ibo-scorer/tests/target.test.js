@@ -39,5 +39,12 @@ test('direction names the side the group sits on', () => {
 test('face svg draws every arrow', () => {
   const svg = T.faceSvg({ arrows: [{ x: 1, y: 2, label: 1 }, { x: -3, y: 0 }] });
   assert.strictEqual((svg.match(/class="tf-arrow"/g) || []).length, 2);
-  assert.match(svg, /viewBox="-12.5 -12.5 25 25"/);
+  assert.match(svg, /viewBox="-11 -11 22 22"/);
+  assert.match(T.faceSvg({ view: 4 }), /viewBox="-4 -4 8 8"/);
+});
+
+test('fit frames the arrows, within limits', () => {
+  assert.strictEqual(T.fit([{ x: 0.5, y: -1 }]), 4);
+  assert.strictEqual(T.fit([{ x: 5, y: 1 }, null]), 7);
+  assert.strictEqual(T.fit([{ x: 20, y: 0 }]), T.VIEW_R);
 });

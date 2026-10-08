@@ -2,12 +2,14 @@
 // Serves the app from cache instantly (works with no signal) and quietly
 // fetches a fresh copy in the background whenever a connection is available,
 // so updates show up the next time the app is opened.
-const CACHE = 'ibo-scorer-v4';
+const CACHE = 'ibo-scorer-v5';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './target.js',
+  './plot.js',
   './manifest.webmanifest',
   './icons/logo.webp',
   './icons/icon-192.png',

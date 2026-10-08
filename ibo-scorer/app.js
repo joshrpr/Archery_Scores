@@ -212,6 +212,7 @@ function render() {
   const cur = app.querySelector('.chip.cur');
   if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
   setWakeLock(page === 'round');
+  Plot.bind(app, placeArrow);
 }
 
 /* ---------- views ---------- */
@@ -310,6 +311,7 @@ function viewRound(id) {
                    editing ? `#/card/${r.id}` : '#/')}
   <nav class="strip">${chips}</nav>
   <main class="with-dock">
+    ${vegas ? plotPanel(r, t) : ''}
     ${rows}
     ${vegas
       ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
@@ -401,6 +403,8 @@ function viewCard(id) {
         <tr><td class="name">Total</td>${r.archerIds.map(aid => `<td>${tally(r, aid).total}</td>`).join('')}</tr>
         <tr><td class="name">${bonusLabel(r)}</td>${r.archerIds.map(aid => `<td>${tally(r, aid).bonus}</td>`).join('')}</tr>
       </tfoot></table></div>
+
+    ${vegas ? roundGroups(r) : ''}
 
     ${finished
       ? `<button class="big" data-action="edit-round">Edit scores</button>`
@@ -500,6 +504,7 @@ function viewArcher(id) {
     ${kinds.map(bonusTiles).join('')}
     ${kinds.map(list => `<h2>${kinds.length > 1 ? (list[0].vegas ? 'Vegas 300 trend' : 'IBO trend') : 'Trend'}</h2>
     ${trendChart(list)}`).join('')}
+    ${groupTrend(rows.filter(x => x.vegas), id)}
     <h2>Rounds</h2>
     ${[...rows].reverse().map(x => `<button class="card-row" data-action="nav" data-to="#/card/${x.r.id}">
       <div class="scores-line"><b>${x.total}</b><span class="muted">${x.bonus}× ${markOf(x)}</span><span class="muted">${x.what}</span></div>
@@ -551,6 +556,148 @@ function trendChart(rows) {
   </div>`;
 }
 
+/* ---------- arrow plotting (Vegas) ---------- */
+// r.plots[aid][end][arrow] = {x, y} in cm from the spot centre, or null when
+// that arrow was scored with the buttons instead of plotted.
+function plotsOf(r, aid) {
+  if (!r.plots) r.plots = {};
+  if (!r.plots[aid]) r.plots[aid] = r.scores[aid].map(end => end.map(() => null));
+  return r.plots[aid];
+}
+const hasPlots = (r, aid) => !!(r.plots && r.plots[aid] && r.plots[aid].some(e => e.some(Boolean)));
+const plotAid = r => (r.archerIds.includes(r.plotAid) ? r.plotAid : r.archerIds[0]);
+const END_COLORS = ['#0e2240', '#1767c4', '#6faf2f', '#f2621a', '#7a4fd0', '#0b8f8a', '#c2185b', '#5d4037', '#455a64', '#e0a100'];
+
+function groupLine(g, what) {
+  if (!g) return '';
+  return `<div class="gline">${g.n > 1 ? `<span><small>${what}</small><b>${Target.fmtCm(g.spread)}</b></span>` : ''}
+    <span><small>Centre</small><b>${Target.fmtCm(g.offset)}</b> ${Target.direction(g.cx, g.cy)}</span></div>`;
+}
+
+function plotPanel(r, t) {
+  if (!r.plot) {
+    return `<button class="btn plot-toggle" data-action="plot-toggle">Plot arrows on the target</button>`;
+  }
+  const aid = plotAid(r);
+  const plots = plotsOf(r, aid);
+  const end = plots[t];
+  const full = !r.scores[aid][t].includes(null);
+  // Earlier ends this round show faintly so you can see the group build up.
+  const earlier = plots.slice(0, t).flat().filter(Boolean).map(p => ({ ...p, color: 'rgba(14,34,64,.28)', ghost: true }));
+  const now = end.map((p, k) => p && { ...p, label: k + 1 }).filter(Boolean);
+  const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: now.length > 1 ? Target.group(now) : null,
+    ariaLabel: `Target face for ${nameOf(aid)}, end ${t + 1}` })
+    .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
+  const tabs = r.archerIds.length > 1 ? `<div class="ptabs">${r.archerIds.map(id => {
+    const done = !r.scores[id][t].includes(null);
+    return `<button class="${id === aid ? 'on' : ''} ${done ? 'done' : ''}" data-action="plot-archer" data-aid="${id}">${esc(nameOf(id))}</button>`;
+  }).join('')}</div>` : '';
+  return `<section class="plot">
+    <div class="plot-head"><b>Plot arrows</b>
+      <button class="link" data-action="plot-toggle">Use buttons only</button></div>
+    ${tabs}
+    <div class="face-wrap">${face}</div>
+    <p class="muted small plot-hint">${full
+      ? 'End complete. Tap an arrow score below to clear and re-plot it.'
+      : `Press where ${r.archerIds.length > 1 ? esc(nameOf(aid)) + '’s' : 'the'} arrow ${r.scores[aid][t].indexOf(null) + 1} landed, slide to adjust, lift to place.`}</p>
+    ${groupLine(Target.group(now), 'This end')}
+  </section>`;
+}
+
+// Called by Plot when a finger lifts off the face.
+function placeArrow(data, pt) {
+  const r = currentRound(); if (!r || !isVegas(r) || !r.plot) return;
+  const aid = data.aid;
+  const end = r.scores[aid][r.current];
+  const k = end.indexOf(null);
+  if (k < 0) return;
+  const s = Target.scoreAt(pt.x, pt.y);
+  end[k] = s.x ? 'X' : s.score;
+  plotsOf(r, aid)[r.current][k] = { x: pt.x, y: pt.y };
+  // End done for this archer: move on to the next archer still shooting this end.
+  if (!end.includes(null)) {
+    const i = r.archerIds.indexOf(aid);
+    const next = [...r.archerIds.slice(i + 1), ...r.archerIds.slice(0, i)]
+      .find(id => r.scores[id][r.current].includes(null));
+    r.plotAid = next || r.archerIds[0];
+  }
+  save(); render();
+}
+
+// Scorecard: every plotted arrow of the round, coloured by end, with group stats.
+function roundGroups(r) {
+  const who = r.archerIds.filter(aid => hasPlots(r, aid));
+  if (!who.length) return '';
+  return `<h2>Arrow groups</h2>` + who.map(aid => {
+    const plots = r.plots[aid];
+    const arrows = plots.flatMap((end, i) => end.filter(Boolean).map(p => ({ ...p, color: END_COLORS[i % END_COLORS.length] })));
+    const g = Target.group(arrows);
+    const ends = plots.map((end, i) => ({ i, g: Target.group(end) })).filter(e => e.g);
+    return `<div class="gcard">
+      ${r.archerIds.length > 1 ? `<h3>${esc(nameOf(aid))}</h3>` : ''}
+      <div class="face-wrap small">${Target.faceSvg({ arrows, showGroup: g, view: Target.fit(arrows), ariaLabel: `All plotted arrows for ${nameOf(aid)}` })}</div>
+      ${groupLine(g, 'Round group')}
+      ${g.n > 1 ? `<p class="muted small">Average distance from the group centre: ${Target.fmtCm(g.meanR)}, over ${g.n} plotted arrows.</p>` : ''}
+      <div class="tablewrap"><table class="gtable">
+        <thead><tr><th>End</th><th>Group</th><th>Centre</th></tr></thead>
+        <tbody>${ends.map(e => `<tr><td><i class="dot" style="background:${END_COLORS[e.i % END_COLORS.length]}"></i>${e.i + 1}</td>
+          <td>${e.g.n > 1 ? Target.fmtCm(e.g.spread) : '–'}</td>
+          <td>${Target.fmtCm(e.g.offset)} <span class="muted">${Target.direction(e.g.cx, e.g.cy)}</span></td></tr>`).join('')}
+        </tbody></table></div>
+    </div>`;
+  }).join('');
+}
+
+// Per round: average end group size, and how far the whole round's centre sat from the middle.
+function roundGroupStats(r, aid) {
+  if (!hasPlots(r, aid)) return null;
+  const ends = r.plots[aid].map(e => Target.group(e)).filter(g => g && g.n > 1);
+  const all = Target.group(r.plots[aid].flat());
+  return {
+    size: ends.length ? ends.reduce((s, g) => s + g.spread, 0) / ends.length : null,
+    offset: all.offset, cx: all.cx, cy: all.cy, n: all.n
+  };
+}
+
+function groupTrend(rows, aid) {
+  const pts = rows.map(x => ({ x, s: roundGroupStats(x.r, aid) })).filter(p => p.s);
+  if (!pts.length) return '';
+  const last = pts[pts.length - 1];
+  const tiles = `<div class="tiles">
+    <div class="tile"><div class="k">Avg end group</div><div class="v">${last.s.size == null ? '–' : last.s.size.toFixed(1)}<small> cm</small></div>
+      <div class="d">last round, ${fmtShort(last.x.r.createdAt)}</div></div>
+    <div class="tile"><div class="k">Last group centre</div><div class="v">${last.s.offset.toFixed(1)}<small> cm</small></div>
+      <div class="d">${Target.direction(last.s.cx, last.s.cy)}</div></div>
+  </div>`;
+  if (pts.length < 2) return `<h2>Arrow groups</h2>${tiles}<p class="muted">Plot arrows in two rounds to see a group trend.</p>`;
+
+  const W = 360, H = 200, L = 42, R = 12, T = 14, B = 34;
+  const vals = pts.flatMap(p => [p.s.size, p.s.offset]).filter(v => v != null);
+  const hi = Math.max(2, Math.ceil(Math.max(...vals) * 1.15));
+  const x = i => L + i * (W - L - R) / (pts.length - 1);
+  const y = v => T + (hi - v) * (H - T - B) / hi;
+  const line = (key, color, label) => {
+    const p = pts.map((q, i) => ({ i, v: q.s[key], q })).filter(q => q.v != null);
+    if (!p.length) return '';
+    return `<path d="${p.map((q, k) => `${k ? 'L' : 'M'}${x(q.i).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ')}"
+      fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>` +
+      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" stroke="#16325c" stroke-width="2">
+        <title>${label} ${q.v.toFixed(1)} cm, ${fmtShort(q.q.x.r.createdAt)}</title></circle>`).join('');
+  };
+  const ticks = [0, hi / 2, hi];
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
+    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
+  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
+  return `<h2>Arrow groups <small class="muted">cm, lower is better</small></h2>${tiles}
+  <div class="chart">
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Group size and centre offset over time">${grid}
+      ${line('size', SERIES_COLORS[0], 'End group')}${line('offset', SERIES_COLORS[1], 'Centre off')}${xl}</svg>
+    <div class="legend"><span><i style="background:${SERIES_COLORS[0]}"></i>Avg end group</span>
+      <span><i style="background:${SERIES_COLORS[1]}"></i>Centre offset</span></div>
+  </div>`;
+}
+
 /* ---------- actions ---------- */
 const currentRound = () => roundById(route().id);
 
@@ -580,6 +727,10 @@ const actions = {
       targets: vegas ? VEGAS_ENDS : draft.targets, archerIds: [...draft.selected],
       scores: {}, current: 0, status: 'in_progress'
     };
+    if (vegas) {
+      const lastVegas = [...db.rounds].filter(isVegas).sort((a, b) => b.createdAt - a.createdAt)[0];
+      r.plot = !!(lastVegas && lastVegas.plot);
+    }
     r.archerIds.forEach(aid => {
       r.scores[aid] = vegas
         ? Array.from({ length: VEGAS_ENDS }, () => Array(VEGAS_ARROWS).fill(null))
@@ -610,6 +761,19 @@ const actions = {
   vclear: d => {
     const r = currentRound(); if (!r || !isVegas(r)) return;
     r.scores[d.aid][r.current][Number(d.k)] = null;
+    const pe = plotsOf(r, d.aid)[r.current]; pe[Number(d.k)] = null;
+    save(); render();
+  },
+
+  'plot-toggle': () => {
+    const r = currentRound(); if (!r || !isVegas(r)) return;
+    r.plot = !r.plot;
+    save(); render();
+  },
+
+  'plot-archer': d => {
+    const r = currentRound(); if (!r) return;
+    r.plotAid = d.aid;
     save(); render();
   },
 

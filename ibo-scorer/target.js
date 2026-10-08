@@ -19,7 +19,7 @@ const Target = (() => {
   ];
   const X_R = 1;
   const FACE_R = 10;          // outer edge of the scoring area
-  const VIEW_R = 12.5;        // drawn area, so misses near the face can be plotted
+  const VIEW_R = 11;          // drawn area, so misses just off the face can be plotted
   // Arrow radius used for line cutters: if the shaft touches a line the arrow
   // takes the higher score. 0.4 cm is roughly a typical indoor arrow.
   const ARROW_R = 0.4;
@@ -64,8 +64,9 @@ const Target = (() => {
   /* ---------- drawing ---------- */
   const f = v => +v.toFixed(2);
 
-  // opts.arrows: [{x, y, label?, color?}]; opts.group: result of group() to mark the centre.
-  function faceSvg({ arrows = [], showGroup = null, cls = '', ariaLabel = 'Target face' } = {}) {
+  // opts.arrows: [{x, y, label?, color?}]; opts.showGroup: result of group() to mark the centre.
+  // opts.view: half-width shown in cm (defaults to the whole face); smaller zooms in.
+  function faceSvg({ arrows = [], showGroup = null, cls = '', ariaLabel = 'Target face', view = VIEW_R } = {}) {
     const rings = [...RINGS].reverse().map(ring =>
       `<circle r="${ring.r}" fill="${COLORS[ring.score]}" stroke="${LINE[ring.score]}" stroke-width="0.06"/>`).join('');
     const x = `<circle r="${X_R}" fill="none" stroke="${LINE[10]}" stroke-width="0.05"/>
@@ -82,10 +83,17 @@ const Target = (() => {
         <path d="M${f(showGroup.cx - 0.6)} ${f(showGroup.cy)}H${f(showGroup.cx + 0.6)}M${f(showGroup.cx)} ${f(showGroup.cy - 0.6)}V${f(showGroup.cy + 0.6)}"
           stroke="#fff" stroke-width="0.14"/>
       </g>` : '';
-    return `<svg class="tf ${cls}" viewBox="${-VIEW_R} ${-VIEW_R} ${VIEW_R * 2} ${VIEW_R * 2}"
+    const v = f(view);
+    return `<svg class="tf ${cls}" viewBox="${-v} ${-v} ${v * 2} ${v * 2}"
       role="img" aria-label="${ariaLabel}">
-      <rect x="${-VIEW_R}" y="${-VIEW_R}" width="${VIEW_R * 2}" height="${VIEW_R * 2}" rx="0.8" fill="#f6f3ea"/>
+      <rect x="${-v}" y="${-v}" width="${v * 2}" height="${v * 2}" rx="${f(v * 0.06)}" fill="#f6f3ea"/>
       ${rings}${x}${labels}${g}${dots}</svg>`;
+  }
+
+  // Half-width that frames a set of arrows with some margin, for zoomed views.
+  function fit(arrows) {
+    const far = Math.max(0, ...arrows.filter(Boolean).map(a => Math.max(Math.abs(a.x), Math.abs(a.y))));
+    return Math.min(VIEW_R, Math.max(4, Math.ceil(far + 1.5)));
   }
 
   // Convert a screen point to cm on a face drawn by faceSvg().
@@ -98,7 +106,7 @@ const Target = (() => {
     };
   }
 
-  return { RINGS, X_R, FACE_R, VIEW_R, ARROW_R, scoreAt, group, direction, fmtCm, faceSvg, toCm };
+  return { RINGS, X_R, FACE_R, VIEW_R, ARROW_R, scoreAt, group, direction, fmtCm, faceSvg, fit, toCm };
 })();
 
 if (typeof module !== 'undefined') module.exports = Target;
