@@ -13,6 +13,7 @@ const ASSETS = [
   './target.js',
   './plot.js',
   './stats.js',
+  './import.js',
   './stats.css',
   './manifest.webmanifest',
   './icons/logo.webp',
