@@ -19,6 +19,7 @@ const app = document.getElementById('app');
 let db = load();
 if (migrate(db)) save();
 let draft = null;        // new-round form state
+let pendingImport = null; // rounds read from another app's export, awaiting confirmation
 let wakeLock = null;
 let lastPath = null;
 
@@ -204,6 +205,7 @@ function render() {
     case 'archers': html = viewArchers(); break;
     case 'archer': html = viewArcher(id); break;
     case 'backup': html = viewBackup(); break;
+    case 'import': html = viewImport(); break;
     case 'stats': html = Stats.view(id); break;
     default: html = viewHome();
   }
@@ -763,6 +765,82 @@ function viewBackup() {
     <h2>Spreadsheet</h2>
     <p class="muted small">Every score from every round as a CSV file that opens in Excel or Google Sheets. This file cannot be restored.</p>
     <button class="btn" data-action="export-csv" ${db.rounds.length ? '' : 'disabled'}>Export scorecards (CSV)</button>
+
+    <h2>Import from another app</h2>
+    <p class="muted small">Adds the Vegas 300 rounds from your old scoring app's export (.xlsx or .csv) to this phone. You pick the archer and see every round before anything is saved. Nothing already here is changed, and rounds you imported before are skipped.</p>
+    <label class="btn file-btn">Import scores from a file
+      <input type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" data-input="import-old">
+    </label>
+  </main>`;
+}
+
+/* ---------- import from another app ---------- */
+const importedKeys = () => new Set(db.rounds.filter(r => r.source && r.source.key).map(r => r.source.key));
+
+async function readOldExport(file) {
+  let parsed;
+  try {
+    parsed = OldImport.parse(await OldImport.readTable(new Uint8Array(await file.arrayBuffer())));
+  } catch (e) {
+    alertBox('Could not read the file', `<p>${esc(e.message || 'The file could not be read.')}</p>`);
+    return;
+  }
+  if (!parsed.entries.length) {
+    const why = parsed.skipped.length ? ` ${parsed.skipped.length} entr${parsed.skipped.length === 1 ? 'y was' : 'ies were'} skipped: ${esc(parsed.skipped[0].reason.toLowerCase())}.` : '';
+    alertBox('No rounds to import', `<p>No Vegas 300 rounds were found in ${esc(file.name)}.${why}</p>`);
+    return;
+  }
+  // Pre-pick the archer named in the file, or the only archer on the phone.
+  const named = parsed.entries.map(e => e.archerName).find(Boolean);
+  const list = activeArchers();
+  const match = named && list.find(a => a.name.toLowerCase() === named.toLowerCase());
+  pendingImport = { fileName: file.name, ...parsed, archerId: match ? match.id : list.length === 1 ? list[0].id : null };
+  go('#/import');
+}
+
+function viewImport() {
+  if (!pendingImport) { go('#/backup'); return null; }
+  const p = pendingImport;
+  if (p.archerId && !(archerById(p.archerId) && !archerById(p.archerId).deleted)) p.archerId = null;
+  const done = importedKeys();
+  const fresh = p.entries.filter(e => !done.has(e.key));
+  const partial = fresh.filter(e => !e.complete).length;
+  const list = activeArchers();
+  const who = p.archerId ? nameOf(p.archerId) : null;
+  const row = e => {
+    const dup = done.has(e.key);
+    const off = e.listedScore != null && e.listedScore !== e.total;
+    return `<div class="card-row imp-row${dup ? ' dup' : ''}">
+      <div class="title">${fmtDate(e.createdAt)}<span class="imp-score">${e.total}<small>${e.xs} X</small></span></div>
+      <div class="muted small">${esc(e.note)}${e.complete ? '' : `, ${e.shot} of 30 arrows`}</div>
+      <div class="imp-ends">${e.ends.map(end => `<span>${end.every(v => v == null) ? '–' : endTotal(end)}</span>`).join('')}</div>
+      ${dup ? '<span class="badge">Already imported</span>' : ''}
+      ${!dup && !e.complete ? '<span class="badge">Saved unfinished</span>' : ''}
+      ${off ? `<div class="small imp-warn">The old app listed ${e.listedScore} for this round; the arrows add up to ${e.total}.</div>` : ''}
+    </div>`;
+  };
+  return `${header('Import scores', '#/backup')}
+  <main>
+    <p class="muted">${esc(p.fileName)}: ${p.entries.length} Vegas 300 round${p.entries.length === 1 ? '' : 's'}${fresh.length < p.entries.length ? `, ${p.entries.length - fresh.length} already on this phone` : ''}.</p>
+
+    <h2>Whose scores are these?</h2>
+    <div class="pick">
+      ${list.length ? list.map(a => `<button class="pick-btn ${a.id === p.archerId ? 'on' : ''}" data-action="import-archer" data-id="${a.id}">${esc(a.name)}</button>`).join('')
+        : '<p class="muted">No saved archers yet. Add one below.</p>'}
+    </div>
+    <form class="inline" data-form="add-and-pick-import">
+      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <button class="btn">Add</button>
+    </form>
+
+    <h2>Rounds</h2>
+    ${partial ? `<p class="muted small">${partial === 1 ? 'One round was' : `${partial} rounds were`} stopped part way. ${partial === 1 ? 'It is' : 'They are'} saved unfinished, so ${partial === 1 ? 'it does' : 'they do'} not count toward averages or bests; finish or delete ${partial === 1 ? 'it' : 'them'} from the home screen.</p>` : ''}
+    ${[...p.entries].reverse().map(row).join('')}
+    ${p.skipped.length ? `<h2>Skipped</h2>${p.skipped.map(s => `<div class="muted small imp-skip">${s.createdAt ? fmtShort(s.createdAt) + ', ' : ''}${esc(s.name)}: ${esc(s.reason)}</div>`).join('')}` : ''}
+
+    <button class="big primary" data-action="import-old" ${who && fresh.length ? '' : 'disabled'}>
+      ${!fresh.length ? 'Nothing new to import' : who ? `Import ${fresh.length} round${fresh.length === 1 ? '' : 's'} for ${esc(who)}` : 'Pick an archer first'}
+    </button>
   </main>`;
 }
 
@@ -1056,6 +1134,23 @@ const actions = {
 
   'export-json': () => download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'),
 
+  'import-archer': d => { if (pendingImport) { pendingImport.archerId = d.id; render(); } },
+
+  'import-old': async () => {
+    const p = pendingImport;
+    if (!p || !p.archerId) return;
+    const done = importedKeys();
+    const rounds = p.entries.filter(e => !done.has(e.key)).map(e => OldImport.toRound(e, p.archerId, uid()));
+    if (!rounds.length) return;
+    db.rounds.push(...rounds);
+    save();
+    pendingImport = null;
+    const unfinished = rounds.filter(r => r.status !== 'finished').length;
+    await alertBox('Scores imported', `<p>${rounds.length} round${rounds.length === 1 ? '' : 's'} added for <b>${esc(nameOf(rounds[0].archerIds[0]))}</b>.${
+      unfinished ? ` ${unfinished} unfinished round${unfinished === 1 ? ' is' : 's are'} waiting on the home screen.` : ''}</p>`);
+    go('#/history');
+  },
+
   'export-csv': () => download(`ropers-archery-scorecards-${today()}.csv`, scorecardsCsv(), 'text/csv'),
 
   'delete-archer': async d => {
@@ -1073,6 +1168,10 @@ const forms = {
   'add-and-pick': f => {
     const a = addArcher(f.elements.name.value);
     if (a) { draft.selected.push(a.id); render(); }
+  },
+  'add-and-pick-import': f => {
+    const a = addArcher(f.elements.name.value);
+    if (a && pendingImport) { pendingImport.archerId = a.id; render(); }
   },
   'add-archer': f => {
     if (addArcher(f.elements.name.value)) render();
@@ -1094,10 +1193,11 @@ app.addEventListener('input', e => {
   if (e.target.dataset.input === 'draft-note' && draft) draft.note = e.target.value;
 });
 app.addEventListener('change', e => {
-  if (e.target.dataset.input !== 'import-json') return;
+  const kind = e.target.dataset.input;
+  if (kind !== 'import-json' && kind !== 'import-old') return;
   const file = e.target.files && e.target.files[0];
   e.target.value = '';                  // let the same file be picked again
-  if (file) importBackup(file);
+  if (file) (kind === 'import-json' ? importBackup : readOldExport)(file);
 });
 
 /* ---------- offline support and automatic updates ---------- */
@@ -1106,7 +1206,8 @@ if ('serviceWorker' in navigator) {
   let pending = false, reloaded = false, touching = false;
   // Reload only when nothing would be lost: no dialog open, no new-round form
   // being filled in, and no finger on the screen (e.g. mid-plot).
-  const safe = () => !document.querySelector('.modal-wrap') && !(draft && route().page === 'new') && !touching;
+  const safe = () => !document.querySelector('.modal-wrap') && !(draft && route().page === 'new') &&
+    !(pendingImport && route().page === 'import') && !touching;
   const applyUpdate = () => {
     if (!pending || reloaded) return;
     if (safe()) { reloaded = true; location.reload(); }

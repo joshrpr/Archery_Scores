@@ -415,3 +415,14 @@ h2 small { font-size: .85rem; font-weight: 600; }
 .g-slider span { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
 .g-slider output { color: var(--arrow); font-weight: 800; }
 .g-slider input { width: 100%; height: 36px; accent-color: var(--arrow); }
+/* Import from another app */
+.imp-row .title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.imp-score { font-family: var(--display); font-size: 1.5rem; color: var(--cloud); white-space: nowrap; }
+.imp-score small { font-family: inherit; font-size: .85rem; color: var(--haze); margin-left: 6px; }
+.imp-ends { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 8px; }
+.imp-ends span { text-align: center; font-size: .82rem; font-weight: 700; color: var(--haze);
+  background: var(--ridge-2); border-radius: 6px; padding: 3px 0; font-variant-numeric: tabular-nums; }
+.imp-row .badge { margin: 10px 0 0; }
+.imp-row.dup { opacity: .55; }
+.imp-warn { color: var(--hill); margin-top: 6px; }
+.imp-skip { padding: 4px 0; }
