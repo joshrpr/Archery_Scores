@@ -362,3 +362,16 @@ h2 small { font-size: .85rem; font-weight: 600; }
 .gtable td { font-size: 1rem; }
 .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: 0; border: 1px solid #fff; }
 .tile .v small { font-size: 1rem; color: var(--haze); }
+.undo {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 6px 14px;
+  border-radius: 23px; border: 2px solid var(--arrow); background: var(--ridge-2);
+  font-weight: 800; font-size: 1.05rem;
+}
+.undo:active:not(:disabled) { background: var(--arrow); color: var(--night); }
+.undo:disabled { border-color: var(--line); }
+.undo span { font-size: 1.3rem; line-height: 1; }
+.undo i {
+  font-style: normal; font-family: var(--display); font-weight: 800;
+  min-width: 28px; padding: 0 6px; border-radius: 8px; background: var(--c); color: var(--night); text-align: center;
+}
+.plot-foot { text-align: center; }

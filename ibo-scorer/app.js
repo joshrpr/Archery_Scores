@@ -597,15 +597,40 @@ function plotPanel(r, t) {
     return `<button class="${id === aid ? 'on' : ''} ${done ? 'done' : ''}" data-action="plot-archer" data-aid="${id}">${esc(nameOf(id))}</button>`;
   }).join('')}</div>` : '';
   return `<section class="plot">
-    <div class="plot-head"><b>Plot arrows</b>
-      <button class="link" data-action="plot-toggle">Use buttons only</button></div>
+    <div class="plot-head"><b>Plot arrows</b>${undoButton(r, t)}</div>
     ${tabs}
     <div class="face-wrap">${face}</div>
     <p class="muted small plot-hint">${full
-      ? 'End complete. Tap an arrow score below to clear and re-plot it.'
+      ? 'End complete. Use Undo, or tap any arrow score below to clear it and plot again.'
       : `Press where ${r.archerIds.length > 1 ? esc(nameOf(aid)) + '’s ' : ''}arrow ${r.scores[aid][t].indexOf(null) + 1} landed. Slide slowly to fine-tune, then lift to place.`}</p>
     ${groupLine(Target.group(now), 'This end')}
+    <div class="plot-foot"><button class="link" data-action="plot-toggle">Use score buttons only</button></div>
   </section>`;
+}
+
+// Undo for a mis-tap: takes back the most recently plotted arrow on this end,
+// even if plotting has already moved on to the next archer.
+let plotHistory = [];    // [{rid, aid, end, k}] placements this session, newest last
+function undoTarget(r, t) {
+  const live = h => h.rid === r.id && h.end === t && r.plots && r.plots[h.aid] &&
+    r.plots[h.aid][t][h.k] && r.scores[h.aid][t][h.k] != null;
+  for (let i = plotHistory.length - 1; i >= 0; i--) if (live(plotHistory[i])) return plotHistory[i];
+  // Nothing placed this session (e.g. the app was reopened): fall back to the
+  // current archer's last plotted arrow on this end.
+  const aid = plotAid(r);
+  const end = r.plots && r.plots[aid] ? r.plots[aid][t] : [];
+  for (let k = end.length - 1; k >= 0; k--) {
+    if (end[k] && r.scores[aid][t][k] != null) return { rid: r.id, aid, end: t, k };
+  }
+  return null;
+}
+function undoButton(r, t) {
+  const u = undoTarget(r, t);
+  if (!u) return '<button class="undo" disabled aria-label="Nothing to undo"><span aria-hidden="true">↶</span> Undo</button>';
+  const v = r.scores[u.aid][t][u.k];
+  const who = r.archerIds.length > 1 ? esc(nameOf(u.aid)) + '’s ' : '';
+  return `<button class="undo" data-action="plot-undo" aria-label="Undo ${who}arrow ${u.k + 1}, ${label(v)}">
+    <span aria-hidden="true">↶</span> Undo <i class="r${ring(v)}">${label(v)}</i></button>`;
 }
 
 // Called by Plot when a finger lifts off the face.
@@ -620,6 +645,7 @@ function placeArrow(data, pt) {
   end[k] = s.x ? 'X' : s.score;
   plotsOf(r, aid)[r.current][k] = { x: pt.x, y: pt.y };
   justPlaced = { aid, end: r.current, k };
+  plotHistory.push({ rid: r.id, aid, end: r.current, k });
   // End done for this archer: move on to the next archer still shooting this end.
   if (!end.includes(null)) {
     const i = r.archerIds.indexOf(aid);
@@ -899,6 +925,16 @@ const actions = {
   'plot-toggle': () => {
     const r = currentRound(); if (!r || !isVegas(r)) return;
     r.plot = !r.plot;
+    save(); render();
+  },
+
+  'plot-undo': () => {
+    const r = currentRound(); if (!r || !isVegas(r)) return;
+    const u = undoTarget(r, r.current); if (!u) return;
+    r.scores[u.aid][u.end][u.k] = null;
+    r.plots[u.aid][u.end][u.k] = null;
+    plotHistory = plotHistory.filter(h => h !== u);
+    r.plotAid = u.aid;      // back to that archer so the arrow can be re-plotted
     save(); render();
   },
 
