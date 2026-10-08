@@ -1,7 +1,7 @@
 {
   "name": "Ropers Archery Scorecard",
   "short_name": "Ropers Archery",
-  "description": "Offline IBO 3D archery scorecard for groups.",
+  "description": "Offline IBO 3D and Vegas 300 archery scorecard for groups.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -1,6 +1,6 @@
 # Ropers Archery Scorecard
 
-An offline IBO 3D archery scorecard for Android, as an installable web app (PWA). One phone scores a whole group. All data stays on the phone.
+An offline IBO 3D and Vegas 300 archery scorecard for Android, as an installable web app (PWA). One phone scores a whole group. All data stays on the phone.
 
 ## Put it on GitHub Pages (one time, about 5 minutes)
 
@@ -25,7 +25,9 @@ Commit the changed files to the `ibo-scorer` folder on the `main` branch (they r
 ## Good to know
 
 - Scores, archers and stats are saved only in this app's storage on the phone. Uninstalling the app or clearing Chrome's site data for it erases them, so save a backup now and then (see below). The app asks Android to keep its storage persistent, so automatic cleanup won't remove it.
-- Only finished rounds count toward personal bests and stats.
+- Pick **IBO 3D** or **Vegas 300** when you start a round. Vegas is 10 ends of 3 arrows scored X, 10 to 6 and M; X counts 10 and breaks ties. Tap a score to fill the next arrow, and tap an arrow to clear it.
+- In a Vegas round, tap **Plot arrows on the target** to place each arrow where it landed: press, slide to fine-tune while the zoomed circle shows the spot, then lift. The score is filled in for you (an arrow touching a line gets the higher score). The scorecard then shows each archer's group and how far its centre sits from the middle, and the archer page tracks group size over time. You can mix plotted arrows and score buttons, or switch plotting off.
+- Only finished rounds count toward personal bests and stats. Vegas 300 bests are kept separate from IBO bests.
 - Tap a score again to clear it. Blank targets count as 0 (miss) when you finish a round.
 - The screen stays on while you're on the scoring screen.
 
@@ -35,4 +37,4 @@ Tap **Backup and export** on the home screen.
 
 - **Save backup file** downloads every archer, round and score as one `.json` file. Copy it somewhere safe, such as Google Drive.
 - **Restore from backup file** reads that file back. It shows what the backup holds and asks before replacing what is on the phone. Use it after a reinstall or to move to a new phone.
-- **Export scorecards (CSV)** downloads every score as a spreadsheet (one row per archer per target) for Excel or Google Sheets. A CSV is for reading only and cannot be restored.
+- **Export scorecards (CSV)** downloads every score as a spreadsheet for Excel or Google Sheets: one row per archer per IBO target, or per Vegas arrow with its plotted spot when it was plotted. A CSV is for reading only and cannot be restored.
