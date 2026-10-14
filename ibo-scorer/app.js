@@ -68,6 +68,13 @@ const bonusMark = r => (isVegas(r) ? 'X' : '11');
 const slotDone = (r, aid, i) => (isVegas(r)
   ? r.scores[aid][i].every(v => v != null)
   : r.scores[aid][i] != null);
+// Vegas: every archer needs all three arrows on an end before the round can
+// move past it. The furthest end the round may be on right now.
+const lastOpen = r => {
+  if (!isVegas(r)) return r.targets - 1;
+  for (let i = 0; i < r.targets; i++) if (!r.archerIds.every(aid => slotDone(r, aid, i))) return i;
+  return r.targets - 1;
+};
 const endTotal = end => end.reduce((s, v) => s + (v == null ? 0 : points(v)), 0);
 
 function tally(r, aid) {
@@ -301,11 +308,13 @@ function viewRound(id) {
   const t = r.current;
   const editing = r.status === 'finished';
   const isLast = t === r.targets - 1;
+  const open = lastOpen(r);
+  const blocked = !isLast && t >= open;
 
   const vegas = isVegas(r);
   const chips = Array.from({ length: r.targets }, (_, i) => {
     const done = r.archerIds.every(aid => slotDone(r, aid, i));
-    return `<button class="chip ${i === t ? 'cur' : done ? 'done' : ''}" data-action="jump" data-t="${i}">${i + 1}</button>`;
+    return `<button class="chip ${i === t ? 'cur' : done ? 'done' : ''}" data-action="jump" data-t="${i}" ${i > open ? 'disabled' : ''}>${i + 1}</button>`;
   }).join('');
 
   const rows = r.archerIds.map(aid => vegas ? vegasRow(r, aid, t) : iboRow(r, aid, t)).join('');
@@ -316,6 +325,7 @@ function viewRound(id) {
   <main class="with-dock">
     ${vegas ? plotPanel(r, t) : ''}
     ${rows}
+    ${vegas && blocked ? `<p class="muted small">Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.</p>` : ''}
     ${vegas
       ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
       : `<div class="grid3">
@@ -328,7 +338,7 @@ function viewRound(id) {
   <div class="dock">
     <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
     ${!isLast
-      ? `<button class="big primary" data-action="move" data-d="1">Next ▶</button>`
+      ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ▶</button>`
       : vegas
         ? `<button class="big go" data-action="finish">${editing ? 'Done editing' : 'Finish'}</button>`
         : `<button class="big primary" data-action="add-target">+ Add target</button>`}
@@ -1023,13 +1033,17 @@ const actions = {
 
   move: d => {
     const r = currentRound(); if (!r) return;
-    r.current = Math.min(r.targets - 1, Math.max(0, r.current + Number(d.d)));
+    const to = Math.min(r.targets - 1, Math.max(0, r.current + Number(d.d)));
+    if (to > r.current && to > lastOpen(r)) return;
+    r.current = to;
     save(); render();
   },
 
   jump: d => {
     const r = currentRound(); if (!r) return;
-    r.current = Number(d.t);
+    const to = Number(d.t);
+    if (to > r.current && to > lastOpen(r)) return;
+    r.current = to;
     save(); render();
   },
 
