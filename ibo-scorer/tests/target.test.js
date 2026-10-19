@@ -43,6 +43,13 @@ test('face svg draws every arrow', () => {
   assert.match(T.faceSvg({ view: 4 }), /viewBox="-4 -4 8 8"/);
 });
 
+test('face svg escapes its aria label', () => {
+  const svg = T.faceSvg({ ariaLabel: 'Bob " onload="alert(1) <b>' });
+  assert.ok(svg.includes('aria-label="Bob &quot; onload=&quot;alert(1) &lt;b&gt;"'));
+  assert.ok(!svg.includes('" onload="'));                 // no attribute breakout
+  assert.match(T.faceSvg({}), /aria-label="Target face"/); // benign labels unchanged
+});
+
 test('fit frames the arrows, within limits', () => {
   assert.strictEqual(T.fit([{ x: 0.5, y: -1 }]), 4);
   assert.strictEqual(T.fit([{ x: 5, y: 1 }, null]), 7);

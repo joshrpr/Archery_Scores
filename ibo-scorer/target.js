@@ -96,6 +96,11 @@ const Target = (() => {
 
   const fmtCm = v => (v == null ? '–' : v.toFixed(1) + ' cm');
 
+  // Labels can carry an archer's name, so anything placed inside an attribute
+  // has to be escaped: a quote would otherwise close it and add attributes.
+  const escAttr = s => String(s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
   /* ---------- drawing ---------- */
   const f = v => +v.toFixed(2);
 
@@ -120,7 +125,7 @@ const Target = (() => {
       </g>` : '';
     const v = f(view);
     return `<svg class="tf ${cls}" viewBox="${-v} ${-v} ${v * 2} ${v * 2}"
-      role="img" aria-label="${ariaLabel}">
+      role="img" aria-label="${escAttr(ariaLabel)}">
       <rect x="${-v}" y="${-v}" width="${v * 2}" height="${v * 2}" rx="${f(v * 0.06)}" fill="#f6f3ea"/>
       ${rings}${x}${labels}${g}${dots}</svg>`;
   }
