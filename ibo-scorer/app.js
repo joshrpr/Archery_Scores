@@ -839,8 +839,6 @@ function viewImport() {
 }
 
 /* ---------- backup, restore and CSV ---------- */
-const BACKUP_APP = 'ropers-archery-scorecard';
-const BACKUP_FORMAT = 1;
 const today = () => new Date().toISOString().slice(0, 10);
 
 function download(name, text, type) {
@@ -850,40 +848,11 @@ function download(name, text, type) {
 
 function backupText() {
   return JSON.stringify({
-    app: BACKUP_APP, format: BACKUP_FORMAT, storageKey: KEY,
+    app: Backup.APP, format: Backup.FORMAT, storageKey: KEY,
     exportedAt: new Date().toISOString(), data: db
   }, null, 2);
 }
 
-// Checks a parsed backup file and returns the data to restore, or throws a
-// readable message. Round objects are kept as-is (unknown fields included) so
-// newer round types survive a round trip.
-function parseBackup(obj) {
-  if (!obj || typeof obj !== 'object') throw new Error('The file is not a backup.');
-  if (obj.app !== undefined && obj.app !== BACKUP_APP) throw new Error('This backup is from a different app.');
-  if (typeof obj.format === 'number' && obj.format > BACKUP_FORMAT) {
-    throw new Error('This backup was made by a newer version of the app. Update the app and try again.');
-  }
-  const d = obj.data !== undefined ? obj.data : obj;
-  if (!d || !Array.isArray(d.archers) || !Array.isArray(d.rounds)) {
-    throw new Error('The file has no archers or rounds in it.');
-  }
-  const ids = new Set();
-  d.archers.forEach((a, i) => {
-    if (!a || typeof a.id !== 'string' || typeof a.name !== 'string') throw new Error(`Archer ${i + 1} is damaged.`);
-    if (ids.has(a.id)) throw new Error(`Archer "${a.name}" appears twice.`);
-    ids.add(a.id);
-  });
-  const roundIds = new Set();
-  d.rounds.forEach((r, i) => {
-    const bad = () => new Error(`Round ${i + 1} is damaged.`);
-    if (!r || typeof r.id !== 'string' || roundIds.has(r.id)) throw bad();
-    if (!Array.isArray(r.archerIds) || !r.scores || typeof r.scores !== 'object') throw bad();
-    if (!r.archerIds.every(id => typeof id === 'string' && Array.isArray(r.scores[id]))) throw bad();
-    roundIds.add(r.id);
-  });
-  return d;
-}
 
 const CSV_HEAD = ['Date', 'Round ID', 'Round type', 'Note', 'Status', 'Archer',
   'Target or end', 'Arrow', 'Score', 'Points', 'Plot X (cm)', 'Plot Y (cm)'];
@@ -918,7 +887,7 @@ function scorecardsCsv() {
 async function importBackup(file) {
   let data;
   try {
-    data = parseBackup(JSON.parse(await file.text()));
+    data = Backup.parse(JSON.parse(await file.text()), { ibo: VALUES, vegas: VEGAS_VALUES });
   } catch (e) {
     alertBox('Could not restore', `<p>${esc(e instanceof SyntaxError ? 'The file is not a valid backup.' : e.message)}</p>`);
     return;

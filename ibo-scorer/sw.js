@@ -16,6 +16,7 @@ const ASSETS = [
   './groups.js',
   './stats.js',
   './import.js',
+  './backup.js',
   './stats.css',
   './manifest.webmanifest',
   './icons/logo.webp',
