@@ -9,6 +9,14 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <script>
+    // Apply the saved screen colours before first paint (see THEMES in app.js).
+    try {
+      var t = localStorage.getItem('ibo-scorer-theme') || 'dark';
+      if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="stats.css">
 </head>
@@ -21,6 +29,7 @@
   <script src="groups.js"></script>
   <script src="stats.js"></script>
   <script src="import.js"></script>
+  <script src="finish.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

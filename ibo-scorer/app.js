@@ -13,6 +13,8 @@ const label = v => (v === 0 ? 'M' : String(v));
 const points = v => (v === 'X' ? 10 : v);
 // Vegas face colour for a value: gold (X-9), red (8-7), blue (6), miss.
 const ring = v => (v === 'X' || v >= 9 ? 'g' : v >= 7 ? 'r' : v === 6 ? 'b' : 'm');
+const spoken = v => (v === 0 ? 'miss' : String(v));
+const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 const SERIES_COLORS = ['#2f96eb', '#f2621a', '#6faf2f', '#d8bc84', '#ff6b6b', '#c792ff'];
 
 const app = document.getElementById('app');
@@ -21,6 +23,28 @@ if (migrate(db)) save();
 let draft = null;        // new-round form state
 let pendingImport = null; // rounds read from another app's export, awaiting confirmation
 let lastPath = null;
+const padOpen = new Set();  // Vegas archers whose number pad is open while plotting
+
+/* ---------- screen colours ---------- */
+// Dark suits the indoor range and evenings; Bright is for sunlight on an
+// outdoor course. index.html applies the saved choice before first paint.
+const THEME_KEY = 'ibo-scorer-theme';
+const THEMES = [['dark', 'Dark', 'Indoors and evenings'], ['light', 'Bright', 'Outdoors in sun'], ['auto', 'Match phone', 'Follows the phone setting']];
+let theme = (() => { try { return localStorage.getItem(THEME_KEY) || 'dark'; } catch (e) { return 'dark'; } })();
+const darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+function applyTheme() {
+  const light = theme === 'light' || (theme === 'auto' && darkQuery && darkQuery.matches);
+  document.documentElement.dataset.theme = light ? 'light' : 'dark';
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = light ? '#eef2f7' : '#0e2240';
+}
+function setTheme(t) {
+  theme = t;
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* the choice just won't persist */ }
+  applyTheme();
+}
+if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener('change', () => { if (theme === 'auto') applyTheme(); });
+applyTheme();
 
 /* ---------- storage ---------- */
 function load() {
@@ -56,6 +80,23 @@ const roundById = id => db.rounds.find(r => r.id === id);
 const fmtDate = ts => new Date(ts).toLocaleDateString(undefined,
   { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const fmtShort = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const startOfDay = ts => new Date(ts).setHours(0, 0, 0, 0);
+const daysAgo = ts => {
+  const d = Math.round((startOfDay(Date.now()) - startOfDay(ts)) / 864e5);
+  return d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
+};
+// Runs of numbers as ranges: [6, 7, 8, 12] -> "6–8, 12".
+const ranges = ns => ns.reduce((out, n) => {
+  const run = out[out.length - 1];
+  if (run && run[1] === n - 1) run[1] = n; else out.push([n, n]);
+  return out;
+}, []).map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ');
+
+/* ---------- backup status ---------- */
+// Finished rounds that no saved backup file holds yet.
+const unbackedRounds = () => db.rounds.filter(r =>
+  r.status === 'finished' && (r.finishedAt || r.createdAt) > (db.lastBackupAt || 0));
+const backupDue = r => r.status === 'finished' && (r.finishedAt || r.createdAt) > (db.lastBackupAt || 0);
 
 /* ---------- round types ---------- */
 const isVegas = r => r.type === 'vegas';
@@ -71,7 +112,8 @@ const slotDone = (r, aid, i) => (isVegas(r)
 // Vegas: every archer needs all three arrows on an end before the round can
 // move past it. The furthest end the round may be on right now.
 const lastOpen = r => {
-  if (!isVegas(r)) return r.targets - 1;
+  // A finished round may have blank ends left on purpose; editing reaches them all.
+  if (!isVegas(r) || r.status === 'finished') return r.targets - 1;
   for (let i = 0; i < r.targets; i++) if (!r.archerIds.every(aid => slotDone(r, aid, i))) return i;
   return r.targets - 1;
 };
@@ -141,10 +183,17 @@ function modal({ title, html = '', input = null, buttons }) {
         if (e.key === 'Enter') finish(buttons.find(b => b.value === true) || buttons[buttons.length - 1]);
       });
     }
+    // Escape or a tap outside the dialog answers with the first (cancel) button.
+    const cancel = buttons[0];
     wrap.addEventListener('click', e => {
       const b = e.target.closest('[data-i]');
       if (b) finish(buttons[+b.dataset.i]);
+      else if (e.target === wrap) finish(cancel);
     });
+    wrap.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); finish(cancel); }
+    });
+    if (!inp) (wrap.querySelector('.primary') || wrap.querySelector('[data-i]')).focus({ preventScroll: true });
   });
 }
 async function confirmBox(title, html, okLabel = 'OK', danger = false) {
@@ -178,7 +227,8 @@ function go(hash) {
   if (location.hash === hash) render(); else location.hash = hash;
 }
 window.addEventListener('hashchange', () => {
-  // Phone back button while a dialog is open: close the dialog too.
+  // Phone back button while a dialog is open: close the dialog too
+  // (the round-complete screen closes itself).
   document.querySelectorAll('.modal-wrap').forEach(m => m.remove());
   render();
 });
@@ -206,6 +256,8 @@ function render() {
   }
   if (html == null) return;            // view redirected
   app.innerHTML = html;
+  const top = app.querySelector('.top');
+  if (top) document.documentElement.style.setProperty('--top-h', top.offsetHeight + 'px');
   const path = location.hash;
   if (path !== lastPath) { window.scrollTo(0, 0); lastPath = path; }
   const cur = app.querySelector('.chip.cur');
@@ -219,12 +271,13 @@ function render() {
 /* ---------- views ---------- */
 function viewHome() {
   const open = db.rounds.filter(r => r.status !== 'finished').sort((a, b) => b.createdAt - a.createdAt);
+  const unbacked = unbackedRounds();
   return `<section class="hero">
     <img class="hero-logo" src="icons/logo.webp" alt="" width="168" height="168">
     <h1 class="brand"><span>Ropers</span>Archery Scorecard</h1>
     <svg class="ridge" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" fill="#1e4175"/>
-      <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" fill="#0e2240"/>
+      <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" style="fill:var(--ridge-2)"/>
+      <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" style="fill:var(--night)"/>
     </svg>
   </section>
   <main>
@@ -234,12 +287,18 @@ function viewHome() {
         <div class="muted small">Save a backup in the web app, then tap here and choose Restore from backup file to bring your archers and scores across.</div>
       </button>` : ''}
     <button class="big primary" data-action="new-round">Start new round</button>
+    ${!db.rounds.length && !db.archers.length ? `<p class="muted small first-hint">You add archers on the next screen, then score one target or end at a time.</p>` : ''}
     ${open.length ? `<h2>Pick up where you left off</h2>` + open.map(r => `
       <button class="card-row resume" data-action="nav" data-to="#/round/${r.id}">
         <div class="title">${unit(r)} ${r.current + 1} of ${r.targets}<span class="badge type">${typeName(r)}</span></div>
         <div>${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
         <div class="muted small">${fmtDate(r.createdAt)}${r.note ? `, ${esc(r.note)}` : ''}</div>
       </button>`).join('') : ''}
+    ${unbacked.length ? `
+      <button class="card-row due" data-action="export-json">
+        <div class="title">${unbacked.length} finished round${unbacked.length === 1 ? '' : 's'} not backed up</div>
+        <div class="muted small">${db.lastBackupAt ? `Last backup ${daysAgo(db.lastBackupAt)}.` : 'Until you save a backup, your scores are only on this phone.'} Tap to save a backup file now.</div>
+      </button>` : ''}
     <button class="big an-home" data-action="nav" data-to="#/stats">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16V11M11 16V6M16 16v-7M21 16V9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       Analytics</button>
@@ -248,6 +307,12 @@ function viewHome() {
       <button class="big" data-action="nav" data-to="#/archers">Archers</button>
     </div>
     <button class="btn" data-action="nav" data-to="#/backup">Backup and export</button>
+    ${db.lastBackupAt && !unbacked.length ? `<p class="muted small backup-note">Last backup ${daysAgo(db.lastBackupAt)}</p>` : ''}
+    <h2>Screen</h2>
+    <div class="theme-pick" role="radiogroup" aria-label="Screen colours">
+      ${THEMES.map(([k, name, hint]) => `<button role="radio" aria-checked="${theme === k}" class="${theme === k ? 'on' : ''}"
+        data-action="theme" data-theme="${k}"><b>${name}</b><span>${hint}</span></button>`).join('')}
+    </div>
   </main>`;
 }
 
@@ -274,12 +339,12 @@ function viewNew() {
     <div class="pick">
       ${list.length ? list.map(a => {
         const i = draft.selected.indexOf(a.id);
-        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" data-action="toggle-pick" data-id="${a.id}">
-          ${i >= 0 ? `<span class="order">${i + 1}</span>` : ''}${esc(a.name)}</button>`;
+        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" data-action="toggle-pick" data-id="${a.id}" aria-pressed="${i >= 0}">
+          ${i >= 0 ? `<span class="order" aria-label="shoots ${ordinal(i + 1)}">${ordinal(i + 1)}</span>` : ''}${esc(a.name)}</button>`;
       }).join('') : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" placeholder="New archer name" aria-label="New archer name" autocomplete="off" maxlength="40">
       <button class="btn">Add</button>
     </form>
 
@@ -294,7 +359,7 @@ function viewNew() {
     <p class="muted small">You can also add or remove targets during the round.</p>`}
 
     <h2>Note (optional)</h2>
-    <input data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
+    <input data-input="draft-note" aria-label="Round note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
 
     <button class="big primary" data-action="start-round" ${draft.selected.length ? '' : 'disabled'}>
       Start round${draft.selected.length ? ` with ${draft.selected.length} archer${draft.selected.length > 1 ? 's' : ''}` : ''}
@@ -318,6 +383,7 @@ function viewRound(id) {
   }).join('');
 
   const rows = r.archerIds.map(aid => vegas ? vegasRow(r, aid, t) : iboRow(r, aid, t)).join('');
+  const why = vegas && blocked ? `Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.` : '';
 
   return `${header(`${unit(r)} ${t + 1} <small>of ${r.targets}${editing ? ', editing' : ''}</small>`,
                    editing ? `#/card/${r.id}` : '#/')}
@@ -325,17 +391,19 @@ function viewRound(id) {
   <main class="with-dock">
     ${vegas ? plotPanel(r, t) : ''}
     ${rows}
-    ${vegas && blocked ? `<p class="muted small">Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.</p>` : ''}
     ${vegas
       ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
       : `<div class="grid3">
       <button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>
       <button class="btn" data-action="add-target">+ Target</button>
-      <button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
+      <button class="btn" data-action="remove-target" aria-label="Remove the last target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
     </div>`}
-    <button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
+    ${editing || isLast
+      ? `<button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>`
+      : ''}
   </main>
   <div class="dock">
+    ${why ? `<p class="dock-note" role="status">${why}</p>` : ''}
     <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
     ${!isLast
       ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ▶</button>`
@@ -351,11 +419,11 @@ function iboRow(r, aid, t) {
   return `<div class="arow" data-v="${v == null ? '' : v}">
     <div class="ahead">
       <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="11s">${elevens}× 11</span><b>${total}</b></span>
+      <span class="atot"><span class="elev ${elevens ? '' : 'zero'}" title="11s">${elevens}× 11</span><b>${total}</b></span>
     </div>
     <div class="sbtns">
       ${VALUES.map(x => `<button class="s s${x} ${v === x ? 'sel' : ''}" data-action="score"
-          data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}">${label(x)}</button>`).join('')}
+          data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}" aria-label="${esc(nameOf(aid))}: ${spoken(x)}">${label(x)}</button>`).join('')}
     </div></div>`;
 }
 
@@ -370,16 +438,21 @@ function vegasRow(r, aid, t) {
     ? `<span class="slot empty ${k === next ? 'next' : ''}" aria-label="Arrow ${k + 1} not scored"></span>`
     : `<button class="slot r${ring(v)}" data-action="vclear" data-aid="${aid}" data-k="${k}"
         aria-label="Arrow ${k + 1}: ${label(v)}. Tap to clear">${label(v)}</button>`).join('');
+  // While plotting, the target face is the input: each archer's pad folds away
+  // behind "Enter by number" so the screen has one way in.
+  const pad = !r.plot || padOpen.has(aid);
   return `<div class="arow vrow ${full ? 'full' : ''}">
     <div class="ahead">
       <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="Xs">${xs}× X</span><b>${total}</b></span>
+      <span class="atot"><span class="elev ${xs ? '' : 'zero'}" title="Xs">${xs}× X</span><b>${total}</b></span>
     </div>
     <div class="slots">${slots}<span class="endtot"><small>End</small>${endTotal(end)}</span></div>
-    <div class="sbtns vbtns">
+    ${pad ? `<div class="sbtns vbtns">
       ${VEGAS_VALUES.map(x => `<button class="s r${ring(x)}" data-action="vscore"
-          data-aid="${aid}" data-v="${x}" ${full ? 'disabled' : ''}>${label(x)}</button>`).join('')}
-    </div></div>`;
+          data-aid="${aid}" data-v="${x}" aria-label="${esc(nameOf(aid))}: ${spoken(x)}" ${full ? 'disabled' : ''}>${label(x)}</button>`).join('')}
+    </div>` : ''}
+    ${r.plot ? `<button class="link pad-toggle" data-action="vpad" data-aid="${aid}">${pad ? 'Hide number buttons' : 'Enter by number'}</button>` : ''}
+    </div>`;
 }
 
 function viewCard(id) {
@@ -390,24 +463,32 @@ function viewCard(id) {
   const vegas = isVegas(r);
   const cell = v => `<td class="v${v == null ? 'null' : v}">${v == null ? '–' : label(v)}</td>`;
   const endCell = end => end.every(v => v == null) ? '<td class="vnull">–</td>'
-    : `<td class="vend"><span class="arr">${end.map(v => v == null ? '<i>·</i>'
-        : `<i class="r${ring(v)}">${label(v)}</i>`).join('')}</span><b>${endTotal(end)}</b></td>`;
+    : `<td class="vend"><b>${endTotal(end)}</b><span class="arr">${end.map(v => v == null ? '<i>·</i>'
+        : `<i class="r${ring(v)}">${label(v)}</i>`).join('')}</span></td>`;
+  const tied = n => rank.filter(x => x.rank === n).length > 1;
+  const bests = finished ? newBests(r) : [];
 
   return `${header(finished ? 'Scorecard' : 'Scorecard <small>in progress</small>',
                    finished ? '#/history' : `#/round/${r.id}`)}
   <main>
     <div class="meta"><strong>${fmtDate(r.createdAt)}</strong>${r.note ? `<span>${esc(r.note)}</span>` : ''}
       <span class="badge type">${typeName(r)}</span><span class="muted">${unitsLabel(r)}</span></div>
+    ${backupDue(r) ? `
+      <button class="card-row due" data-action="export-json">
+        <div class="title">Save a backup of this round</div>
+        <div class="muted small">Until you do, it is only on this phone. Tap to save a backup file.</div>
+      </button>` : ''}
 
     <h2>Standings</h2>
     <div class="tablewrap"><table>
       <thead><tr><th>#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
       <tbody>${rank.map(x => `<tr class="${x.rank === 1 && finished ? 'first' : ''}">
-        <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
+        <td>${x.rank === 1 && finished ? `<span class="rank1">1</span>${tied(1) ? '=' : ''}` : x.rank + (tied(x.rank) ? '=' : '')}</td><td class="name">${esc(nameOf(x.id))}${bests.includes(x.id) ? '<span class="badge pb">New best</span>' : ''}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
       </tbody></table></div>
+    ${bests.length ? `<p class="pb-note">${bests.map(aid => `<b>${esc(nameOf(aid))}</b>`).join(' and ')} shot a new personal best for ${isVegas(r) ? 'Vegas 300' : `${r.targets} targets`}.</p>` : ''}
 
     <h2>Card</h2>
-    <div class="tablewrap"><table>
+    <div class="tablewrap card-table ${r.archerIds.length > 3 ? 'wide' : ''}"><table>
       <thead><tr><th>${vegas ? 'End' : 'Tgt'}</th>${r.archerIds.map(aid => `<th>${esc(nameOf(aid))}</th>`).join('')}</tr></thead>
       <tbody>${Array.from({ length: r.targets }, (_, i) =>
         `<tr><td class="muted" style="font-size:1rem">${i + 1}</td>${r.archerIds.map(aid => (vegas ? endCell : cell)(r.scores[aid][i])).join('')}</tr>`).join('')}
@@ -420,8 +501,9 @@ function viewCard(id) {
     ${vegas ? roundGroups(r) : ''}
 
     ${finished
-      ? `<button class="big" data-action="edit-round">Edit scores</button>`
-      : `<button class="big primary" data-action="nav" data-to="#/round/${r.id}">Back to scoring</button>`}
+      ? `<button class="btn" data-action="edit-round">Edit scores</button>`
+      : `<button class="big primary" data-action="nav" data-to="#/round/${r.id}">Back to scoring</button>
+         <button class="btn" data-action="finish">Finish round now</button>`}
     <div class="grid2">
       <button class="btn" data-action="edit-note">${r.note ? 'Edit note' : 'Add note'}</button>
       <button class="btn danger" data-action="delete-round">Delete round</button>
@@ -467,12 +549,65 @@ function personalBests(rows) {
 }
 const markOf = x => (x.vegas ? 'X' : '11');
 
+// What the round-complete moment shows: the leader's (or the only archer's)
+// total and arrows, a headline, and the standings when it was a group.
+function finishSummary(r) {
+  const rank = ranking(r);
+  const bests = newBests(r);
+  const solo = r.archerIds.length === 1;
+  const top = rank.filter(x => x.rank === 1);
+  const aid = rank[0].id;
+  const t = tally(r, aid);
+  const name = nameOf(aid);
+  const kind = isVegas(r) ? 'Vegas 300' : `${r.targets}-target round`;
+  let head;
+  if (solo) head = bests.includes(aid) ? 'New personal best' : 'Round complete';
+  else if (top.length > 1) head = `${top.map(x => nameOf(x.id)).join(' and ')} share the top`;
+  else head = bests.includes(aid) ? `${name} wins with a new best` : `${name} takes the round`;
+
+  const sub = [];
+  if (solo) {
+    const n = archerRounds(aid).filter(x => x.vegas === isVegas(r) && (x.vegas || x.n === r.targets)).length;
+    sub.push(`${name}’s ${ordinal(n)} ${kind}`);
+  } else sub.push(`${typeName(r)}, ${r.archerIds.length} archers`);
+  if (isVegas(r)) {
+    const ends = r.scores[aid].filter(e => e.every(v => v != null)).map(endTotal);
+    if (ends.length) sub.push(`Best end ${Math.max(...ends)}`);
+  }
+  const arrows = isVegas(r) ? r.scores[aid].flat() : r.scores[aid];
+  if (t.scored && !arrows.includes(0)) sub.push('No misses');
+
+  const plots = r.plots && r.plots[aid];
+  return {
+    type: isVegas(r) ? 'vegas' : 'ibo', head, sub,
+    total: t.total, bonus: t.bonus, bonusMark: bonusMark(r),
+    board: solo ? [] : rank.map(x => ({ rank: x.rank, tie: rank.filter(y => y.rank === x.rank).length > 1,
+      name: nameOf(x.id), total: x.total, pb: bests.includes(x.id) })),
+    arrows: plots ? plots.flatMap((e, end) => e.filter(Boolean).map(p => ({ x: p.x, y: p.y, end }))) : [],
+    tally: isVegas(r) ? [] : r.scores[aid]
+  };
+}
+
+// Archers whose score in this finished round beats every earlier round of
+// the same kind they shot. A first round of a kind is not called a best.
+function newBests(r) {
+  return r.archerIds.filter(aid => {
+    const rows = archerRounds(aid);
+    const me = rows.find(x => x.r.id === r.id);
+    if (!me) return false;
+    const before = rows.filter(x => x.key === me.key && x.r.id !== r.id && x.r.createdAt < r.createdAt);
+    return before.length > 0 && before.every(x => me.total > x.total || (me.total === x.total && me.bonus > x.bonus));
+  });
+}
+
 function viewArchers() {
   const list = activeArchers();
+  const removed = db.archers.filter(a => a.deleted &&
+    !activeArchers().some(x => x.name.toLowerCase() === a.name.toLowerCase()));
   return `${header('Archers', '#/')}
   <main>
     <form class="inline" data-form="add-archer">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" placeholder="New archer name" aria-label="New archer name" autocomplete="off" maxlength="40">
       <button class="btn">Add</button>
     </form>
     ${list.length ? list.map(a => {
@@ -484,6 +619,10 @@ function viewArchers() {
         ${pbs ? `<div class="scores-line">${pbs}</div>` : ''}
       </button>`;
     }).join('') : '<p class="empty">No archers yet. Add one above.</p>'}
+    ${removed.length ? `<h2>Removed archers</h2>
+      <p class="muted small">Their scores are still kept. Bring one back to see their stats again.</p>
+      ${removed.map(a => `<div class="removed-row"><span>${esc(a.name)}</span>
+        <button class="btn" data-action="restore-archer" data-id="${a.id}">Bring back</button></div>`).join('')}` : ''}
   </main>`;
 }
 
@@ -550,19 +689,19 @@ function trendChart(rows) {
   const what = n => rows.find(r => r.key === n).what;
 
   const ticks = [lo, Math.round((lo + hi) / 2), hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${v}</text>`).join('');
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)"/>
+    <text x="${L - 6}" y="${y(v) + 5}" style="fill:var(--haze)" font-size="15" text-anchor="end">${v}</text>`).join('');
 
   const series = counts.map(n => {
     const pts = rows.map((r, i) => ({ r, i })).filter(p => p.r.key === n);
     const path = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.r.total).toFixed(1)}`).join(' ');
     return `<path d="${path}" fill="none" stroke="${color(n)}" stroke-width="3" stroke-linejoin="round"/>` +
-      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#16325c" stroke-width="2">
+      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" style="stroke:var(--ridge)" stroke-width="2">
         <title>${p.r.total}, ${fmtShort(p.r.r.createdAt)}</title></circle>`).join('');
   }).join('');
 
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
+  const xl = `<text x="${L}" y="${H - 10}" style="fill:var(--haze)" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" style="fill:var(--haze)" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
 
   return `<div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Round totals over time">${grid}${series}${xl}</svg>
@@ -581,10 +720,10 @@ function plotsOf(r, aid) {
 const hasPlots = (r, aid) => !!(r.plots && r.plots[aid] && r.plots[aid].some(e => e.some(Boolean)));
 const plotAid = r => (r.archerIds.includes(r.plotAid) ? r.plotAid : r.archerIds[0]);
 
-function groupLine(g, what) {
+function groupLine(g, what, extra = '') {
   if (!g) return '';
   return `<div class="gline">${g.n > 1 ? `<span><small>${what}</small><b>${Target.fmtCm(g.spread)}</b></span>` : ''}
-    <span><small>Centre</small><b>${Target.fmtCm(g.offset)}</b> ${Target.direction(g.cx, g.cy)}</span></div>`;
+    <span><small>Centre</small><b>${Target.fmtCm(g.offset)}</b> ${Target.direction(g.cx, g.cy)}</span>${extra}</div>`;
 }
 
 function plotPanel(r, t) {
@@ -600,7 +739,12 @@ function plotPanel(r, t) {
   const fresh = justPlaced && justPlaced.aid === aid && justPlaced.end === t ? justPlaced.k : -1;
   justPlaced = null;
   const now = end.map((p, k) => p && { ...p, label: k + 1, color: '#f2621a', r: 0.62, cls: k === fresh ? 'new' : '' }).filter(Boolean);
-  const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: now.length > 1 ? Target.group(now) : null,
+  // The group circle covers every arrow plotted so far this round, so you
+  // watch the round's group build end by end.
+  const sofar = plots.slice(0, t + 1).flat().filter(Boolean);
+  const roundGroup = Target.group(sofar);
+  const endGroup = Target.group(now);
+  const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: sofar.length > 1 ? roundGroup : null,
     ariaLabel: `Target face for ${nameOf(aid)}, end ${t + 1}` })
     .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
   const tabs = r.archerIds.length > 1 ? `<div class="ptabs">${r.archerIds.map(id => {
@@ -614,7 +758,8 @@ function plotPanel(r, t) {
     <p class="muted small plot-hint">${full
       ? 'End complete. Use Undo, or tap any arrow score below to clear it and plot again.'
       : `Press where ${r.archerIds.length > 1 ? esc(nameOf(aid)) + '’s ' : ''}arrow ${r.scores[aid][t].indexOf(null) + 1} landed. Slide slowly to fine-tune, then lift to place.`}</p>
-    ${groupLine(Target.group(now), 'This end')}
+    ${groupLine(roundGroup, 'Round so far', endGroup && endGroup.n > 1 && t > 0
+      ? `<span><small>This end</small><b>${Target.fmtCm(endGroup.spread)}</b></span>` : '')}
     <div class="plot-foot"><button class="link" data-action="plot-toggle">Use score buttons only</button></div>
   </section>`;
 }
@@ -722,14 +867,14 @@ function groupTrend(rows, aid) {
     if (!p.length) return '';
     return `<path d="${p.map((q, k) => `${k ? 'L' : 'M'}${x(q.i).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ')}"
       fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>` +
-      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" stroke="#16325c" stroke-width="2">
+      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" style="stroke:var(--ridge)" stroke-width="2">
         <title>${label} ${q.v.toFixed(1)} cm, ${fmtShort(q.q.x.r.createdAt)}</title></circle>`).join('');
   };
   const ticks = [0, hi / 2, hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)"/>
+    <text x="${L - 6}" y="${y(v) + 5}" style="fill:var(--haze)" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
+  const xl = `<text x="${L}" y="${H - 10}" style="fill:var(--haze)" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" style="fill:var(--haze)" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
   return `<h2>Arrow groups <small class="muted">cm, lower is better</small></h2>${tiles}
   <div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Group size and centre offset over time">${grid}
@@ -741,10 +886,14 @@ function groupTrend(rows, aid) {
 
 function viewBackup() {
   const finished = db.rounds.filter(r => r.status === 'finished').length;
+  const unbacked = unbackedRounds().length;
   return `${header('Backup and export', '#/')}
   <main>
     <p class="muted">${activeArchers().length} archer${activeArchers().length === 1 ? '' : 's'},
       ${db.rounds.length} round${db.rounds.length === 1 ? '' : 's'} (${finished} finished) on this phone.</p>
+    <p class="backup-status${unbacked ? ' due' : ''}">${db.lastBackupAt
+      ? `Last backup ${fmtDate(db.lastBackupAt)} (${daysAgo(db.lastBackupAt)}).`
+      : 'No backup saved yet.'}${unbacked ? ` ${unbacked} finished round${unbacked === 1 ? ' is' : 's are'} not in a backup.` : ''}</p>
 
     <h2>Backup</h2>
     <p class="muted small">Saves every archer, round and score to one file. Keep it somewhere safe, like Google Drive, so you can restore after a new phone or a reinstall.${Native.isApp ? ' Pick Drive or Files from the share menu that opens.' : ''}</p>
@@ -823,7 +972,7 @@ function viewImport() {
         : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick-import">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" placeholder="New archer name" aria-label="New archer name" autocomplete="off" maxlength="40">
       <button class="btn">Add</button>
     </form>
 
@@ -843,9 +992,12 @@ const BACKUP_APP = 'ropers-archery-scorecard';
 const BACKUP_FORMAT = 1;
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Resolves true once the file is saved or shared, false if it was not.
 function download(name, text, type) {
-  Native.saveFile(name, text, type).catch(e =>
-    alertBox('Could not save the file', `<p>${esc(e && e.message || 'Something went wrong.')}</p>`));
+  return Native.saveFile(name, text, type).catch(e => {
+    alertBox('Could not save the file', `<p>${esc(e && e.message || 'Something went wrong.')}</p>`);
+    return false;
+  });
 }
 
 function backupText() {
@@ -916,9 +1068,11 @@ function scorecardsCsv() {
 }
 
 async function importBackup(file) {
-  let data;
+  let data, exportedAt;
   try {
-    data = parseBackup(JSON.parse(await file.text()));
+    const obj = JSON.parse(await file.text());
+    data = parseBackup(obj);
+    exportedAt = Date.parse(obj && obj.exportedAt);
   } catch (e) {
     alertBox('Could not restore', `<p>${esc(e instanceof SyntaxError ? 'The file is not a valid backup.' : e.message)}</p>`);
     return;
@@ -930,6 +1084,8 @@ async function importBackup(file) {
     'Replace and restore', true);
   if (!ok) return;
   migrate(data);
+  // The phone now holds exactly what this backup holds.
+  if (exportedAt) data.lastBackupAt = exportedAt;
   db = data;
   draft = null;
   save();
@@ -1072,25 +1228,27 @@ const actions = {
     const editing = r.status === 'finished';
     const gaps = gapsOf(r);
     if (gaps.length) {
+      // Blanks stay blank: a round cut short is not a run of misses.
       const u = unit(r).toLowerCase();
-      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${u}${g.missing.length > 1 ? 's' : ''} ${g.missing.join(', ')}</li>`).join('');
-      const ok = await confirmBox(isVegas(r) ? 'Some arrows are blank' : 'Some targets are blank',
-        `<ul>${list}</ul><p>Blank ${isVegas(r) ? 'arrows' : 'targets'} will be scored as <b>0 (miss)</b>.</p>`,
-        editing ? 'Save as 0' : 'Finish anyway');
-      if (!ok) return;
-      gaps.forEach(g => g.missing.forEach(n => {
-        if (isVegas(r)) r.scores[g.aid][n - 1] = r.scores[g.aid][n - 1].map(v => (v == null ? 0 : v));
-        else r.scores[g.aid][n - 1] = 0;
-      }));
+      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${g.missing.length} ${u}${g.missing.length > 1 ? 's' : ''} ${isVegas(r) ? 'not finished' : 'blank'} <span class="nowrap">(${ranges(g.missing)})</span></li>`).join('');
+      const { value } = await modal({
+        title: isVegas(r) ? 'Some ends are not finished' : 'Some targets are blank',
+        html: `<ul>${list}</ul><p>Blanks stay blank on the scorecard and do not count as misses. You can fill them in later with Edit scores.</p>`,
+        buttons: [
+          { label: editing ? 'Save with blanks' : 'Finish with blanks', value: true },
+          { label: editing ? 'Keep editing' : 'Keep scoring', value: false, cls: 'primary' }]
+      });
+      if (value !== true) return;
     } else if (!editing && !(await confirmBox('Finish round?',
         '<p>You can still edit scores afterwards from History.</p>', 'Finish'))) {
       return;
     }
     r.status = 'finished';
     r.finishedAt = r.finishedAt || Date.now();
-    Native.haptic.success();
     save();
     go('#/card/' + r.id);
+    if (editing) Native.haptic.success();
+    else Finish.play(finishSummary(r), Native.haptic);
   },
 
   'edit-round': () => {
@@ -1110,7 +1268,9 @@ const actions = {
   'delete-round': async () => {
     const r = currentRound(); if (!r) return;
     if (!(await confirmBox('Delete this round?',
-        `<p>${fmtDate(r.createdAt)}${r.note ? ' · ' + esc(r.note) : ''}</p><p>This cannot be undone.</p>`,
+        `<p><b>${typeName(r)}</b>, ${fmtDate(r.createdAt)}${r.note ? ' · ' + esc(r.note) : ''}</p>
+         <ul>${ranking(r).map(x => `<li>${esc(nameOf(x.id))}: <b>${x.total}</b></li>`).join('')}</ul>
+         <p>This cannot be undone.</p>`,
         'Delete', true))) return;
     db.rounds = db.rounds.filter(x => x.id !== r.id);
     save();
@@ -1131,7 +1291,11 @@ const actions = {
     save(); render();
   },
 
-  'export-json': () => download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'),
+  'export-json': async () => {
+    if (!(await download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'))) return;
+    db.lastBackupAt = Date.now();
+    save(); render();
+  },
 
   'import-archer': d => { if (pendingImport) { pendingImport.archerId = d.id; render(); } },
 
@@ -1155,12 +1319,25 @@ const actions = {
   'delete-archer': async d => {
     const a = archerById(d.id); if (!a) return;
     if (!(await confirmBox(`Delete ${a.name}?`,
-        '<p>Their stats and personal bests will be removed. Their name will still appear on past group scorecards so other archers’ rounds stay complete.</p>',
+        '<p>They leave the archer list and stats. Their scores are kept, so past group scorecards stay complete, and you can bring them back from Archers.</p>',
         'Delete', true))) return;
     a.deleted = true;
     save();
     go('#/archers');
-  }
+  },
+
+  'restore-archer': d => {
+    const a = archerById(d.id); if (!a) return;
+    delete a.deleted;
+    save(); render();
+  },
+
+  vpad: d => {
+    if (padOpen.has(d.aid)) padOpen.delete(d.aid); else padOpen.add(d.aid);
+    render();
+  },
+
+  theme: d => { setTheme(d.theme); render(); }
 };
 
 const forms = {

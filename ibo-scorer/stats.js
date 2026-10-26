@@ -34,7 +34,9 @@ const Analytics = (() => {
       if (v === 'X' || v === 11) bonus++;
       if (v === 0) misses++;
     }
-    const slots = r.scores[aid].length || 1;
+    // IBO points per target count only the targets shot: a round finished
+    // early keeps its blank targets blank instead of scoring them as misses.
+    const slots = (vegas ? r.scores[aid].length : n) || 1;
     return {
       r, aid, vegas, total, bonus, misses, n, slots,
       value: vegas ? total : total / slots,
@@ -241,8 +243,8 @@ const Stats = (() => {
     const head = header('Analytics', '#/');
     if (!st.aid) {
       return `${head}<main><div class="an-empty">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" fill="#1e4175"/>
-          <circle cx="60" cy="60" r="38" fill="#16325c"/><circle cx="60" cy="60" r="22" fill="#1e4175"/>
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" style="fill:var(--ridge-2)"/>
+          <circle cx="60" cy="60" r="38" style="fill:var(--ridge)"/><circle cx="60" cy="60" r="22" style="fill:var(--ridge-2)"/>
           <circle cx="60" cy="60" r="8" fill="#f2621a"/></svg>
         <h2>Nothing to chart yet</h2>
         <p class="muted">Finish a round and your trends, score mix and arrow groups show up here.</p>
