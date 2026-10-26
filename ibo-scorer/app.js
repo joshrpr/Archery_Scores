@@ -578,12 +578,24 @@ function finishSummary(r) {
   if (t.scored && !arrows.includes(0)) sub.push('No misses');
 
   const plots = r.plots && r.plots[aid];
+  const previous = bests.includes(aid) ? personalBests(archerRounds(aid).filter(x =>
+    x.r.id !== r.id && x.r.createdAt < r.createdAt && x.vegas === isVegas(r) &&
+    (x.vegas || x.n === r.targets)))[0] : null;
   return {
     type: isVegas(r) ? 'vegas' : 'ibo', head, sub,
+    featuredName: name, featuredArcherId: aid,
+    title: solo ? head : top.length > 1 ? 'Shared lead' : 'Round winner',
+    roundLabel: typeName(r), isSolo: solo,
+    scored: t.scored, arrowCount: t.scored,
+    totalSlots: isVegas(r) ? VEGAS_ENDS * VEGAS_ARROWS : r.targets,
     total: t.total, bonus: t.bonus, bonusMark: bonusMark(r),
+    ...(previous ? { previousBest: { total: previous.total, bonus: previous.bonus } } : {}),
     board: solo ? [] : rank.map(x => ({ rank: x.rank, tie: rank.filter(y => y.rank === x.rank).length > 1,
-      name: nameOf(x.id), total: x.total, pb: bests.includes(x.id) })),
-    arrows: plots ? plots.flatMap((e, end) => e.filter(Boolean).map(p => ({ x: p.x, y: p.y, end }))) : [],
+      name: nameOf(x.id), total: x.total, bonus: x.bonus, pb: bests.includes(x.id) })),
+    // Keep original slots even when plotting was skipped, so the last stored
+    // arrow can be replayed once without creating a new shot or mixing archers.
+    arrows: isVegas(r) && plots ? plots.flatMap((e, end) => e.flatMap((p, arrow) =>
+      p ? [{ x: p.x, y: p.y, end, arrow, index: end * VEGAS_ARROWS + arrow }] : [])) : [],
     tally: isVegas(r) ? [] : r.scores[aid]
   };
 }

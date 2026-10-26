@@ -17,6 +17,8 @@ const ASSETS = [
   './stats.js',
   './import.js',
   './finish.js',
+  './fonts/newsreader-variable.woff2',
+  './images/finish-butt.webp',
   './stats.css',
   './manifest.webmanifest',
   './icons/logo.webp',
