@@ -680,10 +680,10 @@ function plotsOf(r, aid) {
 const hasPlots = (r, aid) => !!(r.plots && r.plots[aid] && r.plots[aid].some(e => e.some(Boolean)));
 const plotAid = r => (r.archerIds.includes(r.plotAid) ? r.plotAid : r.archerIds[0]);
 
-function groupLine(g, what) {
+function groupLine(g, what, extra = '') {
   if (!g) return '';
   return `<div class="gline">${g.n > 1 ? `<span><small>${what}</small><b>${Target.fmtCm(g.spread)}</b></span>` : ''}
-    <span><small>Centre</small><b>${Target.fmtCm(g.offset)}</b> ${Target.direction(g.cx, g.cy)}</span></div>`;
+    <span><small>Centre</small><b>${Target.fmtCm(g.offset)}</b> ${Target.direction(g.cx, g.cy)}</span>${extra}</div>`;
 }
 
 function plotPanel(r, t) {
@@ -699,7 +699,12 @@ function plotPanel(r, t) {
   const fresh = justPlaced && justPlaced.aid === aid && justPlaced.end === t ? justPlaced.k : -1;
   justPlaced = null;
   const now = end.map((p, k) => p && { ...p, label: k + 1, color: '#f2621a', r: 0.62, cls: k === fresh ? 'new' : '' }).filter(Boolean);
-  const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: now.length > 1 ? Target.group(now) : null,
+  // The group circle covers every arrow plotted so far this round, so you
+  // watch the round's group build end by end.
+  const sofar = plots.slice(0, t + 1).flat().filter(Boolean);
+  const roundGroup = Target.group(sofar);
+  const endGroup = Target.group(now);
+  const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: sofar.length > 1 ? roundGroup : null,
     ariaLabel: `Target face for ${nameOf(aid)}, end ${t + 1}` })
     .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
   const tabs = r.archerIds.length > 1 ? `<div class="ptabs">${r.archerIds.map(id => {
@@ -713,7 +718,8 @@ function plotPanel(r, t) {
     <p class="muted small plot-hint">${full
       ? 'End complete. Use Undo, or tap any arrow score below to clear it and plot again.'
       : `Press where ${r.archerIds.length > 1 ? esc(nameOf(aid)) + '’s ' : ''}arrow ${r.scores[aid][t].indexOf(null) + 1} landed. Slide slowly to fine-tune, then lift to place.`}</p>
-    ${groupLine(Target.group(now), 'This end')}
+    ${groupLine(roundGroup, 'Round so far', endGroup && endGroup.n > 1 && t > 0
+      ? `<span><small>This end</small><b>${Target.fmtCm(endGroup.spread)}</b></span>` : '')}
     <div class="plot-foot"><button class="link" data-action="plot-toggle">Use score buttons only</button></div>
   </section>`;
 }
