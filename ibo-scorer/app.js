@@ -227,7 +227,8 @@ function go(hash) {
   if (location.hash === hash) render(); else location.hash = hash;
 }
 window.addEventListener('hashchange', () => {
-  // Phone back button while a dialog is open: close the dialog too.
+  // Phone back button while a dialog is open: close the dialog too
+  // (the round-complete screen closes itself).
   document.querySelectorAll('.modal-wrap').forEach(m => m.remove());
   render();
 });
@@ -547,6 +548,45 @@ function personalBests(rows) {
   return Object.values(best).sort((a, b) => a.vegas - b.vegas || a.n - b.n);
 }
 const markOf = x => (x.vegas ? 'X' : '11');
+
+// What the round-complete moment shows: the leader's (or the only archer's)
+// total and arrows, a headline, and the standings when it was a group.
+function finishSummary(r) {
+  const rank = ranking(r);
+  const bests = newBests(r);
+  const solo = r.archerIds.length === 1;
+  const top = rank.filter(x => x.rank === 1);
+  const aid = rank[0].id;
+  const t = tally(r, aid);
+  const name = nameOf(aid);
+  const kind = isVegas(r) ? 'Vegas 300' : `${r.targets}-target round`;
+  let head;
+  if (solo) head = bests.includes(aid) ? 'New personal best' : 'Round complete';
+  else if (top.length > 1) head = `${top.map(x => nameOf(x.id)).join(' and ')} share the top`;
+  else head = bests.includes(aid) ? `${name} wins with a new best` : `${name} takes the round`;
+
+  const sub = [];
+  if (solo) {
+    const n = archerRounds(aid).filter(x => x.vegas === isVegas(r) && (x.vegas || x.n === r.targets)).length;
+    sub.push(`${name}’s ${ordinal(n)} ${kind}`);
+  } else sub.push(`${typeName(r)}, ${r.archerIds.length} archers`);
+  if (isVegas(r)) {
+    const ends = r.scores[aid].filter(e => e.every(v => v != null)).map(endTotal);
+    if (ends.length) sub.push(`Best end ${Math.max(...ends)}`);
+  }
+  const arrows = isVegas(r) ? r.scores[aid].flat() : r.scores[aid];
+  if (t.scored && !arrows.includes(0)) sub.push('No misses');
+
+  const plots = r.plots && r.plots[aid];
+  return {
+    type: isVegas(r) ? 'vegas' : 'ibo', head, sub,
+    total: t.total, bonus: t.bonus, bonusMark: bonusMark(r),
+    board: solo ? [] : rank.map(x => ({ rank: x.rank, tie: rank.filter(y => y.rank === x.rank).length > 1,
+      name: nameOf(x.id), total: x.total, pb: bests.includes(x.id) })),
+    arrows: plots ? plots.flatMap((e, end) => e.filter(Boolean).map(p => ({ x: p.x, y: p.y, end }))) : [],
+    tally: isVegas(r) ? [] : r.scores[aid]
+  };
+}
 
 // Archers whose score in this finished round beats every earlier round of
 // the same kind they shot. A first round of a kind is not called a best.
@@ -1205,9 +1245,10 @@ const actions = {
     }
     r.status = 'finished';
     r.finishedAt = r.finishedAt || Date.now();
-    Native.haptic.success();
     save();
     go('#/card/' + r.id);
+    if (editing) Native.haptic.success();
+    else Finish.play(finishSummary(r), Native.haptic);
   },
 
   'edit-round': () => {

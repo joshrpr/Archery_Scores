@@ -562,3 +562,102 @@ h2 small { font-size: .85rem; font-weight: 600; }
 .imp-row.dup { opacity: .55; }
 .imp-warn { color: var(--hill); margin-top: 6px; }
 .imp-skip { padding: 4px 0; }
+
+/* ---------- round complete: the walk up to the target ---------- */
+/* Its own dusk stage in either theme, like the home hero. */
+.fin {
+  position: fixed; inset: 0; z-index: 60; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; align-items: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  color: #f6f3ea; text-align: center;
+  background:
+    radial-gradient(90% 55% at 50% 30%, rgba(242, 98, 26, .22), transparent 70%),
+    linear-gradient(180deg, #1767c4 0%, #16325c 46%, #0e2240 100%);
+  animation: fin-in .3s ease-out both;
+}
+.fin.out { animation: fin-out .2s ease-in forwards; }
+@keyframes fin-in { from { opacity: 0; } }
+@keyframes fin-out { to { opacity: 0; } }
+.fin-ridge { position: absolute; left: 0; right: 0; top: 30vh; width: 100%; height: 90px; pointer-events: none; }
+.fin-ridge path:last-child { fill: #13294d; }
+.fin-skip {
+  position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 2;
+  min-height: 44px; padding: 8px 16px; border-radius: 22px;
+  border: 2px solid rgba(246, 243, 234, .45); background: rgba(14, 34, 64, .4); color: #f6f3ea; font-weight: 700;
+}
+.fin.settled .fin-skip { visibility: hidden; }
+
+.fin-stage { position: relative; z-index: 1; width: min(76vw, 36vh, 340px); margin-top: 5vh; flex: 0 0 auto; }
+.fin-bale { position: relative; aspect-ratio: 1; animation: fin-walk 1.2s cubic-bezier(.16, 1, .3, 1) both; }
+.fin-bale > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fin-bale > .fin-hit { overflow: visible; }
+.fin.vegas .fin-face { border-radius: 10px; box-shadow: 0 18px 40px rgba(4, 12, 28, .55); }
+.fin.ibo .fin-face { filter: drop-shadow(0 16px 26px rgba(4, 12, 28, .5)); }
+.fin-face .tf-ring { display: none; }
+.fin-band { font: 800 0.9px var(--display); fill: rgba(14, 34, 64, .55); text-anchor: middle; }
+/* From the shooting line the face is small and far; walking up brings it close. */
+@keyframes fin-walk {
+  from { transform: translateY(-14vh) scale(.3); filter: blur(1.5px); opacity: .5; }
+  60% { filter: none; }
+}
+.fin-nock-in { transform-box: fill-box; transform-origin: center; }
+.fin-pin .fin-nock-in { animation: fin-pin .26s cubic-bezier(.2, .7, .2, 1) both; animation-delay: calc(.7s + var(--d) * var(--step)); }
+@keyframes fin-pin { from { transform: scale(2.4); opacity: 0; } }
+
+/* The last arrow comes in from the shooting line, shrinking as it flies away, and thuds home. */
+.fin:not(.flying):not(.landed) .fin-last { opacity: 0; }
+.fin.flying .fin-last .fin-nock-in { animation: fin-fly .42s cubic-bezier(.45, 0, .2, 1) both; }
+@keyframes fin-fly {
+  from { transform: translate(5px, 9px) scale(7); opacity: 0; }
+  25% { opacity: 1; }
+}
+.fin.landed .fin-bale { animation: fin-thud .26s linear; }
+@keyframes fin-thud {
+  25% { transform: translate(0, 2px) scale(.992); }
+  60% { transform: translate(0, -1px); }
+}
+.fin-ripple { opacity: 0; transform-box: fill-box; transform-origin: center; }
+.fin.landed .fin-ripple { animation: fin-ripple .75s cubic-bezier(.16, 1, .3, 1); }
+@keyframes fin-ripple { from { opacity: .9; transform: scale(1); } to { opacity: 0; transform: scale(7); } }
+
+.fin-copy { position: relative; z-index: 1; width: 100%; max-width: 420px; margin-top: 22px; }
+.fin:not(.landed) .fin-copy { visibility: hidden; }
+.fin-head {
+  margin: 0; color: #f6f3ea; font-family: var(--display); font-weight: 800;
+  font-size: clamp(1.7rem, 7.5vw, 2.3rem); line-height: 1.05; text-wrap: balance;
+}
+.fin-total { display: flex; align-items: baseline; justify-content: center; gap: 12px; margin: 6px 0 2px; }
+.fin-total b { font-family: var(--display); font-weight: 800; font-size: 4.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.fin-total span {
+  font-family: var(--display); font-weight: 800; font-size: 1.15rem; padding: 3px 10px; border-radius: 10px;
+  background: #f2621a; color: #0e2240;
+}
+.fin-sub { margin: 4px 0 0; color: #d4e0ef; font-weight: 600; }
+.fin-sub span { white-space: nowrap; }
+.fin-sub i { font-style: normal; margin: 0 8px; opacity: .6; }
+.fin.landed .fin-head { animation: fin-rise .5s cubic-bezier(.16, 1, .3, 1) both; }
+.fin.landed .fin-total { animation: fin-rise .5s cubic-bezier(.16, 1, .3, 1) .08s both; }
+.fin.landed .fin-sub { animation: fin-rise .5s cubic-bezier(.16, 1, .3, 1) .16s both; }
+@keyframes fin-rise { from { opacity: 0; transform: translateY(10px); } }
+
+.fin-board { list-style: none; margin: 16px 0 0; padding: 0; text-align: left; }
+.fin-board li {
+  display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-top: 6px;
+  border-radius: 12px; background: rgba(14, 34, 64, .55); border: 1px solid rgba(246, 243, 234, .14);
+}
+.fin-board li:first-child { background: rgba(242, 98, 26, .2); border-color: rgba(242, 98, 26, .6); }
+.fin.landed .fin-board li { animation: fin-rise .45s cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(.5s + var(--i) * 70ms); }
+.fin-rank { width: 28px; font-family: var(--display); font-weight: 800; color: #d4e0ef; }
+.fin-name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fin-name em {
+  font-style: normal; font-size: .75rem; font-weight: 800; margin-left: 8px; padding: 1px 8px; border-radius: 999px;
+  background: #6faf2f; color: #0e2240; vertical-align: 1px;
+}
+.fin-board b { font-family: var(--display); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+
+.fin-go { margin-top: 18px; }
+.fin:not(.settled) .fin-go { opacity: 0; }
+.fin.settled:not(.skip) .fin-go { animation: fin-rise .4s cubic-bezier(.16, 1, .3, 1) both; }
+
+.fin.skip *, .fin.skip { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .fin *, .fin { animation: none !important; } }
