@@ -56,6 +56,23 @@ const roundById = id => db.rounds.find(r => r.id === id);
 const fmtDate = ts => new Date(ts).toLocaleDateString(undefined,
   { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const fmtShort = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const startOfDay = ts => new Date(ts).setHours(0, 0, 0, 0);
+const daysAgo = ts => {
+  const d = Math.round((startOfDay(Date.now()) - startOfDay(ts)) / 864e5);
+  return d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
+};
+// Runs of numbers as ranges: [6, 7, 8, 12] -> "6–8, 12".
+const ranges = ns => ns.reduce((out, n) => {
+  const run = out[out.length - 1];
+  if (run && run[1] === n - 1) run[1] = n; else out.push([n, n]);
+  return out;
+}, []).map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ');
+
+/* ---------- backup status ---------- */
+// Finished rounds that no saved backup file holds yet.
+const unbackedRounds = () => db.rounds.filter(r =>
+  r.status === 'finished' && (r.finishedAt || r.createdAt) > (db.lastBackupAt || 0));
+const backupDue = r => r.status === 'finished' && (r.finishedAt || r.createdAt) > (db.lastBackupAt || 0);
 
 /* ---------- round types ---------- */
 const isVegas = r => r.type === 'vegas';
@@ -71,7 +88,8 @@ const slotDone = (r, aid, i) => (isVegas(r)
 // Vegas: every archer needs all three arrows on an end before the round can
 // move past it. The furthest end the round may be on right now.
 const lastOpen = r => {
-  if (!isVegas(r)) return r.targets - 1;
+  // A finished round may have blank ends left on purpose; editing reaches them all.
+  if (!isVegas(r) || r.status === 'finished') return r.targets - 1;
   for (let i = 0; i < r.targets; i++) if (!r.archerIds.every(aid => slotDone(r, aid, i))) return i;
   return r.targets - 1;
 };
@@ -219,6 +237,7 @@ function render() {
 /* ---------- views ---------- */
 function viewHome() {
   const open = db.rounds.filter(r => r.status !== 'finished').sort((a, b) => b.createdAt - a.createdAt);
+  const unbacked = unbackedRounds();
   return `<section class="hero">
     <img class="hero-logo" src="icons/logo.webp" alt="" width="168" height="168">
     <h1 class="brand"><span>Ropers</span>Archery Scorecard</h1>
@@ -240,6 +259,11 @@ function viewHome() {
         <div>${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
         <div class="muted small">${fmtDate(r.createdAt)}${r.note ? `, ${esc(r.note)}` : ''}</div>
       </button>`).join('') : ''}
+    ${unbacked.length ? `
+      <button class="card-row due" data-action="export-json">
+        <div class="title">${unbacked.length} finished round${unbacked.length === 1 ? '' : 's'} not backed up</div>
+        <div class="muted small">${db.lastBackupAt ? `Last backup ${daysAgo(db.lastBackupAt)}.` : 'Until you save a backup, your scores are only on this phone.'} Tap to save a backup file now.</div>
+      </button>` : ''}
     <button class="big an-home" data-action="nav" data-to="#/stats">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16V11M11 16V6M16 16v-7M21 16V9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       Analytics</button>
@@ -248,6 +272,7 @@ function viewHome() {
       <button class="big" data-action="nav" data-to="#/archers">Archers</button>
     </div>
     <button class="btn" data-action="nav" data-to="#/backup">Backup and export</button>
+    ${db.lastBackupAt && !unbacked.length ? `<p class="muted small backup-note">Last backup ${daysAgo(db.lastBackupAt)}</p>` : ''}
   </main>`;
 }
 
@@ -333,7 +358,9 @@ function viewRound(id) {
       <button class="btn" data-action="add-target">+ Target</button>
       <button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
     </div>`}
-    <button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
+    ${editing || isLast
+      ? `<button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>`
+      : ''}
   </main>
   <div class="dock">
     <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
@@ -398,6 +425,11 @@ function viewCard(id) {
   <main>
     <div class="meta"><strong>${fmtDate(r.createdAt)}</strong>${r.note ? `<span>${esc(r.note)}</span>` : ''}
       <span class="badge type">${typeName(r)}</span><span class="muted">${unitsLabel(r)}</span></div>
+    ${backupDue(r) ? `
+      <button class="card-row due" data-action="export-json">
+        <div class="title">Save a backup of this round</div>
+        <div class="muted small">Until you do, it is only on this phone. Tap to save a backup file.</div>
+      </button>` : ''}
 
     <h2>Standings</h2>
     <div class="tablewrap"><table>
@@ -421,7 +453,8 @@ function viewCard(id) {
 
     ${finished
       ? `<button class="big" data-action="edit-round">Edit scores</button>`
-      : `<button class="big primary" data-action="nav" data-to="#/round/${r.id}">Back to scoring</button>`}
+      : `<button class="big primary" data-action="nav" data-to="#/round/${r.id}">Back to scoring</button>
+         <button class="btn" data-action="finish">Finish round now</button>`}
     <div class="grid2">
       <button class="btn" data-action="edit-note">${r.note ? 'Edit note' : 'Add note'}</button>
       <button class="btn danger" data-action="delete-round">Delete round</button>
@@ -741,10 +774,14 @@ function groupTrend(rows, aid) {
 
 function viewBackup() {
   const finished = db.rounds.filter(r => r.status === 'finished').length;
+  const unbacked = unbackedRounds().length;
   return `${header('Backup and export', '#/')}
   <main>
     <p class="muted">${activeArchers().length} archer${activeArchers().length === 1 ? '' : 's'},
       ${db.rounds.length} round${db.rounds.length === 1 ? '' : 's'} (${finished} finished) on this phone.</p>
+    <p class="backup-status${unbacked ? ' due' : ''}">${db.lastBackupAt
+      ? `Last backup ${fmtDate(db.lastBackupAt)} (${daysAgo(db.lastBackupAt)}).`
+      : 'No backup saved yet.'}${unbacked ? ` ${unbacked} finished round${unbacked === 1 ? ' is' : 's are'} not in a backup.` : ''}</p>
 
     <h2>Backup</h2>
     <p class="muted small">Saves every archer, round and score to one file. Keep it somewhere safe, like Google Drive, so you can restore after a new phone or a reinstall.${Native.isApp ? ' Pick Drive or Files from the share menu that opens.' : ''}</p>
@@ -843,9 +880,12 @@ const BACKUP_APP = 'ropers-archery-scorecard';
 const BACKUP_FORMAT = 1;
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Resolves true once the file is saved or shared, false if it was not.
 function download(name, text, type) {
-  Native.saveFile(name, text, type).catch(e =>
-    alertBox('Could not save the file', `<p>${esc(e && e.message || 'Something went wrong.')}</p>`));
+  return Native.saveFile(name, text, type).catch(e => {
+    alertBox('Could not save the file', `<p>${esc(e && e.message || 'Something went wrong.')}</p>`);
+    return false;
+  });
 }
 
 function backupText() {
@@ -916,9 +956,11 @@ function scorecardsCsv() {
 }
 
 async function importBackup(file) {
-  let data;
+  let data, exportedAt;
   try {
-    data = parseBackup(JSON.parse(await file.text()));
+    const obj = JSON.parse(await file.text());
+    data = parseBackup(obj);
+    exportedAt = Date.parse(obj && obj.exportedAt);
   } catch (e) {
     alertBox('Could not restore', `<p>${esc(e instanceof SyntaxError ? 'The file is not a valid backup.' : e.message)}</p>`);
     return;
@@ -930,6 +972,8 @@ async function importBackup(file) {
     'Replace and restore', true);
   if (!ok) return;
   migrate(data);
+  // The phone now holds exactly what this backup holds.
+  if (exportedAt) data.lastBackupAt = exportedAt;
   db = data;
   draft = null;
   save();
@@ -1072,16 +1116,17 @@ const actions = {
     const editing = r.status === 'finished';
     const gaps = gapsOf(r);
     if (gaps.length) {
+      // Blanks stay blank: a round cut short is not a run of misses.
       const u = unit(r).toLowerCase();
-      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${u}${g.missing.length > 1 ? 's' : ''} ${g.missing.join(', ')}</li>`).join('');
-      const ok = await confirmBox(isVegas(r) ? 'Some arrows are blank' : 'Some targets are blank',
-        `<ul>${list}</ul><p>Blank ${isVegas(r) ? 'arrows' : 'targets'} will be scored as <b>0 (miss)</b>.</p>`,
-        editing ? 'Save as 0' : 'Finish anyway');
-      if (!ok) return;
-      gaps.forEach(g => g.missing.forEach(n => {
-        if (isVegas(r)) r.scores[g.aid][n - 1] = r.scores[g.aid][n - 1].map(v => (v == null ? 0 : v));
-        else r.scores[g.aid][n - 1] = 0;
-      }));
+      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${g.missing.length} ${u}${g.missing.length > 1 ? 's' : ''} ${isVegas(r) ? 'not finished' : 'blank'} <span class="nowrap">(${ranges(g.missing)})</span></li>`).join('');
+      const { value } = await modal({
+        title: isVegas(r) ? 'Some ends are not finished' : 'Some targets are blank',
+        html: `<ul>${list}</ul><p>Blanks stay blank on the scorecard and do not count as misses. You can fill them in later with Edit scores.</p>`,
+        buttons: [
+          { label: editing ? 'Save with blanks' : 'Finish with blanks', value: true },
+          { label: editing ? 'Keep editing' : 'Keep scoring', value: false, cls: 'primary' }]
+      });
+      if (value !== true) return;
     } else if (!editing && !(await confirmBox('Finish round?',
         '<p>You can still edit scores afterwards from History.</p>', 'Finish'))) {
       return;
@@ -1131,7 +1176,11 @@ const actions = {
     save(); render();
   },
 
-  'export-json': () => download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'),
+  'export-json': async () => {
+    if (!(await download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'))) return;
+    db.lastBackupAt = Date.now();
+    save(); render();
+  },
 
   'import-archer': d => { if (pendingImport) { pendingImport.archerId = d.id; render(); } },
 

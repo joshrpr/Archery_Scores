@@ -127,6 +127,12 @@ h2 {
 }
 .card-row .title { font-weight: 800; font-size: 1.1rem; }
 .card-row.resume { border-color: var(--arrow); background: linear-gradient(90deg, rgba(242, 98, 26, .16), var(--ridge) 60%); }
+.card-row.due { border-color: var(--hill); background: linear-gradient(90deg, rgba(216, 188, 132, .16), var(--ridge) 60%); }
+.card-row.due .title { color: var(--hill); }
+.nowrap { white-space: nowrap; }
+.backup-note { text-align: center; margin: 8px 0 0; }
+.backup-status { margin: 0 0 4px; font-weight: 700; }
+.backup-status.due { color: var(--hill); }
 .badge {
   display: inline-block; padding: 2px 10px; border-radius: 999px;
   background: var(--arrow); color: var(--night);
