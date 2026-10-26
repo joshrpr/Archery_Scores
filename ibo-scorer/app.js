@@ -13,6 +13,8 @@ const label = v => (v === 0 ? 'M' : String(v));
 const points = v => (v === 'X' ? 10 : v);
 // Vegas face colour for a value: gold (X-9), red (8-7), blue (6), miss.
 const ring = v => (v === 'X' || v >= 9 ? 'g' : v >= 7 ? 'r' : v === 6 ? 'b' : 'm');
+const spoken = v => (v === 0 ? 'miss' : String(v));
+const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 const SERIES_COLORS = ['#2f96eb', '#f2621a', '#6faf2f', '#d8bc84', '#ff6b6b', '#c792ff'];
 
 const app = document.getElementById('app');
@@ -21,6 +23,28 @@ if (migrate(db)) save();
 let draft = null;        // new-round form state
 let pendingImport = null; // rounds read from another app's export, awaiting confirmation
 let lastPath = null;
+const padOpen = new Set();  // Vegas archers whose number pad is open while plotting
+
+/* ---------- screen colours ---------- */
+// Dark suits the indoor range and evenings; Bright is for sunlight on an
+// outdoor course. index.html applies the saved choice before first paint.
+const THEME_KEY = 'ibo-scorer-theme';
+const THEMES = [['dark', 'Dark', 'Indoors and evenings'], ['light', 'Bright', 'Outdoors in sun'], ['auto', 'Match phone', 'Follows the phone setting']];
+let theme = (() => { try { return localStorage.getItem(THEME_KEY) || 'dark'; } catch (e) { return 'dark'; } })();
+const darkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
+function applyTheme() {
+  const light = theme === 'light' || (theme === 'auto' && darkQuery && darkQuery.matches);
+  document.documentElement.dataset.theme = light ? 'light' : 'dark';
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = light ? '#eef2f7' : '#0e2240';
+}
+function setTheme(t) {
+  theme = t;
+  try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* the choice just won't persist */ }
+  applyTheme();
+}
+if (darkQuery && darkQuery.addEventListener) darkQuery.addEventListener('change', () => { if (theme === 'auto') applyTheme(); });
+applyTheme();
 
 /* ---------- storage ---------- */
 function load() {
@@ -159,10 +183,17 @@ function modal({ title, html = '', input = null, buttons }) {
         if (e.key === 'Enter') finish(buttons.find(b => b.value === true) || buttons[buttons.length - 1]);
       });
     }
+    // Escape or a tap outside the dialog answers with the first (cancel) button.
+    const cancel = buttons[0];
     wrap.addEventListener('click', e => {
       const b = e.target.closest('[data-i]');
       if (b) finish(buttons[+b.dataset.i]);
+      else if (e.target === wrap) finish(cancel);
     });
+    wrap.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); finish(cancel); }
+    });
+    if (!inp) (wrap.querySelector('.primary') || wrap.querySelector('[data-i]')).focus({ preventScroll: true });
   });
 }
 async function confirmBox(title, html, okLabel = 'OK', danger = false) {
@@ -224,6 +255,8 @@ function render() {
   }
   if (html == null) return;            // view redirected
   app.innerHTML = html;
+  const top = app.querySelector('.top');
+  if (top) document.documentElement.style.setProperty('--top-h', top.offsetHeight + 'px');
   const path = location.hash;
   if (path !== lastPath) { window.scrollTo(0, 0); lastPath = path; }
   const cur = app.querySelector('.chip.cur');
@@ -242,8 +275,8 @@ function viewHome() {
     <img class="hero-logo" src="icons/logo.webp" alt="" width="168" height="168">
     <h1 class="brand"><span>Ropers</span>Archery Scorecard</h1>
     <svg class="ridge" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" fill="#1e4175"/>
-      <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" fill="#0e2240"/>
+      <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" style="fill:var(--ridge-2)"/>
+      <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" style="fill:var(--night)"/>
     </svg>
   </section>
   <main>
@@ -253,6 +286,7 @@ function viewHome() {
         <div class="muted small">Save a backup in the web app, then tap here and choose Restore from backup file to bring your archers and scores across.</div>
       </button>` : ''}
     <button class="big primary" data-action="new-round">Start new round</button>
+    ${!db.rounds.length && !db.archers.length ? `<p class="muted small first-hint">You add archers on the next screen, then score one target or end at a time.</p>` : ''}
     ${open.length ? `<h2>Pick up where you left off</h2>` + open.map(r => `
       <button class="card-row resume" data-action="nav" data-to="#/round/${r.id}">
         <div class="title">${unit(r)} ${r.current + 1} of ${r.targets}<span class="badge type">${typeName(r)}</span></div>
@@ -273,6 +307,11 @@ function viewHome() {
     </div>
     <button class="btn" data-action="nav" data-to="#/backup">Backup and export</button>
     ${db.lastBackupAt && !unbacked.length ? `<p class="muted small backup-note">Last backup ${daysAgo(db.lastBackupAt)}</p>` : ''}
+    <h2>Screen</h2>
+    <div class="theme-pick" role="radiogroup" aria-label="Screen colours">
+      ${THEMES.map(([k, name, hint]) => `<button role="radio" aria-checked="${theme === k}" class="${theme === k ? 'on' : ''}"
+        data-action="theme" data-theme="${k}"><b>${name}</b><span>${hint}</span></button>`).join('')}
+    </div>
   </main>`;
 }
 
@@ -299,12 +338,12 @@ function viewNew() {
     <div class="pick">
       ${list.length ? list.map(a => {
         const i = draft.selected.indexOf(a.id);
-        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" data-action="toggle-pick" data-id="${a.id}">
-          ${i >= 0 ? `<span class="order">${i + 1}</span>` : ''}${esc(a.name)}</button>`;
+        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" data-action="toggle-pick" data-id="${a.id}" aria-pressed="${i >= 0}">
+          ${i >= 0 ? `<span class="order" aria-label="shoots ${ordinal(i + 1)}">${ordinal(i + 1)}</span>` : ''}${esc(a.name)}</button>`;
       }).join('') : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" placeholder="New archer name" aria-label="New archer name" autocomplete="off" maxlength="40">
       <button class="btn">Add</button>
     </form>
 
@@ -319,7 +358,7 @@ function viewNew() {
     <p class="muted small">You can also add or remove targets during the round.</p>`}
 
     <h2>Note (optional)</h2>
-    <input data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
+    <input data-input="draft-note" aria-label="Round note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
 
     <button class="big primary" data-action="start-round" ${draft.selected.length ? '' : 'disabled'}>
       Start round${draft.selected.length ? ` with ${draft.selected.length} archer${draft.selected.length > 1 ? 's' : ''}` : ''}
@@ -343,6 +382,7 @@ function viewRound(id) {
   }).join('');
 
   const rows = r.archerIds.map(aid => vegas ? vegasRow(r, aid, t) : iboRow(r, aid, t)).join('');
+  const why = vegas && blocked ? `Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.` : '';
 
   return `${header(`${unit(r)} ${t + 1} <small>of ${r.targets}${editing ? ', editing' : ''}</small>`,
                    editing ? `#/card/${r.id}` : '#/')}
@@ -350,19 +390,19 @@ function viewRound(id) {
   <main class="with-dock">
     ${vegas ? plotPanel(r, t) : ''}
     ${rows}
-    ${vegas && blocked ? `<p class="muted small">Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.</p>` : ''}
     ${vegas
       ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
       : `<div class="grid3">
       <button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>
       <button class="btn" data-action="add-target">+ Target</button>
-      <button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
+      <button class="btn" data-action="remove-target" aria-label="Remove the last target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
     </div>`}
     ${editing || isLast
       ? `<button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>`
       : ''}
   </main>
   <div class="dock">
+    ${why ? `<p class="dock-note" role="status">${why}</p>` : ''}
     <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
     ${!isLast
       ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ▶</button>`
@@ -378,11 +418,11 @@ function iboRow(r, aid, t) {
   return `<div class="arow" data-v="${v == null ? '' : v}">
     <div class="ahead">
       <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="11s">${elevens}× 11</span><b>${total}</b></span>
+      <span class="atot"><span class="elev ${elevens ? '' : 'zero'}" title="11s">${elevens}× 11</span><b>${total}</b></span>
     </div>
     <div class="sbtns">
       ${VALUES.map(x => `<button class="s s${x} ${v === x ? 'sel' : ''}" data-action="score"
-          data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}">${label(x)}</button>`).join('')}
+          data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}" aria-label="${esc(nameOf(aid))}: ${spoken(x)}">${label(x)}</button>`).join('')}
     </div></div>`;
 }
 
@@ -397,16 +437,21 @@ function vegasRow(r, aid, t) {
     ? `<span class="slot empty ${k === next ? 'next' : ''}" aria-label="Arrow ${k + 1} not scored"></span>`
     : `<button class="slot r${ring(v)}" data-action="vclear" data-aid="${aid}" data-k="${k}"
         aria-label="Arrow ${k + 1}: ${label(v)}. Tap to clear">${label(v)}</button>`).join('');
+  // While plotting, the target face is the input: each archer's pad folds away
+  // behind "Enter by number" so the screen has one way in.
+  const pad = !r.plot || padOpen.has(aid);
   return `<div class="arow vrow ${full ? 'full' : ''}">
     <div class="ahead">
       <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="Xs">${xs}× X</span><b>${total}</b></span>
+      <span class="atot"><span class="elev ${xs ? '' : 'zero'}" title="Xs">${xs}× X</span><b>${total}</b></span>
     </div>
     <div class="slots">${slots}<span class="endtot"><small>End</small>${endTotal(end)}</span></div>
-    <div class="sbtns vbtns">
+    ${pad ? `<div class="sbtns vbtns">
       ${VEGAS_VALUES.map(x => `<button class="s r${ring(x)}" data-action="vscore"
-          data-aid="${aid}" data-v="${x}" ${full ? 'disabled' : ''}>${label(x)}</button>`).join('')}
-    </div></div>`;
+          data-aid="${aid}" data-v="${x}" aria-label="${esc(nameOf(aid))}: ${spoken(x)}" ${full ? 'disabled' : ''}>${label(x)}</button>`).join('')}
+    </div>` : ''}
+    ${r.plot ? `<button class="link pad-toggle" data-action="vpad" data-aid="${aid}">${pad ? 'Hide number buttons' : 'Enter by number'}</button>` : ''}
+    </div>`;
 }
 
 function viewCard(id) {
@@ -417,8 +462,10 @@ function viewCard(id) {
   const vegas = isVegas(r);
   const cell = v => `<td class="v${v == null ? 'null' : v}">${v == null ? '–' : label(v)}</td>`;
   const endCell = end => end.every(v => v == null) ? '<td class="vnull">–</td>'
-    : `<td class="vend"><span class="arr">${end.map(v => v == null ? '<i>·</i>'
-        : `<i class="r${ring(v)}">${label(v)}</i>`).join('')}</span><b>${endTotal(end)}</b></td>`;
+    : `<td class="vend"><b>${endTotal(end)}</b><span class="arr">${end.map(v => v == null ? '<i>·</i>'
+        : `<i class="r${ring(v)}">${label(v)}</i>`).join('')}</span></td>`;
+  const tied = n => rank.filter(x => x.rank === n).length > 1;
+  const bests = finished ? newBests(r) : [];
 
   return `${header(finished ? 'Scorecard' : 'Scorecard <small>in progress</small>',
                    finished ? '#/history' : `#/round/${r.id}`)}
@@ -435,11 +482,12 @@ function viewCard(id) {
     <div class="tablewrap"><table>
       <thead><tr><th>#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
       <tbody>${rank.map(x => `<tr class="${x.rank === 1 && finished ? 'first' : ''}">
-        <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
+        <td>${x.rank === 1 && finished ? `<span class="rank1">1</span>${tied(1) ? '=' : ''}` : x.rank + (tied(x.rank) ? '=' : '')}</td><td class="name">${esc(nameOf(x.id))}${bests.includes(x.id) ? '<span class="badge pb">New best</span>' : ''}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
       </tbody></table></div>
+    ${bests.length ? `<p class="pb-note">${bests.map(aid => `<b>${esc(nameOf(aid))}</b>`).join(' and ')} shot a new personal best for ${isVegas(r) ? 'Vegas 300' : `${r.targets} targets`}.</p>` : ''}
 
     <h2>Card</h2>
-    <div class="tablewrap"><table>
+    <div class="tablewrap card-table ${r.archerIds.length > 3 ? 'wide' : ''}"><table>
       <thead><tr><th>${vegas ? 'End' : 'Tgt'}</th>${r.archerIds.map(aid => `<th>${esc(nameOf(aid))}</th>`).join('')}</tr></thead>
       <tbody>${Array.from({ length: r.targets }, (_, i) =>
         `<tr><td class="muted" style="font-size:1rem">${i + 1}</td>${r.archerIds.map(aid => (vegas ? endCell : cell)(r.scores[aid][i])).join('')}</tr>`).join('')}
@@ -452,7 +500,7 @@ function viewCard(id) {
     ${vegas ? roundGroups(r) : ''}
 
     ${finished
-      ? `<button class="big" data-action="edit-round">Edit scores</button>`
+      ? `<button class="btn" data-action="edit-round">Edit scores</button>`
       : `<button class="big primary" data-action="nav" data-to="#/round/${r.id}">Back to scoring</button>
          <button class="btn" data-action="finish">Finish round now</button>`}
     <div class="grid2">
@@ -500,12 +548,26 @@ function personalBests(rows) {
 }
 const markOf = x => (x.vegas ? 'X' : '11');
 
+// Archers whose score in this finished round beats every earlier round of
+// the same kind they shot. A first round of a kind is not called a best.
+function newBests(r) {
+  return r.archerIds.filter(aid => {
+    const rows = archerRounds(aid);
+    const me = rows.find(x => x.r.id === r.id);
+    if (!me) return false;
+    const before = rows.filter(x => x.key === me.key && x.r.id !== r.id && x.r.createdAt < r.createdAt);
+    return before.length > 0 && before.every(x => me.total > x.total || (me.total === x.total && me.bonus > x.bonus));
+  });
+}
+
 function viewArchers() {
   const list = activeArchers();
+  const removed = db.archers.filter(a => a.deleted &&
+    !activeArchers().some(x => x.name.toLowerCase() === a.name.toLowerCase()));
   return `${header('Archers', '#/')}
   <main>
     <form class="inline" data-form="add-archer">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" placeholder="New archer name" aria-label="New archer name" autocomplete="off" maxlength="40">
       <button class="btn">Add</button>
     </form>
     ${list.length ? list.map(a => {
@@ -517,6 +579,10 @@ function viewArchers() {
         ${pbs ? `<div class="scores-line">${pbs}</div>` : ''}
       </button>`;
     }).join('') : '<p class="empty">No archers yet. Add one above.</p>'}
+    ${removed.length ? `<h2>Removed archers</h2>
+      <p class="muted small">Their scores are still kept. Bring one back to see their stats again.</p>
+      ${removed.map(a => `<div class="removed-row"><span>${esc(a.name)}</span>
+        <button class="btn" data-action="restore-archer" data-id="${a.id}">Bring back</button></div>`).join('')}` : ''}
   </main>`;
 }
 
@@ -583,19 +649,19 @@ function trendChart(rows) {
   const what = n => rows.find(r => r.key === n).what;
 
   const ticks = [lo, Math.round((lo + hi) / 2), hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${v}</text>`).join('');
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)"/>
+    <text x="${L - 6}" y="${y(v) + 5}" style="fill:var(--haze)" font-size="15" text-anchor="end">${v}</text>`).join('');
 
   const series = counts.map(n => {
     const pts = rows.map((r, i) => ({ r, i })).filter(p => p.r.key === n);
     const path = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.r.total).toFixed(1)}`).join(' ');
     return `<path d="${path}" fill="none" stroke="${color(n)}" stroke-width="3" stroke-linejoin="round"/>` +
-      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#16325c" stroke-width="2">
+      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" style="stroke:var(--ridge)" stroke-width="2">
         <title>${p.r.total}, ${fmtShort(p.r.r.createdAt)}</title></circle>`).join('');
   }).join('');
 
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
+  const xl = `<text x="${L}" y="${H - 10}" style="fill:var(--haze)" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" style="fill:var(--haze)" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
 
   return `<div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Round totals over time">${grid}${series}${xl}</svg>
@@ -755,14 +821,14 @@ function groupTrend(rows, aid) {
     if (!p.length) return '';
     return `<path d="${p.map((q, k) => `${k ? 'L' : 'M'}${x(q.i).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ')}"
       fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>` +
-      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" stroke="#16325c" stroke-width="2">
+      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" style="stroke:var(--ridge)" stroke-width="2">
         <title>${label} ${q.v.toFixed(1)} cm, ${fmtShort(q.q.x.r.createdAt)}</title></circle>`).join('');
   };
   const ticks = [0, hi / 2, hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" style="stroke:var(--line)"/>
+    <text x="${L - 6}" y="${y(v) + 5}" style="fill:var(--haze)" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
+  const xl = `<text x="${L}" y="${H - 10}" style="fill:var(--haze)" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" style="fill:var(--haze)" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
   return `<h2>Arrow groups <small class="muted">cm, lower is better</small></h2>${tiles}
   <div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Group size and centre offset over time">${grid}
@@ -860,7 +926,7 @@ function viewImport() {
         : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick-import">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" placeholder="New archer name" aria-label="New archer name" autocomplete="off" maxlength="40">
       <button class="btn">Add</button>
     </form>
 
@@ -1155,7 +1221,9 @@ const actions = {
   'delete-round': async () => {
     const r = currentRound(); if (!r) return;
     if (!(await confirmBox('Delete this round?',
-        `<p>${fmtDate(r.createdAt)}${r.note ? ' · ' + esc(r.note) : ''}</p><p>This cannot be undone.</p>`,
+        `<p><b>${typeName(r)}</b>, ${fmtDate(r.createdAt)}${r.note ? ' · ' + esc(r.note) : ''}</p>
+         <ul>${ranking(r).map(x => `<li>${esc(nameOf(x.id))}: <b>${x.total}</b></li>`).join('')}</ul>
+         <p>This cannot be undone.</p>`,
         'Delete', true))) return;
     db.rounds = db.rounds.filter(x => x.id !== r.id);
     save();
@@ -1204,12 +1272,25 @@ const actions = {
   'delete-archer': async d => {
     const a = archerById(d.id); if (!a) return;
     if (!(await confirmBox(`Delete ${a.name}?`,
-        '<p>Their stats and personal bests will be removed. Their name will still appear on past group scorecards so other archers’ rounds stay complete.</p>',
+        '<p>They leave the archer list and stats. Their scores are kept, so past group scorecards stay complete, and you can bring them back from Archers.</p>',
         'Delete', true))) return;
     a.deleted = true;
     save();
     go('#/archers');
-  }
+  },
+
+  'restore-archer': d => {
+    const a = archerById(d.id); if (!a) return;
+    delete a.deleted;
+    save(); render();
+  },
+
+  vpad: d => {
+    if (padOpen.has(d.aid)) padOpen.delete(d.aid); else padOpen.add(d.aid);
+    render();
+  },
+
+  theme: d => { setTheme(d.theme); render(); }
 };
 
 const forms = {
