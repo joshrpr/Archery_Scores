@@ -400,6 +400,9 @@ test("small screens, enlarged text, and long standings keep the action reachable
   const box = await button.boundingBox();
   expect(box.height).toBeGreaterThanOrEqual(48);
   expect(await celebration(page).locator('.finish-archer').evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThan(20);
+  const featuredName = celebration(page).locator('.finish-archer');
+  await expect(featuredName).toBeInViewport();
+  expect((await featuredName.boundingBox()).height).toBeGreaterThan(20);
   const overflow = await page
     .locator(".finish-stage")
     .evaluate((el) => el.scrollWidth > el.clientWidth);

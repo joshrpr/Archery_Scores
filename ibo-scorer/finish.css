@@ -83,6 +83,9 @@
   flex-direction: column;
   max-height: calc(76% - env(safe-area-inset-bottom));
 }
+.finish-results > :not(.finish-standings) {
+  flex-shrink: 0;
+}
 .finish-results h2 {
   font:
     700 1.6875em/1.05 "Barlow Condensed",
@@ -240,7 +243,7 @@
 @media (max-height: 620px) {
   .finish-results {
     padding: 12px;
-    max-height: 78%;
+    max-height: calc(100% - max(24px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
   }
   .finish-total strong {
     font-size: 3.25em;
