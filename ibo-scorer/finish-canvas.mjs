@@ -134,6 +134,15 @@ function model(detail) {
       ];
     };
     const center = [0.68, 60.8];
+    if (!detail) {
+      // A distant vane needs its curved silhouette, not hidden bevel faces.
+      add(
+        boundary.map((p) => point(p, 0)),
+        material,
+        true,
+      );
+      continue;
+    }
     for (let i = 0; i < boundary.length; i++) {
       const a = boundary[i],
         b = boundary[(i + 1) % boundary.length];
@@ -271,7 +280,8 @@ export function createScene(canvas, data) {
     ...data.arrows.map((p) => Math.hypot(p.x, p.y) + 1),
   );
   const light = unit([-30, 80, 35]);
-  let disposed = false;
+  let disposed = false,
+    memoryKey = null;
 
   function draw(time, w, h, targetY) {
     if (disposed || !w || !h) return;
@@ -476,24 +486,31 @@ export function createScene(canvas, data) {
     }
     // Composite the recap once, keeping overlapping faces from turning the
     // deliberately subdued memory layer opaque as the group fills in.
-    ctx = memoryContext;
-    try {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      for (let i = 0; i < arrived; i++) {
-        const p = data.arrows[i],
-          scale = 0.78,
-          seat = out((time - 120 - i * 36) / 28);
-        const y =
-          PAPER * (1 - scale) - (0.7 + (i % 7) * 0.61) + (1 - seat) * 4.5;
-        arrowMesh(
-          recap,
-          arrowTransform([p.x, y, p.y], i * 2.39996, scale, null),
-          1,
-        );
+    const settledRecap = time >= 1156;
+    const nextMemoryKey = settledRecap
+      ? [w, h, dpr, intro, focus, dock, targetY].join(":")
+      : null;
+    if (nextMemoryKey === null || nextMemoryKey !== memoryKey) {
+      ctx = memoryContext;
+      try {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        for (let i = 0; i < arrived; i++) {
+          const p = data.arrows[i],
+            scale = 0.78,
+            seat = out((time - 120 - i * 36) / 28);
+          const y =
+            PAPER * (1 - scale) - (0.7 + (i % 7) * 0.61) + (1 - seat) * 4.5;
+          arrowMesh(
+            recap,
+            arrowTransform([p.x, y, p.y], i * 2.39996, scale, null),
+            1,
+          );
+        }
+      } finally {
+        ctx = screen;
       }
-    } finally {
-      ctx = screen;
+      memoryKey = nextMemoryKey;
     }
     ctx.globalAlpha = 0.42;
     ctx.drawImage(memory, 0, 0, w, h);
