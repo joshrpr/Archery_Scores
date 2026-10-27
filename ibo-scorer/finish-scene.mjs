@@ -620,7 +620,8 @@ export function createScene(canvas, data) {
     const arrivalPose = new THREE.Matrix4();
     let priorSeated = false;
     function updatePrior(t) {
-      if (priorSeated) return priorPoints.length;
+      const recapComplete = t >= RAPID_START + (priorPoints.length - 1) * RAPID_STEP + INSERT_MS;
+      if (priorSeated && recapComplete) return priorPoints.length;
       const count = clamp(
         Math.floor((t - RAPID_START) / RAPID_STEP) + 1,
         0,
@@ -638,8 +639,7 @@ export function createScene(canvas, data) {
         batch.instanceMatrix.needsUpdate = true;
       }
       oldHoles.count = count;
-      if (t >= RAPID_START + (priorPoints.length - 1) * RAPID_STEP + INSERT_MS)
-        priorSeated = true;
+      priorSeated = recapComplete;
       return count;
     }
 
@@ -771,7 +771,15 @@ export function createScene(canvas, data) {
       updatePrior(time);
       renderer.render(scene, camera);
     }
-    return { draw, dispose };
+    function prepare(w, h, targetY) {
+      // Compile every material before hiding final-arrow meshes at time zero.
+      // Warm the impact's shadows/transmission pass too; a first-use driver
+      // stall there would otherwise jump straight over the focal moment.
+      renderer.compile(scene, camera);
+      draw(STRIKE + 40, w, h, targetY);
+      draw(0, w, h, targetY);
+    }
+    return { draw, prepare, dispose };
   } catch (error) {
     dispose();
     throw error;

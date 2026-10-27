@@ -30,10 +30,11 @@ const Celebration = (() => {
     root.setAttribute("aria-label", "Vegas 300 round complete");
     root.tabIndex = -1;
     root.innerHTML = `<div class="finish-stage">
-      <canvas class="finish-scene" aria-hidden="true"></canvas>
+      <canvas class="finish-scene" aria-hidden="true" hidden></canvas>
+      <p class="finish-loading" role="status">Preparing celebration…</p>
       <div class="finish-static" aria-hidden="true" hidden></div>
       <button type="button" class="finish-skip">Skip</button>
-      <div class="finish-impact" aria-hidden="true">Final arrow · ${data.arrows[29].value === 0 ? "Miss" : escape(data.arrows[29].value)}</div>
+      <div class="finish-impact" aria-hidden="true" hidden>Final arrow · ${data.arrows[29].value === 0 ? "Miss" : escape(data.arrows[29].value)}</div>
       <div class="finish-results" hidden>
         <h2>Round complete</h2>
         <p class="finish-archer">${escape(data.name)}</p>
@@ -63,19 +64,21 @@ const Celebration = (() => {
       button = root.querySelector(".finish-go");
     const count = root.querySelector(".finish-total strong"),
       pill = root.querySelector(".finish-impact");
-    const still = root.querySelector(".finish-static"),
-      status = root.querySelector('[role="status"]');
+    const still = root.querySelector(".finish-static");
+    const loading = root.querySelector('.finish-loading');
+    const announcement = root.querySelector('.finish-sr');
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     let scene = null,
       frame = 0,
       deadline = 0,
       stopped = false,
+      sceneReady = false,
       disposed = false,
       hit = false,
       announced = false;
     let lastTime = 0,
       backHandle = null;
-    const started = performance.now();
+    let playbackStarted = null;
     const removeGraphics = () => {
       const old = scene;
       scene = null;
@@ -84,7 +87,7 @@ const Celebration = (() => {
     const announce = () => {
       if (announced) return;
       announced = true;
-      status.textContent = `Round complete. ${data.name}, ${data.total} points, ${data.xs} Xs.`;
+      announcement.textContent = `Round complete. ${data.name}, ${data.total} points, ${data.xs} Xs.`;
     };
     const staticFace = () => {
       canvas.hidden = true;
@@ -127,9 +130,10 @@ const Celebration = (() => {
     function settle(focus = true, fallback = false) {
       if (disposed) return;
       stopped = true;
+      loading.hidden = true;
       cancelAnimationFrame(frame);
       clearTimeout(deadline);
-      if (fallback || !scene) {
+      if (fallback || !scene || !sceneReady) {
         removeGraphics();
         staticFace();
       }
@@ -178,7 +182,8 @@ const Celebration = (() => {
     }
     function tick(now) {
       if (disposed || stopped) return;
-      const time = Math.min(DURATION, now - started);
+      if (playbackStarted === null) playbackStarted = now;
+      const time = Math.min(DURATION, Math.max(0, now - playbackStarted));
       try {
         paint(time);
         if (!hit && time >= STRIKE) {
@@ -260,10 +265,10 @@ const Celebration = (() => {
       settle(!document.hidden, true);
       return;
     }
-    // Loading and shader failures have a bounded escape path; Skip is already
-    // available even while the local renderer module is being prepared.
-    deadline = setTimeout(() => settle(true, !scene), 3900);
-    preload().then((module) => {
+    // Preparation has its own timeout. Driver setup and shader warm-up must
+    // not consume the user's 3.6-second sequence, especially on a second round.
+    deadline = setTimeout(() => settle(true, true), 8000);
+    preload().then(async (module) => {
       if (disposed || stopped) return;
       if (!module) {
         settle(true, true);
@@ -271,9 +276,23 @@ const Celebration = (() => {
       }
       try {
         scene = module.createScene(canvas, data);
+        const stage = root.querySelector('.finish-stage');
+        await scene.prepare?.(stage.clientWidth, root.clientHeight, 100);
+        if (disposed || stopped) return;
+        // Render the opening state while hidden: all expensive first-frame
+        // work finishes before either the clock or the visible scene starts.
+        paint(0);
+        sceneReady = true;
+        clearTimeout(deadline);
+        loading.hidden = true;
+        canvas.hidden = false;
+        deadline = setTimeout(() => settle(), 3900);
         frame = requestAnimationFrame(tick);
-      } catch {
-        settle(true, true);
+      } catch (error) {
+        if (!disposed && !stopped) {
+          console.warn('Celebration preparation failed', error);
+          settle(true, true);
+        }
       }
     });
   }

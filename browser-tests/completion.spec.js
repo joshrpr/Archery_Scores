@@ -500,7 +500,8 @@ test("two different completions release their scenes independently", async ({
   await page.getByRole("button", { name: "Skip", exact: true }).click();
   await page.getByRole("button", { name: "See scorecard" }).click();
   await expect(page).toHaveURL(/#\/card\/round-one$/);
-  await page.goto("/#/round/round-two");
+  await page.evaluate(() => { location.hash = '#/round/round-two'; });
+  await expect(page.getByRole('button', { name: 'Finish round', exact: true })).toBeVisible();
   await finish(page);
   await expect
     .poll(() => page.evaluate(() => window.sceneInput?.roundId))
@@ -512,6 +513,119 @@ test("two different completions release their scenes independently", async ({
     "finished",
     "finished",
   ]);
+  expect(await page.evaluate(() => window.sceneDisposals)).toBe(2);
+});
+
+test('graphics warm-up preserves the full sequence on two new rounds without reloading', async ({ page }) => {
+  const db = fixture();
+  db.rounds.push({ ...structuredClone(db.rounds[0]), id: 'round-two' });
+  await open(page, db, { renderer: 'real' });
+  // Simulate time spent in synchronous graphics/driver setup without sleeping.
+  // Both the monotonic clock and frame timestamps share the same added delay.
+  await page.route('**/finish-scene.mjs', route => route.fulfill({ contentType: 'text/javascript', body: `
+    export function createScene(canvas,data) {
+      window.graphicsDelay += data.roundId === 'round-one' ? 3200 : 4100;
+      window.warmupFrames ||= {};
+      let cold = true;
+      return { draw(time) {
+        (window.warmupFrames[data.roundId] ||= []).push(time);
+        if (cold) { cold = false; window.graphicsDelay += 900; }
+      }, dispose() {} };
+    }` }));
+  // The route was already preloaded by the scoring view: reload once to use
+  // the controlled renderer, then keep both actual completions in one page.
+  await page.reload();
+  await page.evaluate(() => {
+    const now = performance.now.bind(performance);
+    const raf = requestAnimationFrame.bind(window);
+    window.graphicsDelay = 0;
+    performance.now = () => now() + window.graphicsDelay;
+    window.requestAnimationFrame = callback => raf(time => callback(time + window.graphicsDelay));
+  });
+  await finish(page);
+  await page.clock.runFor(32);
+  await expect.poll(() => page.evaluate(() => window.warmupFrames?.['round-one']?.length || 0)).toBeGreaterThan(0);
+  const first = await page.evaluate(() => window.warmupFrames['round-one'][0]);
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
+  await page.getByRole('button', { name: 'See scorecard' }).click();
+  await expect(page).toHaveURL(/#\/card\/round-one$/);
+  await page.evaluate(() => { location.hash = '#/round/round-two'; });
+  await expect(page.getByRole('button', { name: 'Finish round', exact: true })).toBeVisible();
+  await finish(page);
+  await page.clock.runFor(32);
+  await expect.poll(() => page.evaluate(() => window.warmupFrames?.['round-two']?.length || 0)).toBeGreaterThan(0);
+  const second = await page.evaluate(() => window.warmupFrames['round-two'][0]);
+  expect(first).toBeLessThan(120);
+  expect(second).toBeLessThan(120);
+  await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible();
+  await page.clock.runFor(3300);
+  await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible();
+  await page.clock.runFor(400);
+  await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeHidden();
+});
+
+test('slow preparation has a separate budget and Skip remains available', async ({ page }) => {
+  await open(page);
+  await page.route('**/finish-scene.mjs', route => route.fulfill({ contentType: 'text/javascript', body: `
+    export function createScene() {
+      return { prepare: () => new Promise(resolve => setTimeout(resolve, 5000)), draw() {}, dispose() {} };
+    }` }));
+  await page.reload();
+  await finish(page);
+  await expect(page.getByText('Preparing celebration…', { exact: true })).toBeVisible();
+  await page.clock.runFor(4100);
+  await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible();
+  await expect(page.getByText('Preparing celebration…', { exact: true })).toBeVisible();
+  await page.clock.runFor(1000);
+  await expect(page.locator('.finish-scene')).toBeVisible();
+  await page.clock.runFor(3300);
+  await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible();
+  await page.clock.runFor(400);
+  await expect(page.getByRole('button', { name: 'See scorecard' })).toBeFocused();
+});
+
+test('skipping while graphics prepare prevents late playback and releases the scene', async ({ page }) => {
+  await open(page);
+  await page.route('**/finish-scene.mjs', route => route.fulfill({ contentType: 'text/javascript', body: `
+    export function createScene() {
+      window.preparingScene = true;
+      return { prepare: () => new Promise(resolve => setTimeout(resolve, 5000)),
+        draw() { window.lateDraws = (window.lateDraws || 0) + 1; }, dispose() { window.sceneReleased = true; } };
+    }` }));
+  await page.reload();
+  await finish(page);
+  await expect.poll(() => page.evaluate(() => window.preparingScene)).toBe(true);
+  await page.getByRole('button', { name: 'Skip', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'See scorecard' })).toBeFocused();
+  await page.clock.runFor(6000);
+  expect(await page.evaluate(() => ({ draws: window.lateDraws || 0, released: window.sceneReleased }))).toEqual({ draws: 0, released: true });
+  await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeHidden();
+});
+
+test('two new rounds use the real renderer consecutively in one running app', async ({ page }) => {
+  test.setTimeout(45000);
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const db = fixture({ plots: true });
+  db.rounds.push({ ...structuredClone(db.rounds[0]), id: 'round-two' });
+  await open(page, db, { renderer: 'real' });
+  for (const id of ['round-one', 'round-two']) {
+    if (id === 'round-two') {
+      await page.evaluate(() => { location.hash = '#/round/round-two'; });
+      await expect(page.getByRole('button', { name: 'Finish round', exact: true })).toBeVisible();
+    }
+    await finish(page);
+    await expect.poll(async () => {
+      await page.clock.runFor(16);
+      return page.locator('.finish-scene').isVisible();
+    }, { timeout: 12000 }).toBe(true);
+    await expect(page.locator('.finish-static')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeVisible();
+    await page.clock.fastForward(4000);
+    await page.getByRole('button', { name: 'See scorecard' }).click();
+    await expect(page).toHaveURL(new RegExp('#/card/' + id + '$'));
+  }
+  expect(errors).toEqual([]);
 });
 
 test("changing reduced-motion preference settles playback immediately", async ({
