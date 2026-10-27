@@ -620,7 +620,8 @@ export function createScene(canvas, data) {
     const arrivalPose = new THREE.Matrix4();
     let priorSeated = false;
     function updatePrior(t) {
-      const recapComplete = t >= RAPID_START + (priorPoints.length - 1) * RAPID_STEP + INSERT_MS;
+      const recapComplete =
+        t >= RAPID_START + (priorPoints.length - 1) * RAPID_STEP + INSERT_MS;
       if (priorSeated && recapComplete) return priorPoints.length;
       const count = clamp(
         Math.floor((t - RAPID_START) / RAPID_STEP) + 1,

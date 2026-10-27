@@ -19,7 +19,12 @@ const Celebration = (() => {
   let instance = null,
     sceneModule = null;
   const preload = () =>
-    (sceneModule ||= import("./finish-scene.mjs").catch(() => null));
+    (sceneModule ||= (
+      window.Capacitor?.getPlatform?.() === "android" ||
+      /Android/i.test(navigator.userAgent)
+        ? import("./finish-canvas.mjs")
+        : import("./finish-scene.mjs")
+    ).catch(() => null));
 
   function play(data, { go, impact }) {
     if (instance) return;
@@ -65,8 +70,8 @@ const Celebration = (() => {
     const count = root.querySelector(".finish-total strong"),
       pill = root.querySelector(".finish-impact");
     const still = root.querySelector(".finish-static");
-    const loading = root.querySelector('.finish-loading');
-    const announcement = root.querySelector('.finish-sr');
+    const loading = root.querySelector(".finish-loading");
+    const announcement = root.querySelector(".finish-sr");
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     let scene = null,
       frame = 0,
@@ -82,7 +87,11 @@ const Celebration = (() => {
     const removeGraphics = () => {
       const old = scene;
       scene = null;
-      try { old?.dispose(); } catch (error) { console.warn('Graphics cleanup unavailable', error); }
+      try {
+        old?.dispose();
+      } catch (error) {
+        console.warn("Graphics cleanup unavailable", error);
+      }
     };
     const announce = () => {
       if (announced) return;
@@ -276,7 +285,7 @@ const Celebration = (() => {
       }
       try {
         scene = module.createScene(canvas, data);
-        const stage = root.querySelector('.finish-stage');
+        const stage = root.querySelector(".finish-stage");
         await scene.prepare?.(stage.clientWidth, root.clientHeight, 100);
         if (disposed || stopped) return;
         // Render the opening state while hidden: all expensive first-frame
@@ -290,7 +299,7 @@ const Celebration = (() => {
         frame = requestAnimationFrame(tick);
       } catch (error) {
         if (!disposed && !stopped) {
-          console.warn('Celebration preparation failed', error);
+          console.warn("Celebration preparation failed", error);
           settle(true, true);
         }
       }

@@ -6,7 +6,9 @@ An offline IBO 3D and Vegas 300 archery scorecard for Android, as an installable
 
 The first successful completion of a Vegas 300 round shows a 3.6-second arrow recap and final-shot celebration. Skip settles directly to results; See scorecard opens the saved round. Edits to finished rounds and IBO rounds retain their direct scorecard flow. Reduced motion and graphics failures use static results. Unplotted shots use labeled illustrative positions that are never stored as measured shots.
 
-The renderer, fonts, and graphics are local assets and work offline. Three.js is pinned to 0.180.0; the web build refreshes its vendored browser modules and license from the installed package. Barlow Condensed ships with its Open Font License.
+The renderers, fonts, and graphics are local assets and work offline. Android uses a Canvas 2D projection of the arrow geometry, retaining recorded positions, shaft flex, nock groove, and camera motion without starting WebGL. This compatibility path avoids the WebGL API involved in the [reported Pixel 10 / Android 17 failure](https://github.com/mrdoob/three.js/issues/34311); it still needs physical-device validation. Other platforms retain Three.js, pinned to 0.180.0; the web build refreshes its vendored browser modules and license from the installed package. Barlow Condensed ships with its Open Font License.
+
+Graphics preparation and initial shader/texture setup finish before the 3.6-second playback clock begins. Preparation has a separate bounded timeout, and Skip remains available while it is pending.
 
 For local development, run `npm ci` at the repository root, then `npm run dev`. Run `npm test` for scoring/import/statistics checks. Install the test browser once with `npx playwright install chromium`, then run `npm run test:browser` for the complete Finish round workflow, including offline reload and actual 3D startup. `npm run sync` builds and copies assets into the Android project.
 

@@ -13,6 +13,7 @@ const ASSETS = [
   './completion.js',
   './finish.js',
   './finish-scene.mjs',
+  './finish-canvas.mjs',
   './finish.css',
   './vendor/three/three.module.min.js',
   './vendor/three/three.core.min.js',

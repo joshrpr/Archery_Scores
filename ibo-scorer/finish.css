@@ -252,7 +252,10 @@
 @media (max-height: 620px) {
   .finish-results {
     padding: 12px;
-    max-height: calc(100% - max(24px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+    max-height: calc(
+      100% - max(24px, env(safe-area-inset-top)) -
+        max(16px, env(safe-area-inset-bottom))
+    );
   }
   .finish-total strong {
     font-size: 3.25em;
