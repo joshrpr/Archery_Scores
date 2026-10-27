@@ -1,0 +1,298 @@
+<!-- Throwaway impact study. Approved arrow appearance retained; deterministic flight, penetration, and a bending shaft with a fixed paper entry point. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+#vegas-impact-study { --as-night:#071120; --as-panel:#0b192e; --as-line:#263b56; --as-cream:#f6f3ea; --as-muted:#a8bbd0; --as-copper:#d96b27; font:14px/1.5 Inter,system-ui,sans-serif; color:var(--as-cream); width:100%; }
+#vegas-impact-study * { box-sizing:border-box; }
+#vegas-impact-study [hidden] { display:none!important; }
+#vegas-impact-study .as-shell { padding:20px; background:var(--as-night); border-radius:18px; max-width:880px; margin:0 auto; }
+#vegas-impact-study .as-header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px 12px; margin-bottom:16px; }
+#vegas-impact-study h2 { margin:0; color:var(--as-cream); font:600 23px/1.1 'Barlow Condensed',sans-serif; }
+#vegas-impact-study .as-tag { font-size:12px; color:var(--as-muted); letter-spacing:.06em; white-space:nowrap; }
+#vegas-impact-study .as-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,320px); gap:20px; align-items:start; }
+#vegas-impact-study .as-inspect { min-width:0; }
+#vegas-impact-study .as-main { background:radial-gradient(ellipse at 48% 45%,#182c45,#091321 75%); border-radius:12px; overflow:hidden; position:relative; height:390px; }
+#vegas-impact-study canvas { display:block; width:100%; }
+#vegas-impact-study .as-main canvas { height:100%; touch-action:pan-y; }
+#vegas-impact-study .as-loading { position:absolute; inset:0; display:grid; place-items:center; color:var(--as-muted); padding:30px; text-align:center; }
+#vegas-impact-study .as-view-name { position:absolute; top:14px; left:16px; color:var(--as-muted); font-size:12px; pointer-events:none; }
+#vegas-impact-study .as-switcher { display:flex; align-items:center; justify-content:center; gap:6px; margin:12px 0; }
+#vegas-impact-study .as-switcher { flex-wrap:wrap; }
+#vegas-impact-study .as-playback { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0; }
+#vegas-impact-study .as-playback button[data-play] { background:#d96b27; color:#071120; font-weight:600; min-width:114px; }
+#vegas-impact-study select { appearance:auto; font:500 12px/1.3 Inter,system-ui,sans-serif; padding:9px 6px; background:#152b46; color:var(--as-cream); border:1px solid #3d506a; border-radius:7px; min-height:40px; }
+#vegas-impact-study .as-speed-label { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--as-muted); margin-left:auto; }
+#vegas-impact-study .as-jumps { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px; margin:0 0 8px; }
+#vegas-impact-study .as-jumps button { padding:5px 6px; min-height:36px; color:#c9d6e5; font-size:12px; }
+#vegas-impact-study .as-phase { position:absolute; bottom:12px; left:14px; background:#0b192e; color:#e8bb90; border-radius:5px; padding:4px 8px; font-size:12px; pointer-events:none; }
+#vegas-impact-study .as-note { font-size:12px; color:var(--as-muted); margin:4px 0 10px; }
+#vegas-impact-study button { font:500 12px/1.3 Inter,system-ui,sans-serif; color:var(--as-muted); border:1px solid transparent; background:transparent; border-radius:7px; min-height:40px; padding:8px 11px; touch-action:manipulation; }
+#vegas-impact-study button:hover { color:var(--as-cream); background:#142844; }
+#vegas-impact-study button[aria-pressed="true"] { color:var(--as-cream); background:#1b3555; border-color:#53617a; }
+#vegas-impact-study button:focus-visible,#vegas-impact-study input:focus-visible { outline:2px solid #f4a76d; outline-offset:3px; }
+#vegas-impact-study .as-turn-label { display:flex; justify-content:space-between; color:var(--as-muted); font-size:12px; margin:0 2px 4px; }
+#vegas-impact-study input[type="range"] { width:100%; accent-color:var(--as-copper); min-height:28px; margin:0; }
+#vegas-impact-study output { font-variant-numeric:tabular-nums; color:var(--as-cream); }
+#vegas-impact-study .as-detail { font-size:12px; color:var(--as-muted); min-height:36px; margin:8px 0 0; }
+#vegas-impact-study .as-phone-wrap { min-width:0; }
+#vegas-impact-study .as-phone-label { margin:0 0 8px; font-size:12px; color:var(--as-muted); }
+#vegas-impact-study .as-phone { background:linear-gradient(#0b192e,#10213a 50%,#071120); border-radius:16px; padding:16px 12px; overflow:hidden; }
+#vegas-impact-study .as-phone canvas { aspect-ratio:1; width:100%; height:auto; }
+#vegas-impact-study .as-phone-card { background:linear-gradient(#152b4a,#10213a); border:1px solid #2c405b; border-radius:15px; padding:14px; text-align:center; margin-top:14px; }
+#vegas-impact-study .as-bar { width:30px; height:3px; background:var(--as-copper); margin:0 auto 10px; border-radius:3px; }
+#vegas-impact-study .as-complete { font:600 12px/1.3 'Barlow Condensed',sans-serif; letter-spacing:.12em; color:#e3955c; }
+#vegas-impact-study .as-score { display:flex; align-items:baseline; justify-content:center; gap:9px; margin:6px 0; }
+#vegas-impact-study .as-score strong { font:700 64px/1 'Barlow Condensed',sans-serif; color:var(--as-cream); font-variant-numeric:tabular-nums; }
+#vegas-impact-study .as-score span { font:600 15px/1.2 'Barlow Condensed',sans-serif; background:#203b5d; border:1px solid #795337; border-radius:5px; padding:4px 6px; }
+#vegas-impact-study .as-round { font-size:12px; color:var(--as-muted); }
+#vegas-impact-study .as-standing { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid #30445f; margin-top:12px; font-size:12px; }
+#vegas-impact-study .as-standing span:first-child { color:#e3955c; }
+#vegas-impact-study .as-standing b { margin-left:auto; font-variant-numeric:tabular-nums; }
+#vegas-impact-study .as-sample { font-size:12px; text-align:center; color:var(--as-muted); margin:10px 0 0; }
+#vegas-impact-study .as-footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 12px; border-top:1px solid var(--as-line); padding-top:14px; margin-top:16px; font-size:12px; color:var(--as-muted); }
+@media(max-width:620px) {
+  #vegas-impact-study .as-shell { padding:14px; }
+  #vegas-impact-study .as-layout { grid-template-columns:minmax(0,1fr); gap:22px; }
+  #vegas-impact-study .as-main { height:350px; }
+  #vegas-impact-study .as-phone-wrap { width:min(100%,360px); justify-self:center; }
+}
+@media(pointer:coarse) { #vegas-impact-study button { min-height:44px; } #vegas-impact-study input[type="range"] { min-height:44px; } }
+</style>
+<div id="vegas-impact-study">
+  <section class="as-shell" aria-label="Vegas arrow impact prototype">
+    <div class="as-header"><h2>Impact study</h2><span class="as-tag">VEGAS 300 · MOTION</span></div>
+    <div class="as-layout">
+      <div class="as-inspect">
+        <div class="as-main">
+          <canvas data-main role="img" aria-label="Three-dimensional arrow impact, shaft flex, and settling, with a fixed entry point on a Vegas target"></canvas>
+          <div class="as-view-name" data-view-name>Target view / impact excerpt</div>
+          <div class="as-phase" data-phase-label aria-live="polite">Ready</div>
+          <div class="as-loading" data-loading>Preparing the impact study…</div>
+        </div>
+        <div class="as-switcher" role="group" aria-label="Impact inspection angle">
+          <button type="button" class="cursor-interaction" data-view="target" aria-pressed="true">Target view</button>
+          <button type="button" class="cursor-interaction" data-view="flex" aria-pressed="false">Flex close-up</button>
+          <button type="button" class="cursor-interaction" data-view="contact" aria-pressed="false">Paper contact</button>
+        </div>
+        <div class="as-playback">
+          <button type="button" class="cursor-interaction" data-play>Replay impact</button>
+          <button type="button" class="cursor-interaction" data-pause>Pause</button>
+          <label class="as-speed-label">Speed <select data-speed aria-label="Playback speed"><option value="1">Normal</option><option value="0.5">½ speed</option><option value="0.25">¼ speed</option></select></label>
+        </div>
+        <label class="as-turn-label" for="impact-time"><span>Impact timeline</span><output data-time-output for="impact-time">0.00 / 1.60 s</output></label>
+        <input id="impact-time" data-timeline type="range" min="0" max="1600" step="1" value="0" aria-label="Impact timeline">
+        <div class="as-jumps" role="group" aria-label="Inspect key moments"><button type="button" class="cursor-interaction" data-seek="420">First contact</button><button type="button" class="cursor-interaction" data-seek="447">Peak flex</button><button type="button" class="cursor-interaction" data-seek="1100">Settled</button></div>
+        <p class="as-detail" data-detail>Flight, penetration, and settling · camera held still</p>
+      </div>
+      <div class="as-phone-wrap">
+        <p class="as-phone-label" data-phone-label>At phone size</p>
+        <div class="as-phone">
+          <canvas data-phone role="img" aria-label="The same instant of the arrow impact, shown at phone scale in the approved dusk interface"></canvas>
+          <div class="as-phone-card">
+            <div class="as-bar"></div><div class="as-complete">ROUND COMPLETE</div>
+            <div class="as-score"><strong>296</strong><span>22 Xs</span></div>
+            <div class="as-round">Vegas 300 · 30 arrows</div>
+            <div class="as-standing"><span>1.</span><span>Josh</span><b>296</b></div>
+          </div>
+        </div>
+        <p class="as-sample">Sample score · same instant in both views</p>
+      </div>
+    </div>
+    <div class="as-footer"><span data-state>Ready · normal speed</span><span>Prototype / impact only</span></div>
+  </section>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+const root = document.getElementById('vegas-impact-study');
+const loading = root.querySelector('[data-loading]');
+try {
+  const requestedView=new URLSearchParams(location.search).get('variant');
+  const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const state={view:['target','flex','contact'].includes(requestedView)?requestedView:'target',time:1600,speed:1,playing:false};
+  const DURATION=1600,STRIKE=420,PAPER_Y=5.012,CONTACT_OFFSET=PAPER_Y+1.05;
+  const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+  const TAU = Math.PI * 2;
+  let seed=619;
+  const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  const tex = (w,h,draw) => {const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;};
+  const carbon=tex(128,128,(c,w,h)=>{
+    c.fillStyle='#252a30';c.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=16)for(let x=0;x<w;x+=16){const flip=((x+y)/16)%2;c.fillStyle=flip?'#2a2e33':'#20252b';c.fillRect(x,y,16,16);c.strokeStyle=flip?'rgba(113,121,128,.14)':'rgba(4,9,14,.2)';c.lineWidth=1;for(let k=2;k<16;k+=3){c.beginPath();c.moveTo(x+(flip?k:0),y+(flip?0:k));c.lineTo(x+(flip?k:16),y+(flip?16:k));c.stroke();}}
+  });
+  carbon.wrapS=carbon.wrapT=THREE.RepeatWrapping;carbon.repeat.set(3,45);
+  const wrap=tex(512,512,(c,w,h)=>{
+    c.fillStyle='#eeeadd';c.fillRect(0,0,w,h);c.fillStyle='#d76a28';c.fillRect(0,8,w,24);c.fillRect(0,h-27,w,7);
+    for(const x of [90,345]){c.save();c.translate(x,365);c.rotate(-Math.PI/2);c.fillStyle='#253244';c.font='600 45px Arial';c.fillText('ROPERS',0,0);c.restore();}
+  });
+  const paper=tex(2048,2048,(c,w,h)=>{
+    c.fillStyle='#f2eee2';c.fillRect(0,0,w,h);const scale=w/23;
+    for(const [r,col] of [[10,'#2a7fd4'],[8,'#e8352b'],[4,'#ffd400']]){c.beginPath();c.arc(w/2,h/2,r*scale,0,TAU);c.fillStyle=col;c.fill();}
+    c.strokeStyle='rgba(18,22,25,.68)';c.lineWidth=2.7;
+    for(const r of [10,8,6,4,2,1]){c.beginPath();c.arc(w/2,h/2,r*scale,0,TAU);c.stroke();}
+    c.lineWidth=2;c.beginPath();c.moveTo(w/2-18,h/2);c.lineTo(w/2+18,h/2);c.moveTo(w/2,h/2-18);c.lineTo(w/2,h/2+18);c.stroke();
+    c.font='500 31px Arial';c.textAlign='center';c.textBaseline='middle';c.fillStyle='rgba(17,27,37,.70)';
+    for(const [r,label] of [[9,'6'],[7,'7'],[5,'8'],[3,'9']]){c.fillText(label,w/2-r*scale,h/2);c.fillText(label,w/2+r*scale,h/2);}
+    for(let i=0;i<26000;i++){const x=rand()*w,y=rand()*h;c.fillStyle=rand()>.5?'rgba(255,255,240,.045)':'rgba(47,34,19,.035)';c.fillRect(x,y,1+rand()*2,1+rand()*2);}
+  });
+  const foam=tex(256,256,(c,w,h)=>{c.fillStyle='#171d25';c.fillRect(0,0,w,h);for(let i=0;i<8500;i++){const v=12+Math.floor(rand()*27);c.fillStyle=`rgb(${v},${v+3},${v+7})`;c.fillRect(rand()*w,rand()*h,rand()*2+.4,rand()*2+.4);}});
+  foam.wrapS=foam.wrapT=THREE.RepeatWrapping;foam.repeat.set(4,4);
+  const tear=tex(512,512,(c,w,h)=>{
+    c.clearRect(0,0,w,h);const cx=w/2,cy=h/2;
+    c.beginPath();for(let i=0;i<=36;i++){const a=i/36*TAU,r=116+(rand()-.5)*23;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?c.lineTo(x,y):c.moveTo(x,y);}c.closePath();c.fillStyle='#16150e';c.fill();
+    for(let i=0;i<38;i++){const a=rand()*TAU,r=105+rand()*18,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;c.strokeStyle=i%3?'#e9dfba':'#827348';c.lineWidth=1.3+rand()*2;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*rand()*22,y+Math.sin(a)*rand()*22);c.stroke();}
+  });
+  const environment=tex(1024,512,(c,w,h)=>{
+    c.fillStyle='#384456';c.fillRect(0,0,w,h);
+    const panel=(x,y,r,col)=>{const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(56,68,86,0)');c.fillStyle=g;c.fillRect(0,0,w,h);};
+    panel(220,170,250,'#fff2d9');panel(800,200,190,'#b9d7ff');panel(500,55,145,'#eaf3ff');
+  });
+  environment.mapping=THREE.EquirectangularReflectionMapping;
+  const scene=new THREE.Scene();scene.environment=environment;scene.environmentIntensity=.7;
+  scene.add(new THREE.HemisphereLight(0xdce8ff,0x263047,1.35));
+  const key=new THREE.DirectionalLight(0xffead4,2.2);key.position.set(-30,80,35);key.target.position.set(0,30,0);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-45;key.shadow.camera.right=45;key.shadow.camera.top=45;key.shadow.camera.bottom=-45;key.shadow.camera.near=1;key.shadow.camera.far=180;key.shadow.bias=-.00008;key.shadow.normalBias=.015;scene.add(key,key.target);
+  const rim=new THREE.DirectionalLight(0x8ebfff,1.5);rim.position.set(20,60,-25);scene.add(rim);
+  const carbonMat=new THREE.MeshPhysicalMaterial({map:carbon,color:0xffffff,metalness:.12,roughness:.34,clearcoat:.65,clearcoatRoughness:.25});
+  const wrapMat=new THREE.MeshStandardMaterial({map:wrap,roughness:.62});
+  const collarMat=new THREE.MeshStandardMaterial({color:0x708394,metalness:.85,roughness:.26});
+  const orangeMat=new THREE.MeshPhysicalMaterial({color:0xf2621a,roughness:.39,metalness:0,clearcoat:.18});
+  const ivoryMat=new THREE.MeshPhysicalMaterial({color:0xf6f3ea,roughness:.48,metalness:0,clearcoat:.12});
+  const nockMat=new THREE.MeshPhysicalMaterial({color:0xf77927,roughness:.16,metalness:0,transmission:.62,thickness:.5,ior:1.48,clearcoat:.8,clearcoatRoughness:.16});
+  const arrow=new THREE.Group();scene.add(arrow);
+  function mesh(geometry,material,parent=arrow){const m=new THREE.Mesh(geometry,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+  mesh(new THREE.CylinderGeometry(.38,.38,64,64,96),carbonMat).position.y=32;
+  mesh(new THREE.ConeGeometry(.38,2.1,48),new THREE.MeshStandardMaterial({color:0x526070,metalness:.8,roughness:.3})).rotation.z=Math.PI;
+  mesh(new THREE.CylinderGeometry(.388,.388,7,64),wrapMat).position.y=59.9;
+  mesh(new THREE.CylinderGeometry(.405,.405,.18,64),collarMat).position.y=64.05;
+  mesh(new THREE.CylinderGeometry(.31,.29,1.25,48),nockMat).position.y=64.75;
+  const vaneShape=new THREE.Shape();vaneShape.moveTo(.39,56.7);vaneShape.lineTo(.39,62.85);vaneShape.bezierCurveTo(1.25,62.95,1.83,62.75,1.72,61.9);vaneShape.bezierCurveTo(1.62,60.8,1.28,57.4,.39,56.7);
+  const vaneGeometry=new THREE.ExtrudeGeometry(vaneShape,{depth:.055,bevelEnabled:true,bevelThickness:.018,bevelSize:.018,bevelSegments:3,curveSegments:36,steps:1});vaneGeometry.translate(0,0,-.0275);
+  const positions=vaneGeometry.attributes.position;
+  for(let i=0;i<positions.count;i++){const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i),a=(y-56.7)/6.15*.18;positions.setXYZ(i,x*Math.cos(a)+z*Math.sin(a),y,-x*Math.sin(a)+z*Math.cos(a));}vaneGeometry.computeVertexNormals();
+  for(let i=0;i<3;i++){
+    const v=mesh(vaneGeometry,i===0?orangeMat:ivoryMat);v.rotation.y=i*TAU/3;
+    const foot=mesh(new THREE.CylinderGeometry(.402,.402,6.2,24,1,true,Math.PI/2-.12,.24),i===0?orangeMat:ivoryMat);foot.position.y=59.8;foot.rotation.y=i*TAU/3;
+  }
+  const nockBodyProfile=[[0,65.15],[.3,65.15],[.35,65.28],[.395,65.65],[.395,66.35],[.38,66.55],[0,66.55]].map(([r,y])=>new THREE.Vector2(r,y));
+  mesh(new THREE.LatheGeometry(nockBodyProfile,64),nockMat);
+  const jawRadius=.39,jawGap=.145,jawAngle=Math.acos(jawGap/jawRadius);
+  const jawShape=new THREE.Shape();jawShape.moveTo(jawGap,-Math.sqrt(jawRadius*jawRadius-jawGap*jawGap));jawShape.absarc(0,0,jawRadius,-jawAngle,jawAngle,false);jawShape.closePath();
+  const jawGeometry=new THREE.ExtrudeGeometry(jawShape,{depth:.8,bevelEnabled:true,bevelThickness:.055,bevelSize:.045,bevelSegments:6,curveSegments:40});jawGeometry.rotateX(-Math.PI/2);jawGeometry.translate(0,66.53,0);
+  mesh(jawGeometry,nockMat);mesh(jawGeometry,nockMat).rotation.y=Math.PI;
+  for(const y of [65.3,65.48]){const ring=mesh(new THREE.TorusGeometry(.333,.018,10,64),nockMat);ring.rotation.x=Math.PI/2;ring.position.y=y;}
+  // Bake each approved part's placement into its own geometry. The shared
+  // centerline then bends shaft, wrap, vanes, and nock as one continuous arrow.
+  const flexible=[];
+  for(const part of arrow.children){
+    part.updateMatrix();part.geometry=part.geometry.clone();part.geometry.applyMatrix4(part.matrix);
+    part.position.set(0,0,0);part.quaternion.identity();part.scale.set(1,1,1);part.frustumCulled=false;
+    const g=part.geometry;flexible.push({part,base:new Float32Array(g.attributes.position.array),normals:new Float32Array(g.attributes.normal.array)});
+  }
+  arrow.rotation.y=THREE.MathUtils.degToRad(-15);
+  const backing=mesh(new THREE.BoxGeometry(25,1.8,25),new THREE.MeshStandardMaterial({map:foam,roughness:1}),scene);backing.position.y=4;
+  const paperEdge=mesh(new THREE.BoxGeometry(23,.06,23),new THREE.MeshStandardMaterial({color:0xe2dccc,roughness:1}),scene);paperEdge.position.y=4.97;
+  const face=mesh(new THREE.PlaneGeometry(23,23),new THREE.MeshBasicMaterial({map:paper,toneMapped:false}),scene);face.rotation.x=-Math.PI/2;face.position.y=5.012;face.receiveShadow=false;face.castShadow=false;
+  const faceShadow=mesh(new THREE.PlaneGeometry(23,23),new THREE.ShadowMaterial({color:0x11131a,opacity:.32}),scene);faceShadow.rotation.x=-Math.PI/2;faceShadow.position.y=5.018;faceShadow.castShadow=false;
+  const hole=mesh(new THREE.PlaneGeometry(1.8,1.8),new THREE.MeshStandardMaterial({map:tear,transparent:true,roughness:1,depthWrite:false,alphaTest:.02}),scene);hole.rotation.x=-Math.PI/2;hole.position.y=5.027;hole.castShadow=false;
+  const pulse=mesh(new THREE.TorusGeometry(.6,.012,8,96),new THREE.MeshBasicMaterial({color:0xd96b27,transparent:true,opacity:0,depthWrite:false,toneMapped:false}),scene);pulse.rotation.x=-Math.PI/2;pulse.position.y=5.08;pulse.castShadow=false;pulse.receiveShadow=false;
+  const fibers=[];
+  for(let i=0;i<9;i++){
+    const angle=i*TAU/9+.11,petal=new THREE.Shape();petal.moveTo(-.018,0);petal.lineTo(.018,0);petal.lineTo(.007,.13+(i%3)*.025);petal.closePath();
+    const p=mesh(new THREE.ShapeGeometry(petal),new THREE.MeshStandardMaterial({color:i%3?0xece4c9:0xbcab78,side:THREE.DoubleSide,roughness:1}),scene);
+    p.position.set(Math.cos(angle)*.43,5.03,Math.sin(angle)*.43);p.rotation.set(-Math.PI/2,0,angle-Math.PI/2);p.castShadow=false;fibers.push({mesh:p,angle});
+  }
+  const mainCanvas=root.querySelector('[data-main]'),phoneCanvas=root.querySelector('[data-phone]');
+  function renderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setPixelRatio(Math.min(devicePixelRatio||1,2));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.setClearColor(0x071120,0);return r;}
+  const mainRenderer=renderer(mainCanvas),phoneRenderer=renderer(phoneCanvas);
+  const camera=new THREE.OrthographicCamera(-10,10,7.5,-7.5,.1,300);
+  const phoneCamera=new THREE.OrthographicCamera(-13.4,13.4,13.4,-13.4,.1,300);phoneCamera.position.set(5,114,9);phoneCamera.up.set(0,0,-1);phoneCamera.lookAt(0,5,0);
+  const views={
+    target:{name:'Target view',position:[25,92,45],target:[0,29,0],span:55,up:[0,0,-1],roll:0,detail:'Flight, penetration, and settling · camera held still'},
+    flex:{name:'Flex close-up',position:[10,68,19],target:[0,60.7,0],span:18,roll:-.58,detail:'The shaft bends; the vanes and nock follow its changing direction'},
+    contact:{name:'Paper contact',position:[7,14,12],target:[0,5.2,0],span:6.2,roll:-.25,detail:'Inspect the fixed entry point, small paper tear, and contact shadow'}
+  };
+  const timeline=root.querySelector('[data-timeline]'),timeOutput=root.querySelector('[data-time-output]'),phaseLabel=root.querySelector('[data-phase-label]'),stateLabel=root.querySelector('[data-state]'),playButton=root.querySelector('[data-play]'),pauseButton=root.querySelector('[data-pause]');
+  let frame=0,lastTime=null,lastPhase='',lastWidth=0,lastHeight=0,lastPhone=0,lastBendTime=-1;
+  function phase(t){return t<180?'Ready':t<STRIKE?'Incoming':t<440?'Strike':t<980?'Flexing':'Settled';}
+  function bendAt(t){
+    if(t===lastBendTime)return;lastBendTime=t;
+    const dt=t-STRIKE;
+    let offset=36;
+    if(t>=180&&t<STRIKE)offset=CONTACT_OFFSET+(36-CONTACT_OFFSET)*(1-(t-180)/(STRIKE-180));
+    else if(t>=STRIKE)offset=CONTACT_OFFSET*Math.pow(1-clamp(dt/40),2);
+    arrow.position.y=offset;arrow.visible=t>=180;
+    const anchor=PAPER_Y-offset,length=67.4-anchor;
+    const decay=dt>=0&&dt<560?Math.exp(-dt/125):0;
+    const amplitudeX=dt>=0?1.8*decay*Math.sin(TAU*dt/115):0;
+    const amplitudeZ=dt>=0?.68*decay*Math.sin(TAU*dt/129):0;
+    for(const item of flexible){
+      const p=item.part.geometry.attributes.position,n=item.part.geometry.attributes.normal,a=p.array,b=n.array;
+      for(let i=0;i<a.length;i+=3){
+        const x=item.base[i],y=item.base[i+1],z=item.base[i+2],s=clamp((y-anchor)/length);
+        const shape=s*s*(3-s)/2,slope=(3*s-1.5*s*s)/length,dx=amplitudeX*shape,dz=amplitudeZ*shape;
+        const sx=amplitudeX*slope,sz=amplitudeZ*slope,il=1/Math.sqrt(1+sx*sx+sz*sz),qw=Math.sqrt((1+il)/2),qx=sz*il/(2*qw),qz=-sx*il/(2*qw);
+        const ry=2*(qz*x-qx*z);
+        a[i]=x-qz*ry+dx;a[i+1]=y+qw*ry;a[i+2]=z+qx*ry+dz;
+        const nx=item.normals[i],ny=item.normals[i+1],nz=item.normals[i+2],tx=-2*qz*ny,ty=2*(qz*nx-qx*nz),tz=2*qx*ny;
+        b[i]=nx+qw*tx-qz*ty;b[i+1]=ny+qw*ty+qz*tx-qx*tz;b[i+2]=nz+qw*tz+qx*ty;
+      }
+      p.needsUpdate=true;n.needsUpdate=true;
+    }
+    const hit=t>=STRIKE,penetration=clamp(dt/40),pulseProgress=clamp(dt/280);
+    hole.visible=hit;hole.scale.setScalar(.28+.72*penetration);
+    pulse.visible=hit&&dt<280;pulse.scale.setScalar(1+1.5*(1-Math.pow(1-pulseProgress,3)));pulse.material.opacity=.45*(1-pulseProgress);
+    for(const f of fibers){f.mesh.visible=hit;f.mesh.scale.setScalar(.45+.55*penetration);f.mesh.rotation.x=-Math.PI/2+(hit?.1+.18*Math.exp(-Math.max(0,dt)/85)*Math.sin(Math.max(0,dt)/24):0);}
+    root.dataset.time=t.toFixed(2);root.dataset.phase=phase(t);root.dataset.tailFlex=Math.hypot(amplitudeX,amplitudeZ).toFixed(4);root.dataset.entryOffset=offset.toFixed(4);
+  }
+  function draw(){
+    const started=performance.now();
+    const view=views[state.view],w=mainCanvas.clientWidth,h=mainCanvas.clientHeight,pw=phoneCanvas.clientWidth,ph=phoneCanvas.clientHeight;
+    if(!w||!h||!pw||!ph)return;
+    if(w!==lastWidth||h!==lastHeight){mainRenderer.setSize(w,h,false);lastWidth=w;lastHeight=h;}
+    if(pw!==lastPhone){phoneRenderer.setSize(pw,ph,false);lastPhone=pw;}
+    camera.left=-view.span*w/h/2;camera.right=view.span*w/h/2;camera.top=view.span/2;camera.bottom=-view.span/2;camera.up.set(...(view.up||[0,1,0]));camera.position.set(...view.position);camera.lookAt(...view.target);camera.rotateZ(view.roll);camera.updateProjectionMatrix();
+    bendAt(state.time);mainRenderer.render(scene,camera);phoneRenderer.render(scene,phoneCamera);
+    root.querySelector('[data-phone-label]').textContent=`At phone size · ${Math.round(root.querySelector('.as-phone').clientWidth)} px wide`;
+    root.dataset.renderMs=(performance.now()-started).toFixed(2);
+  }
+  function update(){
+    const p=phase(state.time),speed=state.speed===1?'normal speed':state.speed===.5?'half speed':'quarter speed';
+    timeline.value=String(Math.round(state.time));timeline.setAttribute('aria-valuetext',`${(state.time/1000).toFixed(2)} seconds, ${p.toLowerCase()}`);timeOutput.textContent=`${(state.time/1000).toFixed(2)} / 1.60 s`;
+    if(p!==lastPhase){phaseLabel.textContent=p;lastPhase=p;}
+    playButton.textContent=state.time<DURATION&&state.time>0&&!state.playing?'Resume':'Replay impact';pauseButton.disabled=!state.playing;
+    stateLabel.textContent=reduced.matches?'Reduced motion · scrub to inspect':`${state.playing?'Playing':state.time===DURATION?'Complete':'Paused'} · ${speed}`;
+    root.querySelectorAll('[data-seek]').forEach(b=>b.setAttribute('aria-pressed',String(Math.abs(state.time-Number(b.dataset.seek))<1)));
+    draw();
+  }
+  function stop(){state.playing=false;cancelAnimationFrame(frame);frame=0;lastTime=null;}
+  function tick(now){
+    if(!state.playing)return;
+    if(lastTime!==null)state.time=Math.min(DURATION,state.time+(now-lastTime)*state.speed);lastTime=now;
+    if(state.time>=DURATION)stop();update();if(state.playing)frame=requestAnimationFrame(tick);
+  }
+  function play(fromStart=false){
+    stop();if(reduced.matches){state.time=DURATION;update();return;}
+    if(fromStart||state.time>=DURATION)state.time=0;state.playing=true;lastTime=null;update();frame=requestAnimationFrame(tick);
+  }
+  function seek(t){stop();state.time=clamp(t,0,DURATION);update();}
+  function selectView(view){
+    state.view=view;if(location.protocol==='http:'||location.protocol==='https:'){const url=new URL(location.href);url.searchParams.set('variant',view);history.replaceState(null,'',url);}
+    root.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
+    root.querySelector('[data-view-name]').textContent=`${views[view].name} / impact excerpt`;root.querySelector('[data-detail]').textContent=views[view].detail;update();
+  }
+  root.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>selectView(b.dataset.view)));
+  root.querySelectorAll('[data-seek]').forEach(b=>b.addEventListener('click',()=>seek(Number(b.dataset.seek))));
+  playButton.addEventListener('click',()=>play(state.playing||state.time>=DURATION||state.time===0));pauseButton.addEventListener('click',()=>{stop();update();});
+  root.querySelector('[data-speed]').addEventListener('change',e=>{state.speed=Number(e.target.value);lastTime=null;update();});
+  timeline.addEventListener('input',e=>seek(Number(e.target.value)));
+  root.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea,[contenteditable]'))return;if(e.key==='Escape'){stop();update();}else if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();seek(state.time+(e.key==='ArrowRight'?16:-16));}});
+  reduced.addEventListener('change',()=>{if(reduced.matches)seek(DURATION);});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();update();}});
+  const visible=new IntersectionObserver(entries=>{if(!entries[0].isIntersecting&&state.playing){stop();update();}});visible.observe(root);
+  const observer=new ResizeObserver(draw);observer.observe(root.querySelector('.as-main'));observer.observe(root.querySelector('.as-phone'));
+  loading.hidden=true;selectView(state.view);document.fonts.ready.then(draw);
+  // One pass on opening; all subsequent playback is explicitly requested.
+  if(!reduced.matches)play(true);
+} catch(error) {
+  loading.hidden=false;loading.textContent='The 3D view could not start in this browser. Open the standalone preview in Chrome to inspect the arrow.';
+  console.error('Arrow impact prototype:',error);
+}
+</script>

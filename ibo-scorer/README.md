@@ -2,6 +2,16 @@
 
 An offline IBO 3D and Vegas 300 archery scorecard for Android, as an installable web app (PWA) and as an Android app. One phone scores a whole group. All data stays on the phone.
 
+## Vegas round completion
+
+The first successful completion of a Vegas 300 round shows a 3.6-second arrow recap and final-shot celebration. Skip settles directly to results; See scorecard opens the saved round. Edits to finished rounds and IBO rounds retain their direct scorecard flow. Reduced motion and graphics failures use static results. Unplotted shots use labeled illustrative positions that are never stored as measured shots.
+
+The renderer, fonts, and graphics are local assets and work offline. Three.js is pinned to 0.180.0; the web build refreshes its vendored browser modules and license from the installed package. Barlow Condensed ships with its Open Font License.
+
+For local development, run `npm ci` at the repository root, then `npm run dev`. Run `npm test` for scoring/import/statistics checks. Install the test browser once with `npx playwright install chromium`, then run `npm run test:browser` for the complete Finish round workflow, including offline reload and actual 3D startup. `npm run sync` builds and copies assets into the Android project.
+
+Before release, validate on an actual Android phone: complete plotted, unplotted, and mixed rounds; check the final miss and line cutters; try skip, native Back, reduced motion, background/return, and several consecutive rounds. Record the phone, Android/WebView version, build, playback smoothness, Skip responsiveness, and any quality adjustment. Desktop/browser checks do not replace phone profiling.
+
 ## Put it on GitHub Pages (one time, about 5 minutes)
 
 The app lives in the `ibo-scorer` folder of the [Archery_Scores](https://github.com/joshrpr/Archery_Scores) repository, so GitHub Pages serves it from that folder.
