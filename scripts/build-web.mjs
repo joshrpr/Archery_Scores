@@ -2,6 +2,7 @@
 // the Android app. Tests, docs and the service worker stay behind: the app ships
 // its files inside the APK and updates by installing a newer APK instead.
 import { cpSync, rmSync } from 'node:fs';
+import './vendor-three.mjs';
 import { basename } from 'node:path';
 
 const SKIP = new Set(['tests', 'README.md', 'sw.js']);

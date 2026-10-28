@@ -37,8 +37,8 @@ function migrate(d) {
   return changed;
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(db)); }
-  catch (e) { alert('Could not save. Phone storage may be full.'); }
+  try { localStorage.setItem(KEY, JSON.stringify(db)); return true; }
+  catch (e) { alert('Could not save. Phone storage may be full. Free some space and try again.'); return false; }
 }
 if (navigator.storage && navigator.storage.persist) {
   navigator.storage.persist().catch(() => {});
@@ -134,7 +134,12 @@ function modal({ title, html = '', input = null, buttons }) {
       </div></div>`;
     document.body.appendChild(wrap);
     const inp = wrap.querySelector('input');
-    const finish = btn => { wrap.remove(); resolve({ value: btn.value, text: inp ? inp.value : null }); };
+    const cancel = () => finish({ value: false });
+    const finish = btn => {
+      window.removeEventListener('hashchange', cancel);
+      wrap.remove(); resolve({ value: btn.value, text: inp ? inp.value : null });
+    };
+    window.addEventListener('hashchange', cancel, { once: true });
     if (inp) {
       inp.focus(); inp.select();
       inp.addEventListener('keydown', e => {
@@ -166,7 +171,7 @@ function alertBox(title, html) {
 /* ---------- screen wake lock (keeps screen on while scoring) ---------- */
 const setWakeLock = on => Native.keepAwake(on);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') setWakeLock(route().page === 'round');
+  if (document.visibilityState === 'visible') setWakeLock(route().page === 'round' && !Celebration.active);
 });
 
 /* ---------- routing ---------- */
@@ -178,9 +183,16 @@ function go(hash) {
   if (location.hash === hash) render(); else location.hash = hash;
 }
 window.addEventListener('hashchange', () => {
+  const wasCelebrating = Celebration.active;
+  completion.cancel();
+  Celebration.dispose();
   // Phone back button while a dialog is open: close the dialog too.
   document.querySelectorAll('.modal-wrap').forEach(m => m.remove());
   render();
+  if (wasCelebrating) {
+    const heading = app.querySelector('h1');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  }
 });
 
 function header(title, backTo) {
@@ -206,6 +218,7 @@ function render() {
   }
   if (html == null) return;            // view redirected
   app.innerHTML = html;
+  if (page === 'round' && isVegas(roundById(id) || {})) Celebration.preload();
   const path = location.hash;
   if (path !== lastPath) { window.scrollTo(0, 0); lastPath = path; }
   const cur = app.querySelector('.chip.cur');
@@ -940,6 +953,24 @@ async function importBackup(file) {
 /* ---------- actions ---------- */
 const currentRound = () => roundById(route().id);
 
+const completion = RoundCompletion.create({
+  currentRound, routeKey: () => location.hash, gapsOf, isVegas, nameOf, tally, ranking,
+  target: Target, save, go,
+  isPresenting: () => Celebration.active,
+  success: () => Native.haptic.success(),
+  present: data => { setWakeLock(false); Celebration.play(data, { go, impact: () => Native.haptic.place() }); },
+  confirm: async (r, gaps, editing) => {
+    if (gaps.length) {
+      const u = unit(r).toLowerCase();
+      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${u}${g.missing.length > 1 ? 's' : ''} ${g.missing.join(', ')}</li>`).join('');
+      return confirmBox(isVegas(r) ? 'Some arrows are blank' : 'Some targets are blank',
+        `<ul>${list}</ul><p>Blank ${isVegas(r) ? 'arrows' : 'targets'} will be scored as <b>0 (miss)</b>.</p>`,
+        editing ? 'Save as 0' : 'Finish anyway');
+    }
+    return editing || confirmBox('Finish round?', '<p>You can still edit scores afterwards from History.</p>', 'Finish');
+  }
+});
+
 const actions = {
   nav: d => go(d.to),
 
@@ -1067,31 +1098,7 @@ const actions = {
     save(); render();
   },
 
-  finish: async () => {
-    const r = currentRound(); if (!r) return;
-    const editing = r.status === 'finished';
-    const gaps = gapsOf(r);
-    if (gaps.length) {
-      const u = unit(r).toLowerCase();
-      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${u}${g.missing.length > 1 ? 's' : ''} ${g.missing.join(', ')}</li>`).join('');
-      const ok = await confirmBox(isVegas(r) ? 'Some arrows are blank' : 'Some targets are blank',
-        `<ul>${list}</ul><p>Blank ${isVegas(r) ? 'arrows' : 'targets'} will be scored as <b>0 (miss)</b>.</p>`,
-        editing ? 'Save as 0' : 'Finish anyway');
-      if (!ok) return;
-      gaps.forEach(g => g.missing.forEach(n => {
-        if (isVegas(r)) r.scores[g.aid][n - 1] = r.scores[g.aid][n - 1].map(v => (v == null ? 0 : v));
-        else r.scores[g.aid][n - 1] = 0;
-      }));
-    } else if (!editing && !(await confirmBox('Finish round?',
-        '<p>You can still edit scores afterwards from History.</p>', 'Finish'))) {
-      return;
-    }
-    r.status = 'finished';
-    r.finishedAt = r.finishedAt || Date.now();
-    Native.haptic.success();
-    save();
-    go('#/card/' + r.id);
-  },
+  finish: () => completion.finish(),
 
   'edit-round': () => {
     const r = currentRound(); if (!r) return;
@@ -1207,7 +1214,7 @@ if ('serviceWorker' in navigator && !Native.isApp) {
   let pending = false, reloaded = false, touching = false;
   // Reload only when nothing would be lost: no dialog open, no new-round form
   // being filled in, and no finger on the screen (e.g. mid-plot).
-  const safe = () => !document.querySelector('.modal-wrap') && !(draft && route().page === 'new') &&
+  const safe = () => !Celebration.active && !document.querySelector('.modal-wrap') && !(draft && route().page === 'new') &&
     !(pendingImport && route().page === 'import') && !touching;
   const applyUpdate = () => {
     if (!pending || reloaded) return;
@@ -1241,6 +1248,7 @@ if ('serviceWorker' in navigator && !Native.isApp) {
   document.addEventListener('pointerup', lift, true);
   document.addEventListener('pointercancel', lift, true);
   window.addEventListener('hashchange', () => setTimeout(applyUpdate, 0));
+  document.addEventListener('celebrationend', () => setTimeout(applyUpdate, 0));
 }
 
 render();

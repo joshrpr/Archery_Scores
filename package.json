@@ -4,6 +4,8 @@
   "description": "Android app wrapper (Capacitor) around the ibo-scorer web app.",
   "scripts": {
     "test": "node --test ibo-scorer/tests/*.test.js",
+    "test:browser": "playwright test",
+    "dev": "node scripts/serve-app.mjs",
     "web": "node scripts/build-web.mjs",
     "sync": "npm run web && cap sync android",
     "apk": "npm run sync && cd android && ./gradlew assembleRelease"
@@ -15,9 +17,11 @@
     "@capacitor/core": "^8.5.3",
     "@capacitor/filesystem": "^8.1.4",
     "@capacitor/haptics": "^8.0.2",
-    "@capacitor/share": "^8.0.3"
+    "@capacitor/share": "^8.0.3",
+    "three": "0.180.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.3"
+    "@capacitor/cli": "^8.5.3",
+    "@playwright/test": "1.56.1"
   }
 }
