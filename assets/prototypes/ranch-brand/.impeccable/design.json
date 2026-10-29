@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 2,
+  "metadata": {"scope": "Velocity OD ranch aerial proposals", "sources": ["brand.css", "brand.js", "marks/ranch-horizon.svg", "marks/ranch-emblem.svg", "marks/ranch-frame.svg"]},
+  "colors": {"odGreen": "#4b5320", "orange": "#f2621a", "paper": "#f3eedf", "ink": "#26281f"},
+  "preview": {"largePx": 142, "launcherPx": [48,32], "contextPx": 40, "svgViewBox": "0 0 128 128", "pngPx": 512, "roundedSquareRadius": "24%", "circleRadius": "50%"},
+  "breakpoints": {"stackMaximumPx": 820, "intermediateMaximumPx": 1080},
+  "motion": {"maskChangeMs": 220, "reducedMotion": "No mask transition"},
+  "assetProvenance": "Original ranch PNG bytes embedded unchanged in SVG viewports with authored vector framing; matching PNGs directly rasterized in Chromium. Production source remains untouched."
+}

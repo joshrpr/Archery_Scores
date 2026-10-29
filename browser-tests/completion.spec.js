@@ -422,7 +422,7 @@ test("real locally bundled 3D renderer starts and completes without external req
     external = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("request", (request) => {
-    if (!request.url().startsWith("http://127.0.0.1:4173/"))
+    if (!request.url().startsWith(test.info().project.use.baseURL + "/"))
       external.push(request.url());
   });
   await open(page, fixture({ plots: true }), { renderer: "real" });

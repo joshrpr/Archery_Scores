@@ -13,7 +13,7 @@ const label = v => (v === 0 ? 'M' : String(v));
 const points = v => (v === 'X' ? 10 : v);
 // Vegas face colour for a value: gold (X-9), red (8-7), blue (6), miss.
 const ring = v => (v === 'X' || v >= 9 ? 'g' : v >= 7 ? 'r' : v === 6 ? 'b' : 'm');
-const SERIES_COLORS = ['#2f96eb', '#f2621a', '#6faf2f', '#d8bc84', '#ff6b6b', '#c792ff'];
+const SERIES_COLORS = ['#4b5320', '#aa3c0b', '#1767a7', '#765a2a', '#ad2924', '#74508c'];
 
 const app = document.getElementById('app');
 let db = load();
@@ -21,6 +21,66 @@ if (migrate(db)) save();
 let draft = null;        // new-round form state
 let pendingImport = null; // rounds read from another app's export, awaiting confirmation
 let lastPath = null;
+let focusDestination = false;
+let keyboardAction = false;
+const scoreStatus = document.createElement('p');
+scoreStatus.className = 'score-status';
+scoreStatus.setAttribute('role', 'status');
+scoreStatus.setAttribute('aria-live', 'polite');
+document.body.appendChild(scoreStatus);
+const scoreMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let scoreEffects = [];
+function cancelScoreFeedback() {
+  scoreEffects.forEach(effect => effect.cancel());
+  scoreEffects = [];
+  document.querySelectorAll('.score-flight').forEach(node => node.remove());
+}
+scoreMotion.addEventListener('change', cancelScoreFeedback);
+document.addEventListener('visibilitychange', () => { if (document.hidden) cancelScoreFeedback(); });
+function announceScore(message) { scoreStatus.textContent = message; }
+function scoreFeedback(aid, k, from, value) {
+  if (document.hidden) return;
+  const row = [...app.querySelectorAll('.arow')].find(node => node.dataset.archer === aid);
+  const slot = k == null ? row?.querySelector('.s.sel') : row?.querySelector('[data-slot="' + k + '"]');
+  if (!slot) return;
+  const destination = slot.getBoundingClientRect();
+  if (scoreMotion.matches || !from) {
+    scoreEffects.push(slot.animate([{opacity:.55},{opacity:1}], {duration:120}));
+    return;
+  }
+  const ghost = document.createElement('span');
+  ghost.className = 'score-flight'; ghost.setAttribute('aria-hidden', 'true'); ghost.textContent = label(value);
+  ghost.style.left = (from.left + from.width / 2) + 'px';
+  ghost.style.top = (from.top + from.height / 2) + 'px';
+  document.body.appendChild(ghost);
+  const flight = ghost.animate([{transform:'translate(-50%, -50%) scale(.7)',opacity:.8},
+    {transform:'translate(calc(-50% + ' + (destination.left + destination.width / 2 - from.left - from.width / 2) + 'px), calc(-50% + ' + (destination.top + destination.height / 2 - from.top - from.height / 2) + 'px)) scale(1)',opacity:0}],
+    {duration:300,easing:'cubic-bezier(.16,1,.3,1)'});
+  flight.onfinish = () => ghost.remove();
+  scoreEffects.push(flight);
+  scoreEffects.push(slot.animate([{backgroundColor:'#f2621a'},{backgroundColor:getComputedStyle(slot).backgroundColor}],{duration:360,easing:'cubic-bezier(.16,1,.3,1)'}));
+}
+function focusScore(aid) {
+  if (!keyboardAction) return;
+  const rows = [...app.querySelectorAll('.arow')];
+  const row = rows.find(node => node.dataset.archer === aid);
+  const next = row?.querySelector('[data-action="vscore"]:not(:disabled), [data-action="score"]') ||
+    rows.map(node => node.querySelector('[data-action="vscore"]:not(:disabled)')).find(Boolean) ||
+    app.querySelector('.dock button:not(:disabled)[data-d="1"], .dock [data-action="finish"]');
+  next?.focus();
+}
+const scoringDockSize = new ResizeObserver(entries => {
+  for (const entry of entries) app.style.setProperty('--score-dock-height', entry.target.getBoundingClientRect().height + 'px');
+});
+function updateNavigationSize() {
+  const navigation = app.querySelector('.main-nav');
+  if (!navigation) return;
+  const widestLabel = Math.max(...[...navigation.querySelectorAll('button > span')].map(label => label.scrollWidth));
+  const columns = (navigation.clientWidth - 16) / 4 >= widestLabel + 12 ? 4 : 2;
+  navigation.style.setProperty('--main-nav-columns', columns);
+  app.style.setProperty('--main-nav-height', navigation.getBoundingClientRect().height + 'px');
+}
+const navigationSize = new ResizeObserver(updateNavigationSize);
 
 /* ---------- storage ---------- */
 function load() {
@@ -123,29 +183,51 @@ function addArcher(raw) {
 /* ---------- modal dialogs ---------- */
 function modal({ title, html = '', input = null, buttons }) {
   return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const wasInert = app.inert;
+    const previousOverflow = document.body.style.overflow;
     const wrap = document.createElement('div');
+    const titleId = 'dialog-title-' + uid();
     wrap.className = 'modal-wrap';
-    wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true">
-      <h2>${esc(title)}</h2>${html}
-      ${input ? `<input class="modal-input" maxlength="${input.max || 60}"
+    wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="${titleId}">
+      <h2 id="${titleId}">${esc(title)}</h2>${html}
+      ${input ? `<input class="modal-input" aria-label="${esc(title)}" maxlength="${input.max || 60}"
           value="${esc(input.value || '')}" placeholder="${esc(input.placeholder || '')}">` : ''}
       <div class="modal-btns" style="${buttons.length === 1 ? 'grid-template-columns:1fr' : ''}">
         ${buttons.map((b, i) => `<button class="btn ${b.cls || ''}" data-i="${i}">${esc(b.label)}</button>`).join('')}
       </div></div>`;
     document.body.appendChild(wrap);
+    app.inert = true;
+    document.body.style.overflow = 'hidden';
     const inp = wrap.querySelector('input');
+    let finished = false;
     const cancel = () => finish({ value: false });
     const finish = btn => {
+      if (finished) return;
+      finished = true;
       window.removeEventListener('hashchange', cancel);
-      wrap.remove(); resolve({ value: btn.value, text: inp ? inp.value : null });
+      wrap.remove();
+      app.inert = wasInert;
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
+      resolve({ value: btn.value, text: inp ? inp.value : null });
     };
     window.addEventListener('hashchange', cancel, { once: true });
-    if (inp) {
-      inp.focus(); inp.select();
-      inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') finish(buttons.find(b => b.value === true) || buttons[buttons.length - 1]);
-      });
-    }
+    const controls = [...wrap.querySelectorAll('input, button')];
+    (inp || controls[0]).focus();
+    if (inp) inp.select();
+    wrap.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      if (e.key === 'Enter' && e.target === inp) {
+        e.preventDefault();
+        finish(buttons.find(b => b.value === true) || buttons[buttons.length - 1]);
+      }
+      if (e.key === 'Tab') {
+        const first = controls[0], last = controls[controls.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
     wrap.addEventListener('click', e => {
       const b = e.target.closest('[data-i]');
       if (b) finish(buttons[+b.dataset.i]);
@@ -197,12 +279,16 @@ window.addEventListener('hashchange', () => {
 
 function header(title, backTo) {
   return `<header class="top">
-    ${backTo ? `<button class="back" data-action="nav" data-to="${backTo}" aria-label="Back">←</button>` : ''}
+    ${backTo ? `<button class="back" data-action="nav" data-to="${backTo}" aria-label="Back">${uiIcon('arrow')}</button>` : ''}
     <h1>${title}</h1></header>`;
 }
 
 function render() {
+  cancelScoreFeedback();
+  const focused = app.contains(document.activeElement) ? document.activeElement : null;
+  const focusData = focused?.dataset.action ? {...focused.dataset} : null;
   const { page, id } = route();
+  if (page !== 'round') announceScore('');
   let html;
   switch (page) {
     case 'new': html = viewNew(); break;
@@ -217,12 +303,37 @@ function render() {
     default: html = viewHome();
   }
   if (html == null) return;            // view redirected
-  app.innerHTML = html;
+  const showNavigation = !['round', 'new', 'import'].includes(page);
+  app.classList.toggle('has-main-nav', showNavigation);
+  app.classList.toggle('is-scoring', page === 'round');
+  app.classList.toggle('is-scorecard', page === 'card');
+  scoringDockSize.disconnect();
+  app.dataset.page = page || 'home';
+  navigationSize.disconnect();
+  app.innerHTML = html + (showNavigation ? mainNavigation(page === '' ? '' : page) : '');
+  const dock = app.querySelector('.dock');
+  if (dock) scoringDockSize.observe(dock);
+  if (page === 'round' && focusData && keyboardAction) {
+    const replacement = [...app.querySelectorAll('[data-action]')].find(node =>
+      Object.entries(focusData).every(([key,value]) => node.dataset[key] === value));
+    if (replacement && !replacement.disabled) replacement.focus({preventScroll:true});
+    else focusScore(focusData.aid);
+  }
+  const navigation = app.querySelector('.main-nav');
+  if (navigation) { updateNavigationSize(); navigationSize.observe(navigation); }
+  if (focusDestination) {
+    focusDestination = false;
+    const heading = app.querySelector('h1');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  }
   if (page === 'round' && isVegas(roundById(id) || {})) Celebration.preload();
   const path = location.hash;
   if (path !== lastPath) { window.scrollTo(0, 0); lastPath = path; }
   const cur = app.querySelector('.chip.cur');
-  if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+  if (cur) {
+    const strip = cur.parentElement;
+    strip.scrollLeft += cur.getBoundingClientRect().left - strip.getBoundingClientRect().left - (strip.clientWidth - cur.offsetWidth) / 2;
+  }
   setWakeLock(page === 'round');
   Plot.bind(app, placeArrow);
   if (page === 'card') Groups.bind(app);
@@ -230,48 +341,58 @@ function render() {
 }
 
 /* ---------- views ---------- */
+const navPaths = {
+  home: '<path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/>',
+  history: '<path d="M4 5v5h5M4 10a8 8 0 1 1 0 5m8-9v6l4 2"/>',
+  stats: '<path d="M4 4v16h17M8 16v-5m5 5V7m5 9v-7"/>',
+  archers: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2"/>',
+  arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  undo: '<path d="M4 4v6h6M4 10a8 8 0 1 1 0 5"/>',
+  settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>'
+};
+const uiIcon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + navPaths[name] + '</svg>';
+function mainNavigation(page) {
+  const active = page === 'card' ? 'history' : page === 'archer' ? 'archers' : page;
+  return '<nav class="main-nav" aria-label="Main navigation">' +
+    [['','Home','home'],['history','History','history'],['stats','Analytics','stats'],['archers','Archers','archers']]
+      .map(([path,name,icon]) => '<button data-action="nav" data-to="#/' + path + '"' +
+        (active === path ? ' aria-current="page"' : '') + '>' + uiIcon(icon) + '<span>' + name + '</span></button>').join('') + '</nav>';
+}
+function homeRound(r, unfinished) {
+  const format = typeName(r), destination = unfinished ? 'round' : 'card';
+  return '<button class="home-round ' + (unfinished ? 'home-resume' : 'home-recent') + '" data-action="nav" data-to="#/' + destination + '/' + esc(r.id) + '" aria-label="' +
+    (unfinished ? 'Resume ' : 'View ') + format + ', ' + (unfinished ? unit(r) + ' ' + (r.current + 1) + ' of ' + r.targets + ', ' : '') + esc(r.archerIds.map(id => { const t = tally(r,id); return nameOf(id) + ', ' + t.total + ' points, ' + t.bonus + ' ' + bonusLabel(r); }).join('; ')) + ', ' + fmtDate(r.createdAt) + '">' +
+    '<span class="home-round-title">' + (unfinished ? (isVegas(r) ? 'Vegas<span>300</span>' : 'IBO<span>3D</span>') : format) + '</span>' +
+    (unfinished ? '<span class="home-resume-arrow">' + uiIcon('arrow') + '</span>' : '') +
+    '<span class="home-round-meta">' + (unfinished ? unit(r) + ' ' + (r.current + 1) + ' of ' + r.targets + ' · ' : '') + fmtDate(r.createdAt) + '</span>' +
+    (r.note ? '<span class="home-round-note">' + esc(r.note) + '</span>' : '') +
+    '<span class="home-results">' + r.archerIds.map(id => {
+      const t = tally(r,id);
+      return '<span class="home-result"><strong>' + esc(nameOf(id)) + '</strong><span><b>' + t.total + '</b> points <span class="home-bonus">' + t.bonus + ' ' + bonusLabel(r) + '</span></span></span>';
+    }).join('') + '</span></button>';
+}
 function viewHome() {
-  const open = db.rounds.filter(r => r.status !== 'finished').sort((a, b) => b.createdAt - a.createdAt);
-  return `<section class="hero">
-    <img class="hero-logo" src="icons/logo.webp" alt="" width="168" height="168">
-    <h1 class="brand"><span>Ropers</span>Archery Scorecard</h1>
-    <svg class="ridge" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" fill="#1e4175"/>
-      <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" fill="#0e2240"/>
-    </svg>
-  </section>
-  <main>
-    ${Native.isApp && !db.rounds.length && !db.archers.length ? `
-      <button class="card-row resume" data-action="nav" data-to="#/backup">
-        <div class="title">Moving from the web app?</div>
-        <div class="muted small">Save a backup in the web app, then tap here and choose Restore from backup file to bring your archers and scores across.</div>
-      </button>` : ''}
-    <button class="big primary" data-action="new-round">Start new round</button>
-    ${open.length ? `<h2>Pick up where you left off</h2>` + open.map(r => `
-      <button class="card-row resume" data-action="nav" data-to="#/round/${r.id}">
-        <div class="title">${unit(r)} ${r.current + 1} of ${r.targets}<span class="badge type">${typeName(r)}</span></div>
-        <div>${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
-        <div class="muted small">${fmtDate(r.createdAt)}${r.note ? `, ${esc(r.note)}` : ''}</div>
-      </button>`).join('') : ''}
-    <button class="big an-home" data-action="nav" data-to="#/stats">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16V11M11 16V6M16 16v-7M21 16V9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-      Analytics</button>
-    <div class="grid2">
-      <button class="big" data-action="nav" data-to="#/history">History</button>
-      <button class="big" data-action="nav" data-to="#/archers">Archers</button>
-    </div>
-    <button class="btn" data-action="nav" data-to="#/backup">Backup and export</button>
-  </main>`;
+  const open = db.rounds.filter(r => r.status !== 'finished').sort((a,b) => b.createdAt-a.createdAt);
+  const recent = db.rounds.filter(r => r.status === 'finished').sort((a,b) => (b.finishedAt || b.createdAt)-(a.finishedAt || a.createdAt)).slice(0,3);
+  return '<header class="home-brandbar"><img src="icons/ranch-horizon.svg" alt="Ranch Horizon" width="54" height="54"><div class="home-wordmark">Ropers<span>Archery Scorecard</span></div><button class="home-settings" data-action="nav" data-to="#/backup" aria-label="Backup and export">' + uiIcon('settings') + '</button></header>' +
+    '<main class="home-main"><h1 class="home-heading">' + (open.length ? 'Pick up where you left off.' : 'Make your next round count.') + '</h1>' +
+    (Native.isApp && !db.rounds.length && !db.archers.length ? '<button class="card-row" data-action="nav" data-to="#/backup"><strong>Moving from the web app?</strong><span class="muted small">Restore a backup to bring your archers and scores across.</span></button>' : '') +
+    (open.length ? '<section class="home-open" aria-label="Unfinished rounds">' + open.map(r => homeRound(r,true)).join('') + '</section>' : '<p class="home-welcome">' + (db.rounds.length ? 'No unfinished rounds. Start fresh when you’re ready.' : 'Your scores, your archers, your progress. Start a round to begin your scorebook.') + '</p>') +
+    '<button class="home-new" data-action="new-round"><span>Start new round</span>' + uiIcon('plus') + '</button>' +
+    '<section class="home-history" aria-label="Recent rounds"><div class="home-section-heading"><h2>Recent rounds</h2><button class="link" data-action="nav" data-to="#/history">View all</button></div>' +
+    (recent.length ? recent.map(r => homeRound(r,false)).join('') : '<p class="home-empty">Finished rounds will appear here. Your scorecard is saved on this device.</p>') +
+    '</section><button class="home-backup" data-action="nav" data-to="#/backup">Backup and export</button></main>';
 }
 
 function viewNew() {
+  const list = activeArchers();
   if (!draft) {
     const last = [...db.rounds].sort((a, b) => b.createdAt - a.createdAt)[0];
-    draft = { selected: [], targets: 20, note: '', type: last && isVegas(last) ? 'vegas' : 'ibo' };
+    draft = { selected: list.length ? [list[0].id] : [], targets: 20, note: '', type: last && isVegas(last) ? 'vegas' : 'ibo' };
   }
   const vegas = draft.type === 'vegas';
   draft.selected = draft.selected.filter(id => { const a = archerById(id); return a && !a.deleted; });
-  const list = activeArchers();
   return `${header('New round', '#/')}
   <main>
     <h2>Round</h2>
@@ -287,12 +408,12 @@ function viewNew() {
     <div class="pick">
       ${list.length ? list.map(a => {
         const i = draft.selected.indexOf(a.id);
-        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" data-action="toggle-pick" data-id="${a.id}">
+        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" aria-pressed="${i >= 0}" data-action="toggle-pick" data-id="${a.id}">
           ${i >= 0 ? `<span class="order">${i + 1}</span>` : ''}${esc(a.name)}</button>`;
       }).join('') : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" aria-label="New archer name" placeholder="New archer name" autocomplete="off" maxlength="40" required>
       <button class="btn">Add</button>
     </form>
 
@@ -307,7 +428,7 @@ function viewNew() {
     <p class="muted small">You can also add or remove targets during the round.</p>`}
 
     <h2>Note (optional)</h2>
-    <input data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
+    <input aria-label="Round note (optional)" data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
 
     <button class="big primary" data-action="start-round" ${draft.selected.length ? '' : 'disabled'}>
       Start round${draft.selected.length ? ` with ${draft.selected.length} archer${draft.selected.length > 1 ? 's' : ''}` : ''}
@@ -332,28 +453,28 @@ function viewRound(id) {
 
   const rows = r.archerIds.map(aid => vegas ? vegasRow(r, aid, t) : iboRow(r, aid, t)).join('');
 
-  return `${header(`${unit(r)} ${t + 1} <small>of ${r.targets}${editing ? ', editing' : ''}</small>`,
-                   editing ? `#/card/${r.id}` : '#/')}
-  <nav class="strip">${chips}</nav>
-  <main class="with-dock">
+  const solo = r.archerIds.length === 1 ? tally(r, r.archerIds[0]) : null;
+  return `<header class="round-top">
+    <div class="round-toolbar"><button class="back" data-action="nav" data-to="${editing ? '#/card/' + r.id : '#/'}" aria-label="Back">${uiIcon('arrow')}</button><span>${typeName(r)}${editing ? ' · Editing scores' : ''}</span></div>
+    <div class="score-head"><h1>${unit(r)} ${t + 1}<small>of ${r.targets}</small></h1>
+      <div class="running-total">${solo ? '<b>' + solo.total + '</b><span>' + solo.bonus + ' ' + bonusLabel(r) + ' · running total</span>' : '<b>' + r.archerIds.length + '</b><span>archers · group round</span>'}</div></div>
+  </header>
+  <nav class="strip" aria-label="${vegas ? 'Ends' : 'Targets'}">${chips}</nav>
+  <main class="with-dock scoring-main">
     ${vegas ? plotPanel(r, t) : ''}
     ${rows}
     ${vegas && blocked ? `<p class="muted small">Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.</p>` : ''}
     ${vegas
       ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
-      : `<div class="grid3">
-      <button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>
-      <button class="btn" data-action="add-target">+ Target</button>
-      <button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
-    </div>`}
-    <button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
+      : `<div class="round-tools"><button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button><button class="btn" data-action="add-target">+ Target</button><button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button></div>`}
+    <button class="big" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
   </main>
   <div class="dock">
-    <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
+    <button class="big" data-action="move" data-d="-1" aria-label="Previous ${unit(r).toLowerCase()}" ${t === 0 ? 'disabled' : ''}>${uiIcon('arrow')}<span>Previous</span></button>
     ${!isLast
-      ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ▶</button>`
+      ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ${unit(r).toLowerCase()} ${uiIcon('arrow')}</button>`
       : vegas
-        ? `<button class="big go" data-action="finish">${editing ? 'Done editing' : 'Finish'}</button>`
+        ? `<button class="big primary" data-action="finish">${editing ? 'Done editing' : 'Finish'}</button>`
         : `<button class="big primary" data-action="add-target">+ Add target</button>`}
   </div>`;
 }
@@ -361,38 +482,34 @@ function viewRound(id) {
 function iboRow(r, aid, t) {
   const { total, elevens } = tally(r, aid);
   const v = r.scores[aid][t];
-  return `<div class="arow" data-v="${v == null ? '' : v}">
-    <div class="ahead">
-      <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="11s">${elevens}× 11</span><b>${total}</b></span>
-    </div>
-    <div class="sbtns">
+  return `<section class="arow" data-archer="${aid}" aria-label="${esc(nameOf(aid))}" data-v="${v == null ? '' : v}">
+    <div class="ahead"><h2 class="aname">${esc(nameOf(aid))}</h2>
+      <span class="atot"><b>${total}</b><span>points · ${elevens} 11s</span></span></div>
+    <div class="sbtns" role="group" aria-label="Target score">
       ${VALUES.map(x => `<button class="s s${x} ${v === x ? 'sel' : ''}" data-action="score"
-          data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}">${label(x)}</button>`).join('')}
-    </div></div>`;
+          data-aid="${aid}" data-v="${x}" aria-label="${x === 0 ? 'Miss' : x}" aria-pressed="${v === x}">${x === 0 ? 'Miss' : label(x)}</button>`).join('')}
+    </div><p class="entry-caption">Tap the selected score to clear it.</p></section>`;
 }
 
-// Vegas: three arrow slots per end. Score buttons fill the next empty slot;
-// tapping a filled slot clears it so it can be re-entered.
+// Score buttons fill the first empty slot; clearing a slot keeps all other arrows.
 function vegasRow(r, aid, t) {
   const { total, xs } = tally(r, aid);
   const end = r.scores[aid][t];
   const next = end.indexOf(null);
   const full = next < 0;
-  const slots = end.map((v, k) => v == null
-    ? `<span class="slot empty ${k === next ? 'next' : ''}" aria-label="Arrow ${k + 1} not scored"></span>`
-    : `<button class="slot r${ring(v)}" data-action="vclear" data-aid="${aid}" data-k="${k}"
-        aria-label="Arrow ${k + 1}: ${label(v)}. Tap to clear">${label(v)}</button>`).join('');
-  return `<div class="arow vrow ${full ? 'full' : ''}">
-    <div class="ahead">
-      <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="Xs">${xs}× X</span><b>${total}</b></span>
-    </div>
-    <div class="slots">${slots}<span class="endtot"><small>End</small>${endTotal(end)}</span></div>
-    <div class="sbtns vbtns">
+  const slots = end.map((v, k) => `<div class="arrow-label"><span>Arrow ${k + 1}</span>${v == null
+    ? `<span class="slot empty ${k === next ? 'next' : ''}" data-slot="${k}" aria-label="Arrow ${k + 1} not scored">—</span>`
+    : `<button class="slot r${ring(v)}" data-slot="${k}" data-action="vclear" data-aid="${aid}" data-k="${k}"
+        aria-label="Arrow ${k + 1}: ${label(v)}. Tap to clear">${label(v)}</button>`}</div>`).join('');
+  return `<section class="arow vrow ${full ? 'full' : ''}" data-archer="${aid}" aria-label="${esc(nameOf(aid))}">
+    <div class="ahead"><h2 class="aname">${esc(nameOf(aid))}</h2>
+      <span class="atot"><b>${total}</b><span>points · ${xs} Xs</span></span></div>
+    <div class="slots">${slots}</div>
+    <div class="entry-caption"><span>${full ? 'End complete' : 'Three arrows per end'}</span><b>End total · ${endTotal(end)}</b></div>
+    <div class="sbtns vbtns" role="group" aria-label="Arrow score">
       ${VEGAS_VALUES.map(x => `<button class="s r${ring(x)}" data-action="vscore"
-          data-aid="${aid}" data-v="${x}" ${full ? 'disabled' : ''}>${label(x)}</button>`).join('')}
-    </div></div>`;
+          data-aid="${aid}" data-v="${x}" aria-label="${x === 0 ? 'Miss' : x}" ${full ? 'disabled' : ''}>${x === 0 ? 'Miss' : label(x)}</button>`).join('')}
+    </div><p class="entry-caption">Tap a filled arrow to change its score.</p></section>`;
 }
 
 function viewCard(id) {
@@ -408,19 +525,19 @@ function viewCard(id) {
 
   return `${header(finished ? 'Scorecard' : 'Scorecard <small>in progress</small>',
                    finished ? '#/history' : `#/round/${r.id}`)}
-  <main>
+  <main class="scorecard-main">
     <div class="meta"><strong>${fmtDate(r.createdAt)}</strong>${r.note ? `<span>${esc(r.note)}</span>` : ''}
       <span class="badge type">${typeName(r)}</span><span class="muted">${unitsLabel(r)}</span></div>
 
     <h2>Standings</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
+    <div class="tablewrap" role="region" aria-label="Standings table" tabindex="0"><table aria-label="Standings">
+      <thead><tr><th scope="col">#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
       <tbody>${rank.map(x => `<tr class="${x.rank === 1 && finished ? 'first' : ''}">
         <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
       </tbody></table></div>
 
     <h2>Card</h2>
-    <div class="tablewrap"><table>
+    <div class="tablewrap" role="region" aria-label="Complete scorecard, scroll for all archers" tabindex="0"><table aria-label="Complete scorecard">
       <thead><tr><th>${vegas ? 'End' : 'Tgt'}</th>${r.archerIds.map(aid => `<th>${esc(nameOf(aid))}</th>`).join('')}</tr></thead>
       <tbody>${Array.from({ length: r.targets }, (_, i) =>
         `<tr><td class="muted" style="font-size:1rem">${i + 1}</td>${r.archerIds.map(aid => (vegas ? endCell : cell)(r.scores[aid][i])).join('')}</tr>`).join('')}
@@ -485,7 +602,7 @@ function viewArchers() {
   return `${header('Archers', '#/')}
   <main>
     <form class="inline" data-form="add-archer">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" aria-label="New archer name" placeholder="New archer name" autocomplete="off" maxlength="40" required>
       <button class="btn">Add</button>
     </form>
     ${list.length ? list.map(a => {
@@ -563,19 +680,19 @@ function trendChart(rows) {
   const what = n => rows.find(r => r.key === n).what;
 
   const ticks = [lo, Math.round((lo + hi) / 2), hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${v}</text>`).join('');
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#d2ccb9"/>
+    <text x="${L - 6}" y="${y(v) + 5}" fill="#65614e" font-size="15" text-anchor="end">${v}</text>`).join('');
 
   const series = counts.map(n => {
     const pts = rows.map((r, i) => ({ r, i })).filter(p => p.r.key === n);
     const path = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.r.total).toFixed(1)}`).join(' ');
     return `<path d="${path}" fill="none" stroke="${color(n)}" stroke-width="3" stroke-linejoin="round"/>` +
-      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#16325c" stroke-width="2">
+      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#fcf8ee" stroke-width="2">
         <title>${p.r.total}, ${fmtShort(p.r.r.createdAt)}</title></circle>`).join('');
   }).join('');
 
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
+  const xl = `<text x="${L}" y="${H - 10}" fill="#65614e" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" fill="#65614e" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
 
   return `<div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Round totals over time">${grid}${series}${xl}</svg>
@@ -618,7 +735,7 @@ function plotPanel(r, t) {
     .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
   const tabs = r.archerIds.length > 1 ? `<div class="ptabs">${r.archerIds.map(id => {
     const done = !r.scores[id][t].includes(null);
-    return `<button class="${id === aid ? 'on' : ''} ${done ? 'done' : ''}" data-action="plot-archer" data-aid="${id}">${esc(nameOf(id))}</button>`;
+    return `<button class="${id === aid ? 'on' : ''} ${done ? 'done' : ''}" data-action="plot-archer" data-aid="${id}" aria-pressed="${id === aid}">${esc(nameOf(id))}</button>`;
   }).join('')}</div>` : '';
   return `<section class="plot">
     <div class="plot-head">${endStrip(r, aid, t)}${undoButton(r, t)}</div>
@@ -662,11 +779,11 @@ function undoTarget(r, t) {
 }
 function undoButton(r, t) {
   const u = undoTarget(r, t);
-  if (!u) return '<button class="undo" disabled aria-label="Nothing to undo"><span aria-hidden="true">↶</span> Undo</button>';
+  if (!u) return '<button class="undo" disabled aria-label="Nothing to undo">' + uiIcon('undo') + ' Undo</button>';
   const v = r.scores[u.aid][t][u.k];
   const who = r.archerIds.length > 1 ? esc(nameOf(u.aid)) + '’s ' : '';
   return `<button class="undo" data-action="plot-undo" aria-label="Undo ${who}arrow ${u.k + 1}, ${label(v)}">
-    <span aria-hidden="true">↶</span> Undo <i class="r${ring(v)}">${label(v)}</i></button>`;
+    ${uiIcon('undo')} Undo <i class="r${ring(v)}">${label(v)}</i></button>`;
 }
 
 // Called by Plot when a finger lifts off the face.
@@ -735,14 +852,14 @@ function groupTrend(rows, aid) {
     if (!p.length) return '';
     return `<path d="${p.map((q, k) => `${k ? 'L' : 'M'}${x(q.i).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ')}"
       fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>` +
-      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" stroke="#16325c" stroke-width="2">
+      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" stroke="#fcf8ee" stroke-width="2">
         <title>${label} ${q.v.toFixed(1)} cm, ${fmtShort(q.q.x.r.createdAt)}</title></circle>`).join('');
   };
   const ticks = [0, hi / 2, hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#d2ccb9"/>
+    <text x="${L - 6}" y="${y(v) + 5}" fill="#65614e" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
+  const xl = `<text x="${L}" y="${H - 10}" fill="#65614e" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" fill="#65614e" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
   return `<h2>Arrow groups <small class="muted">cm, lower is better</small></h2>${tiles}
   <div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Group size and centre offset over time">${grid}
@@ -766,7 +883,7 @@ function viewBackup() {
     <h2>Restore</h2>
     <p class="muted small">Replaces everything on this phone with the contents of a backup file. You will be asked to confirm first.</p>
     <label class="btn file-btn">Restore from backup file
-      <input type="file" accept=".json,application/json" data-input="import-json">
+      <input type="file" aria-label="Restore from backup file" accept=".json,application/json" data-input="import-json">
     </label>
 
     <h2>Spreadsheet</h2>
@@ -776,7 +893,7 @@ function viewBackup() {
     <h2>Import from another app</h2>
     <p class="muted small">Adds the Vegas 300 rounds from your old scoring app's export (.xlsx or .csv) to this phone. You pick the archer and see every round before anything is saved. Nothing already here is changed, and rounds you imported before are skipped.</p>
     <label class="btn file-btn">Import scores from a file
-      <input type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" data-input="import-old">
+      <input type="file" aria-label="Import scores from a file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" data-input="import-old">
     </label>
   </main>`;
 }
@@ -832,11 +949,11 @@ function viewImport() {
 
     <h2>Whose scores are these?</h2>
     <div class="pick">
-      ${list.length ? list.map(a => `<button class="pick-btn ${a.id === p.archerId ? 'on' : ''}" data-action="import-archer" data-id="${a.id}">${esc(a.name)}</button>`).join('')
+      ${list.length ? list.map(a => `<button class="pick-btn ${a.id === p.archerId ? 'on' : ''}" aria-pressed="${a.id === p.archerId}" data-action="import-archer" data-id="${a.id}">${esc(a.name)}</button>`).join('')
         : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick-import">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" aria-label="New archer name" placeholder="New archer name" autocomplete="off" maxlength="40" required>
       <button class="btn">Add</button>
     </form>
 
@@ -1014,29 +1131,38 @@ const actions = {
     go('#/round/' + r.id);
   },
 
-  score: d => {
+  score: (d, source) => {
     const r = currentRound(); if (!r) return;
     const v = Number(d.v);
     const arr = r.scores[d.aid];
     arr[r.current] = arr[r.current] === v ? null : v;   // tap again to clear
     if (arr[r.current] != null) Native.haptic.tap();
-    save(); render();
+    const entered = arr[r.current];
+    const from = source?.getBoundingClientRect();
+    const stored = save(); render();
+    announceScore(nameOf(d.aid) + ': target ' + (r.current + 1) + (entered == null ? ' cleared.' : ': ' + label(entered) + (stored ? ', saved.' : ', could not save.')));
+    if (stored && entered != null) scoreFeedback(d.aid, null, from, entered);
   },
 
-  vscore: d => {
+  vscore: (d, source) => {
     const r = currentRound(); if (!r || !isVegas(r)) return;
     const end = r.scores[d.aid][r.current];
     const k = end.indexOf(null); if (k < 0) return;
     end[k] = d.v === 'X' ? 'X' : Number(d.v);
     Native.haptic.tap();
-    save(); render();
+    const from = source?.getBoundingClientRect();
+    const stored = save(); render();
+    announceScore(nameOf(d.aid) + ', end ' + (r.current + 1) + ', Arrow ' + (k + 1) + ': ' + label(end[k]) + (stored ? ', saved.' : ', could not save.'));
+    if (stored) scoreFeedback(d.aid, k, from, end[k]);
   },
 
   vclear: d => {
     const r = currentRound(); if (!r || !isVegas(r)) return;
     r.scores[d.aid][r.current][Number(d.k)] = null;
     const pe = plotsOf(r, d.aid)[r.current]; pe[Number(d.k)] = null;
-    save(); render();
+    const stored = save(); render();
+    announceScore(nameOf(d.aid) + ', Arrow ' + (Number(d.k) + 1) + ' cleared. Enter a replacement score.' + (stored ? '' : ' Could not save.'));
+    focusScore(d.aid);
   },
 
   'plot-toggle': () => {
@@ -1068,6 +1194,9 @@ const actions = {
     if (to > r.current && to > lastOpen(r)) return;
     r.current = to;
     save(); render();
+    window.scrollTo(0, 0);
+    announceScore(unit(r) + ' ' + (to + 1) + ' of ' + r.targets);
+    focusScore(r.archerIds[0]);
   },
 
   jump: d => {
@@ -1076,6 +1205,9 @@ const actions = {
     if (to > r.current && to > lastOpen(r)) return;
     r.current = to;
     save(); render();
+    window.scrollTo(0, 0);
+    announceScore(unit(r) + ' ' + (to + 1) + ' of ' + r.targets);
+    focusScore(r.archerIds[0]);
   },
 
   'add-target': () => {
@@ -1098,7 +1230,7 @@ const actions = {
     save(); render();
   },
 
-  finish: () => completion.finish(),
+  finish: () => { cancelScoreFeedback(); return completion.finish(); },
 
   'edit-round': () => {
     const r = currentRound(); if (!r) return;
@@ -1184,9 +1316,12 @@ const forms = {
   }
 };
 
+app.addEventListener('pointerdown', () => { keyboardAction = false; });
 app.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled) return;
+  if (e.detail === 0 && (el.dataset.action === 'nav' || el.dataset.action === 'new-round')) focusDestination = true;
+  keyboardAction = e.detail === 0;
   const fn = actions[el.dataset.action];
   if (fn) fn(el.dataset, el);
 });

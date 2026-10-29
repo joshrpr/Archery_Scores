@@ -1,0 +1,60 @@
+/* Supporting workflows inherit the Velocity OD field-scorebook foundation.
+   These rules deliberately stop at setup, records and data tools. */
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import], [data-page=stats]) > main {
+  padding: 22px 24px calc(var(--main-nav-height, 80px) + 48px + env(safe-area-inset-bottom));
+}
+#app:is([data-page=new], [data-page=import]) > main { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import], [data-page=stats]) .top { padding-left: max(12px, calc((100vw - 640px) / 2 + 12px)); padding-right: max(24px, calc((100vw - 640px) / 2 + 24px)); }
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import], [data-page=stats]) .top h1 { overflow: visible; overflow-wrap: anywhere; font-weight: 500; font-size: 1.65rem; }
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import]) main h2 { margin-top: 30px; font-size: 1.4rem; font-weight: 500; letter-spacing: -.02em; }
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import]) main > :first-child { margin-top: 0; }
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import]) .big { min-height: 58px; border-radius: 12px; font: 650 1rem/1.4 var(--body); }
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import]) .btn { font-size: 1rem; border-radius: 12px; }
+#app:is([data-page=history], [data-page=archers], [data-page=archer]) .card-row { background: transparent; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 18px 0; margin: 0; }
+#app:is([data-page=history], [data-page=archers], [data-page=archer]) .card-row:hover { background: var(--tint); }
+#app:is([data-page=history], [data-page=archers], [data-page=archer]) .title { font-size: 1.05rem; font-weight: 650; overflow-wrap: anywhere; }
+#app:is([data-page=history], [data-page=archers], [data-page=archer]) .scores-line > span { overflow-wrap: anywhere; min-width: 0; }
+#app:is([data-page=history], [data-page=import]) .badge { background: var(--tint); color: var(--od); border-radius: 6px; margin: 4px 0 0 8px; white-space: normal; font-weight: 650; }
+#app:is([data-page=new], [data-page=archers], [data-page=import]) .inline { flex-wrap: wrap; }
+#app:is([data-page=new], [data-page=archers], [data-page=import]) .inline input { flex: 1 1 10rem; }
+#app:is([data-page=new], [data-page=archers], [data-page=import]) .inline .btn { flex: 1 0 5rem; }
+#app:is([data-page=new], [data-page=import]) .pick { gap: 8px; }
+#app:is([data-page=new], [data-page=import]) .pick-btn { min-height: 48px; padding: 10px 14px; font-size: 1rem; overflow-wrap: anywhere; max-width: 100%; }
+#app[data-page=new] .seg { gap: 10px; }
+#app[data-page=new] .seg button { min-width: 0; padding: 14px 10px; font-family: var(--body); border-radius: 12px; }
+#app[data-page=new] .seg button b { font-family: var(--body); font-size: 1.05rem; font-weight: 650; }
+#app[data-page=new] .seg button span { font-size: .8rem; }
+#app[data-page=new] .stepper { background: var(--tint); border: 0; border-radius: 12px; }
+#app[data-page=new] .stepper button { width: 52px; min-height: 52px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; }
+#app[data-page=new] .stepper span { font: 500 1.65rem/1 var(--display); }
+#app[data-page=archer] .tiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 0 18px; }
+#app[data-page=archer] .tile { padding: 16px 0; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: transparent; min-width: 0; }
+#app[data-page=archer] .tile .v { font-weight: 500; font-size: 2.2rem; }
+#app[data-page=archer] .tile .k { font-size: .85rem; font-weight: 600; }
+#app[data-page=archer] .chart { border: 0; border-radius: 0; background: transparent; padding: 8px 0; }
+#app[data-page=archer] .grid2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); }
+#app[data-page=backup] main > p { max-width: 60ch; }
+#app[data-page=backup] .file-btn { line-height: 1.4; }
+#app[data-page=import] .imp-row { border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; background: transparent; padding: 18px 0; margin: 0; }
+#app[data-page=import] .imp-row .title { flex-wrap: wrap; overflow-wrap: anywhere; font-size: 1rem; }
+#app[data-page=import] .imp-score { font-weight: 500; }
+#app[data-page=import] .imp-row.dup { opacity: 1; color: var(--muted); }
+#app[data-page=import] .imp-ends { grid-template-columns: repeat(5, minmax(0,1fr)); }
+#app[data-page=import] .imp-ends span { color: var(--ink); padding: 6px 0; }
+#app[data-page=import] .imp-warn { color: var(--arrow-hi); }
+#app[data-page=import] main > p { overflow-wrap: anywhere; }
+#app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import]) .empty { padding: 30px 0; text-align: left; max-width: 55ch; line-height: 1.6; }
+/* Dialogs own focus and scroll independently of the current page. */
+.modal-wrap { padding: 16px; overflow-y: auto; align-items: end; }
+.modal { background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 16px; padding: 22px; max-height: calc(100dvh - 32px - env(safe-area-inset-bottom)); overflow-y: auto; box-shadow: none; animation: none; overflow-wrap: anywhere; }
+.modal h2 { font-weight: 500; font-size: 1.65rem; line-height: 1.15; }
+.modal p { line-height: 1.5; }
+.modal .btn { border-width: 1px; border-radius: 12px; font: 650 1rem/1.4 var(--body); }
+.modal .danger, #app:is([data-page=archer], [data-page=backup]) .danger { color: var(--danger); border-color: var(--danger); }
+.modal .danger:hover { background: #f5ddd5; }
+.modal-btns { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); }
+@media (max-width:350px) {
+  #app:is([data-page=new], [data-page=history], [data-page=archers], [data-page=archer], [data-page=backup], [data-page=import], [data-page=stats]) > main { padding-left: 18px; padding-right: 18px; }
+  #app[data-page=new] .seg { grid-template-columns: 1fr; }
+  .modal { padding: 18px; }
+}

@@ -105,7 +105,7 @@ const Celebration = (() => {
           arrows: data.arrows.map((p) => ({
             x: p.x,
             y: p.y,
-            color: "#d96b27",
+            color: "#f2621a",
           })),
         });
       still.hidden = false;

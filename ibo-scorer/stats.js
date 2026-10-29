@@ -189,12 +189,11 @@ const Stats = (() => {
   if (typeof document === 'undefined') return null;
   const A = Analytics;
   const PREF = 'ibo-scorer-stats-view';
-  const BLUE = '#2f96eb', ORANGE = '#f2621a', INK = '#f6f3ea', MUTED = '#a9bcd6', GRID = '#2b5590';
+  const OD = '#4b5320', ORANGE = '#aa3c0b';
   const RANGES = [{ id: '10', label: 'Last 10' }, { id: '25', label: 'Last 25' }, { id: 'all', label: 'All time' }];
   // Score colours: the Vegas face (gold, red, blue) and the IBO score buttons.
   const VCOL = { X: '#f5c84c', 10: '#f5c84c', 9: '#e0b23a', 8: '#ef5350', 7: '#d84340', 6: '#42a5f5', 0: '#8fa3bf' };
-  const ICOL = { 11: '#f2621a', 10: '#2f96eb', 8: '#6faf2f', 5: '#d8bc84', 0: '#8fa3bf' };
-  const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ICOL = { 11: '#a53b0b', 10: '#1767a7', 8: '#466d20', 5: '#765a2a', 0: '#65614e' };
 
   let pref = {};
   try { pref = JSON.parse(localStorage.getItem(PREF)) || {}; } catch (e) { pref = {}; }
@@ -241,9 +240,6 @@ const Stats = (() => {
     const head = header('Analytics', '#/');
     if (!st.aid) {
       return `${head}<main><div class="an-empty">
-        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" fill="#1e4175"/>
-          <circle cx="60" cy="60" r="38" fill="#16325c"/><circle cx="60" cy="60" r="22" fill="#1e4175"/>
-          <circle cx="60" cy="60" r="8" fill="#f2621a"/></svg>
         <h2>Nothing to chart yet</h2>
         <p class="muted">Finish a round and your trends, score mix and arrow groups show up here.</p>
         <button class="big primary" data-action="new-round">Start a round</button></div></main>`;
@@ -274,7 +270,6 @@ const Stats = (() => {
               <span class="an-num countup" data-to="${k.avg}" data-dec="${vegas ? 1 : 2}">${vegas ? f1(k.avg) : k.avg.toFixed(2)}</span></div>
             ${deltaChip(k.delta, vegas)}
           </div>
-          ${spark(rows.map(x => x.value))}
         </div>
       </section>
       <main class="an-main">
@@ -301,23 +296,6 @@ const Stats = (() => {
     const up = d >= 0;
     return `<div class="an-delta ${up ? 'up' : 'down'}"><b>${up ? '▲' : '▼'} ${vegas ? f1(Math.abs(d)) : Math.abs(d).toFixed(2)}</b>
       <span>last 5 vs the 5 before</span></div>`;
-  }
-
-  // Small decorative trend line for the hero; the full chart below carries the values.
-  function spark(vals) {
-    if (vals.length < 2) return '';
-    const W = 320, H = 56;
-    const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
-    const x = i => 4 + i * (W - 8) / (vals.length - 1);
-    const y = v => 6 + (hi - v) * (H - 12) / span;
-    const d = vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
-    return `<svg class="an-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-      <defs><linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
-      <path d="${d}L${x(vals.length - 1)},${H}L${x(0)},${H}Z" fill="url(#sparkfill)" class="an-fade"/>
-      <path d="${d}" fill="none" stroke="#fff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
-        vector-effect="non-scaling-stroke" pathLength="1" class="an-draw"/>
-      <circle cx="${x(vals.length - 1)}" cy="${y(vals[vals.length - 1])}" r="4" fill="#fff" class="an-fade"/></svg>`;
   }
 
   function kpiTiles(k, kind) {
@@ -376,7 +354,7 @@ const Stats = (() => {
     const bi = rows.indexOf(best);
     const showDots = rows.length <= 30;
     const dots = showDots ? line.map(([px, py], i) => i === bi ? '' :
-      `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${BLUE}" class="an-dot an-fade" style="--d:${(i / rows.length * 0.6).toFixed(2)}s"/>`).join('') : '';
+      `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="4" fill="${OD}" class="an-dot an-fade" style="--d:${(i / rows.length * 0.6).toFixed(2)}s"/>`).join('') : '';
     const [bx, by] = line[bi];
     const pbLabelUp = by - 16 > fr.T;
     const pb = `<g class="an-fade" style="--d:.7s"><circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="7.5" fill="${ORANGE}" class="an-dot"/>
@@ -385,20 +363,20 @@ const Stats = (() => {
     const xl = `<text x="${fr.L}" y="${fr.H - 8}" class="an-tick">${day(rows[0].r.createdAt)}</text>
       <text x="${fr.W - fr.R}" y="${fr.H - 8}" class="an-tick" text-anchor="end">${day(rows[rows.length - 1].r.createdAt)}</text>`;
     const body = `<defs><linearGradient id="trendfill" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="${BLUE}" stop-opacity=".38"/><stop offset="1" stop-color="${BLUE}" stop-opacity="0"/></linearGradient></defs>
+        <stop offset="0" stop-color="${OD}" stop-opacity=".38"/><stop offset="1" stop-color="${OD}" stop-opacity="0"/></linearGradient></defs>
       ${fr.grid}<path d="${area}" fill="url(#trendfill)" class="an-fade"/>
-      <path d="${pathOf(line)}" fill="none" stroke="${BLUE}" stroke-width="2.5" stroke-linejoin="round" pathLength="1" class="an-draw"/>
+      <path d="${pathOf(line)}" fill="none" stroke="${OD}" stroke-width="2.5" stroke-linejoin="round" pathLength="1" class="an-draw"/>
       <path d="${pathOf(avg.map((v, i) => [fr.x(i), fr.y(v)]))}" fill="none" stroke="${ORANGE}" stroke-width="2" stroke-linejoin="round"
         pathLength="1" class="an-draw" style="--d:.25s"/>
       ${dots}${pb}${xl}`;
     const tips = rows.map((x, i) => ({
       x: +fr.x(i).toFixed(1), y: +fr.y(x.value).toFixed(1),
       t: dayLong(x.r.createdAt) + (x.r.note ? ' · ' + x.r.note : ''),
-      rows: [[fmtVal(kind, x.value) + (vegas ? '' : ` (${x.total})`), i === bi ? 'Score, best' : 'Score', BLUE],
+      rows: [[fmtVal(kind, x.value) + (vegas ? '' : ` (${x.total})`), i === bi ? 'Score, best' : 'Score', OD],
         [fmtVal(kind, avg[i]), '5-round average', ORANGE], [String(x.bonus), vegas ? 'Xs' : '11s', null]]
     }));
     return chartBox(fr, `${vegas ? 'Round totals' : 'Points per target'} over ${rows.length} rounds`, body, tips,
-      legendOf([[BLUE, 'Score', true], [ORANGE, '5-round average', true]]));
+      legendOf([[OD, 'Score', true], [ORANGE, '5-round average', true]]));
   }
 
   function mixChart(mix, kind) {
@@ -438,14 +416,14 @@ const Stats = (() => {
     const bars = ends.map((v, i) => {
       const cx = L + slot * (i + 0.5);
       const h = (H - T - B) * (v || 0) / 30;
-      const c = i === weak && lo !== hi ? ORANGE : BLUE;
+      const c = i === weak && lo !== hi ? ORANGE : OD;
       const lbl = lo !== hi && (i === weak || i === strong) ? `<text x="${cx.toFixed(1)}" y="${(H - B - h - 7).toFixed(1)}" class="an-lbl an-fade" text-anchor="middle">${f1(v)}</text>` : '';
       return `<g class="an-bar" style="--d:${(i * 0.04).toFixed(2)}s"><rect x="${(cx - bw / 2).toFixed(1)}" y="${(H - B - h).toFixed(1)}"
         width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="4" fill="${c}"/></g>${lbl}
         <text x="${cx.toFixed(1)}" y="${H - 9}" class="an-cat" text-anchor="middle">${i + 1}</text>`;
     }).join('');
     const tips = ends.map((v, i) => ({ x: +(L + slot * (i + 0.5)).toFixed(1), y: null, t: `End ${i + 1}`,
-      rows: [[f1(v), 'average of 30', i === weak && lo !== hi ? ORANGE : BLUE]] }));
+      rows: [[f1(v), 'average of 30', i === weak && lo !== hi ? ORANGE : OD]] }));
     const arrowTiles = arrows.map((v, i) => `<div><small>Arrow ${i + 1}</small><b>${v == null ? '–' : v.toFixed(2)}</b></div>`).join('');
     const bestArrow = arrows.indexOf(Math.max(...arrows));
     const worstArrow = arrows.indexOf(Math.min(...arrows));
@@ -579,10 +557,10 @@ const Stats = (() => {
       <text x="${fr.L}" y="${fr.H - 8}" class="an-tick">${day(d[0].r.createdAt)}</text>
       <text x="${fr.W - fr.R}" y="${fr.H - 8}" class="an-tick" text-anchor="end">${day(d[d.length - 1].r.createdAt)}</text>`;
     const tips = d.map((q, i) => ({ x: +fr.x(i).toFixed(1), y: null, t: dayLong(q.r.createdAt),
-      rows: [[side(q.x, true), 'Left–right', BLUE], [side(q.y, false), 'High–low', ORANGE]] }));
+      rows: [[side(q.x, true), 'Left–right', OD], [side(q.y, false), 'High–low', ORANGE]] }));
     return `<div class="an-h sub"><h3>Sight drift</h3><span>group centre per round</span></div>
-      ${chartBox(fr, 'Group centre left-right and high-low per round', fr.grid + zero + series('x', BLUE) + series('y', ORANGE) + labels, tips,
-        legendOf([[BLUE, 'Left–right', true], [ORANGE, 'High–low', true]]))}`;
+      ${chartBox(fr, 'Group centre left-right and high-low per round', fr.grid + zero + series('x', OD) + series('y', ORANGE) + labels, tips,
+        legendOf([[OD, 'Left–right', true], [ORANGE, 'High–low', true]]))}`;
   }
 
   function groupTrend(rows) {
@@ -599,11 +577,11 @@ const Stats = (() => {
     const xl = `<text x="${fr.L}" y="${fr.H - 8}" class="an-tick">${day(plotted[0].r.createdAt)}</text>
       <text x="${fr.W - fr.R}" y="${fr.H - 8}" class="an-tick" text-anchor="end">${day(plotted[plotted.length - 1].r.createdAt)}</text>`;
     const tips = plotted.map((x, i) => ({ x: +fr.x(i).toFixed(1), y: null, t: dayLong(x.r.createdAt),
-      rows: [[Target.fmtCm(x.group.size), 'Avg end group', BLUE], [Target.fmtCm(x.group.offset), 'Centre offset', ORANGE],
+      rows: [[Target.fmtCm(x.group.size), 'Avg end group', OD], [Target.fmtCm(x.group.offset), 'Centre offset', ORANGE],
         [Target.direction(x.group.cx, x.group.cy), 'Centre sits', null]] }));
     return `<div class="an-h sub"><h3>Group trend</h3><span>cm, lower is better</span></div>
-      ${chartBox(fr, 'Group size and centre offset over time', fr.grid + series('size', BLUE) + series('offset', ORANGE) + xl, tips,
-        legendOf([[BLUE, 'Avg end group', true], [ORANGE, 'Centre offset', true]]))}`;
+      ${chartBox(fr, 'Group size and centre offset over time', fr.grid + series('size', OD) + series('offset', ORANGE) + xl, tips,
+        legendOf([[OD, 'Avg end group', true], [ORANGE, 'Centre offset', true]]))}`;
   }
 
   function leaderCard(st, kind) {
@@ -627,7 +605,7 @@ const Stats = (() => {
       ${last.map(x => {
         const d = x.value - avg;
         const plots = x.r.plots && x.r.plots[x.aid] ? x.r.plots[x.aid].flat().filter(Boolean) : [];
-        const thumb = plots.length ? `<span class="an-thumb">${Target.faceSvg({ arrows: plots.map(p => ({ ...p, color: '#0e2240' })), view: Target.VIEW_R, ariaLabel: 'Plotted arrows' })}</span>` : '';
+        const thumb = plots.length ? `<span class="an-thumb">${Target.faceSvg({ arrows: plots.map(p => ({ ...p, color: '#26281f' })), view: Target.VIEW_R, ariaLabel: 'Plotted arrows' })}</span>` : '';
         return `<button class="an-rrow" data-action="nav" data-to="#/card/${x.r.id}">
           ${thumb}<span class="an-rmain"><b>${x.total}</b>
             <small>${kind === 'vegas' ? `${x.bonus}× X` : `${x.slots} target${x.slots === 1 ? '' : 's'} · ${x.value.toFixed(2)}/target`}</small></span>
@@ -641,7 +619,6 @@ const Stats = (() => {
   /* ---------- interaction ---------- */
   function bind(root) {
     root.querySelectorAll('.an-chart[data-tips]').forEach(attachTips);
-    countUp(root);
   }
 
   // Crosshair tooltip: the pointer snaps to the nearest round (or bar) along x.
@@ -702,23 +679,6 @@ const Stats = (() => {
   document.addEventListener('pointerdown', e => {
     document.querySelectorAll('.an-chart.tipping').forEach(b => { if (!b.contains(e.target) && b.hideTip) b.hideTip(); });
   }, { passive: true });
-
-  function countUp(root) {
-    const els = root.querySelectorAll('.countup');
-    if (reduceMotion()) return;
-    els.forEach(el => {
-      const to = parseFloat(el.dataset.to), dec = +el.dataset.dec || 0;
-      if (!isFinite(to)) return;
-      const t0 = performance.now(), dur = 900;
-      const step = now => {
-        const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
-        el.textContent = (to * e).toFixed(dec);
-        if (p < 1) requestAnimationFrame(step);
-      };
-      el.textContent = (0).toFixed(dec);
-      requestAnimationFrame(step);
-    });
-  }
 
   return { view, bind, set };
 })();

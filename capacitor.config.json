@@ -2,8 +2,8 @@
   "appId": "com.ropersarchery.scorecard",
   "appName": "Ropers Archery",
   "webDir": "www",
-  "backgroundColor": "#0e2240",
+  "backgroundColor": "#f3eedf",
   "android": {
-    "backgroundColor": "#0e2240"
+    "backgroundColor": "#f3eedf"
   }
 }

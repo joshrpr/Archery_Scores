@@ -1,0 +1,52 @@
+/* Home and brand header. Supporting views and scoring own separate stylesheets. */
+.home-brandbar { max-width: 640px; margin: auto; display: flex; align-items: center; gap: 12px; padding: max(22px, env(safe-area-inset-top)) 24px 18px; }
+.home-brandbar > img { width: 54px; height: 54px; border-radius: 12px; flex: none; }
+.home-wordmark { font: italic 500 39px/.85 var(--display); letter-spacing: -.04em; color: var(--od); }
+.home-wordmark > span { display: block; margin-top: 8px; font: 500 .64rem/1.3 var(--body); letter-spacing: .02em; color: var(--muted); }
+.home-settings { border: 0; background: transparent; border-radius: 50%; width: 48px; height: 48px; margin-left: auto; display: grid; place-items: center; flex: none; color: var(--od); }
+.home-settings:hover { background: var(--tint); }
+.home-main { padding: 17px 24px 32px; }
+.home-main svg, .home-settings svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.home-heading { margin: 0 0 20px; max-width: 22ch; font: 600 23px/1.2 var(--body); letter-spacing: -.035em; text-wrap: balance; }
+.home-round { display: block; width: 100%; border: 0; text-align: left; color: inherit; font: inherit; overflow-wrap: anywhere; }
+.home-resume { position: relative; margin: 0 0 16px; padding: 24px; background: var(--od); color: var(--cream); border-radius: 16px 16px 54px 16px; }
+.home-resume:hover { background: #56602a; }
+.home-resume:active { background: var(--sky-deep); }
+.home-resume:focus-visible { outline-offset: 4px; }
+.home-round-title { display: block; padding-right: 58px; font: 500 32px/1 var(--display); letter-spacing: -.025em; }
+.home-resume .home-round-title { font-size: 58px; line-height: .91; letter-spacing: -.04em; }
+.home-resume .home-round-title > span { display: block; font-size: 73px; }
+.home-resume-arrow { position: absolute; right: 20px; top: 20px; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--arrow); color: var(--ink); transform: rotate(-35deg); }
+.home-round-meta, .home-round-note { display: block; margin-top: 12px; font-size: .78rem; line-height: 1.5; color: #e3e3c9; }
+.home-round-note { margin-top: 4px; }
+.home-results { display: block; margin-top: 19px; padding-top: 14px; border-top: 1px solid #bfc69d66; font-variant-numeric: tabular-nums; }
+.home-result { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 3px 14px; margin-top: 6px; font-size: .84rem; }
+.home-result:first-child { margin-top: 0; }
+.home-result > strong { font-weight: 500; }
+.home-result > span { white-space: nowrap; }
+.home-result b { font-weight: 700; }
+.home-bonus { margin-left: 10px; }
+.home-new { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 58px; margin: 18px 0 32px; padding: 15px 18px; background: var(--arrow); color: var(--ink); border: 0; border-radius: 12px; font-weight: 650; }
+.home-new:hover { background: #ff873d; }
+.home-new:active { background: var(--arrow-hi); color: var(--paper); }
+.home-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.home-section-heading > h2 { font: 500 24px/1.2 var(--display); letter-spacing: -.02em; margin: 0; }
+.home-section-heading .link { min-height: 44px; font-size: .8rem; font-weight: 500; color: var(--od); }
+.home-recent { background: transparent; padding: 19px 0; border-bottom: 1px solid var(--rule); }
+.home-recent:hover { background: var(--tint); }
+.home-recent .home-round-title { font: 650 .95rem/1.3 var(--body); padding-right: 0; }
+.home-recent .home-round-meta, .home-recent .home-round-note { color: var(--muted); margin-top: 5px; font-size: .75rem; }
+.home-recent .home-results { border: 0; margin-top: 9px; padding: 0; }
+.home-recent .home-result { color: var(--muted); }
+.home-recent .home-result b { font: 500 26px/1 var(--display); color: var(--ink); }
+.home-backup { display: block; margin-top: 18px; padding: 10px 0; min-height: 44px; border: 0; background: transparent; color: var(--muted); font-size: .8rem; text-decoration: underline; text-underline-offset: .2em; }
+.home-backup:hover { color: var(--od); }
+.home-welcome, .home-empty { color: var(--muted); font-size: .9rem; line-height: 1.6; margin: 0; max-width: 55ch; }
+.home-empty { margin-top: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+@media(max-width: 350px) { .home-brandbar { gap: 9px; padding-left: 18px; padding-right: 18px; } .home-wordmark { font-size: 34px; } .home-main { padding-left: 18px; padding-right: 18px; } .home-heading { font-size: 22px; } .home-resume { padding: 20px; } }
+/* Measured labels reflow into two rows when text no longer fits four columns. */
+.main-nav { left: max(16px, calc((100vw - 608px) / 2)); right: max(16px, calc((100vw - 608px) / 2)); bottom: max(16px, env(safe-area-inset-bottom)); padding: 8px; border-radius: 13px; font-size: .72rem; grid-template-columns: repeat(var(--main-nav-columns,4), minmax(0,1fr)); }
+.main-nav button { min-height: 48px; font-size: inherit; }
+.main-nav button:active { background: var(--sky-deep); color: var(--paper); }
+.main-nav button > span { max-width: none; white-space: nowrap; overflow-wrap: normal; }
+.has-main-nav > main { padding-bottom: calc(var(--main-nav-height, 80px) + 48px + env(safe-area-inset-bottom)); }

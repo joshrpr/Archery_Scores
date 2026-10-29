@@ -3,6 +3,8 @@
 // its files inside the APK and updates by installing a newer APK instead.
 import { cpSync, rmSync } from 'node:fs';
 import './vendor-three.mjs';
+import './brand-web.mjs';
+import './verify-brand.mjs';
 import { basename } from 'node:path';
 
 const SKIP = new Set(['tests', 'README.md', 'sw.js']);

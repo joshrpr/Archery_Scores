@@ -63,7 +63,7 @@ export function createScene(canvas, data) {
     renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.setClearColor(0x071120, 0);
+    renderer.setClearColor(0x394116, 0);
     const TAU = Math.PI * 2;
     let seed = 619;
     const rand = () => {
