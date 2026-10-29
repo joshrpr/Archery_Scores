@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T01:30:55.138582+00:00",
+  "generatedAt": "2026-10-29T04:40:44.817Z",
   "title": "Design System: Ropers Archery Scorecard — Velocity OD",
   "extensions": {
     "colorMeta": {
@@ -199,6 +199,132 @@
           "oklch(84% 0.1694 27.62)",
           "oklch(95% 0.1694 27.62)"
         ]
+      },
+      "score-ink": {
+        "role": "semantic",
+        "displayName": "Score Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0237 134.54)",
+          "oklch(26% 0.0237 134.54)",
+          "oklch(38% 0.0237 134.54)",
+          "oklch(49% 0.0237 134.54)",
+          "oklch(61% 0.0237 134.54)",
+          "oklch(72% 0.0237 134.54)",
+          "oklch(84% 0.0237 134.54)",
+          "oklch(95% 0.0237 134.54)"
+        ]
+      },
+      "vegas-gold": {
+        "role": "semantic",
+        "displayName": "Vegas Gold",
+        "tonalRamp": [
+          "oklch(15% 0.1465 88.56)",
+          "oklch(26% 0.1465 88.56)",
+          "oklch(38% 0.1465 88.56)",
+          "oklch(49% 0.1465 88.56)",
+          "oklch(61% 0.1465 88.56)",
+          "oklch(72% 0.1465 88.56)",
+          "oklch(84% 0.1465 88.56)",
+          "oklch(95% 0.1465 88.56)"
+        ]
+      },
+      "vegas-red": {
+        "role": "semantic",
+        "displayName": "Vegas Red",
+        "tonalRamp": [
+          "oklch(15% 0.1926 25.14)",
+          "oklch(26% 0.1926 25.14)",
+          "oklch(38% 0.1926 25.14)",
+          "oklch(49% 0.1926 25.14)",
+          "oklch(61% 0.1926 25.14)",
+          "oklch(72% 0.1926 25.14)",
+          "oklch(84% 0.1926 25.14)",
+          "oklch(95% 0.1926 25.14)"
+        ]
+      },
+      "vegas-blue": {
+        "role": "semantic",
+        "displayName": "Vegas Blue",
+        "tonalRamp": [
+          "oklch(15% 0.1488 246.66)",
+          "oklch(26% 0.1488 246.66)",
+          "oklch(38% 0.1488 246.66)",
+          "oklch(49% 0.1488 246.66)",
+          "oklch(61% 0.1488 246.66)",
+          "oklch(72% 0.1488 246.66)",
+          "oklch(84% 0.1488 246.66)",
+          "oklch(95% 0.1488 246.66)"
+        ]
+      },
+      "ibo-eleven": {
+        "role": "semantic",
+        "displayName": "Ibo Eleven",
+        "tonalRamp": [
+          "oklch(15% 0.1495 40.09)",
+          "oklch(26% 0.1495 40.09)",
+          "oklch(38% 0.1495 40.09)",
+          "oklch(49% 0.1495 40.09)",
+          "oklch(61% 0.1495 40.09)",
+          "oklch(72% 0.1495 40.09)",
+          "oklch(84% 0.1495 40.09)",
+          "oklch(95% 0.1495 40.09)"
+        ]
+      },
+      "ibo-ten": {
+        "role": "semantic",
+        "displayName": "Ibo Ten",
+        "tonalRamp": [
+          "oklch(15% 0.1253 248.45)",
+          "oklch(26% 0.1253 248.45)",
+          "oklch(38% 0.1253 248.45)",
+          "oklch(49% 0.1253 248.45)",
+          "oklch(61% 0.1253 248.45)",
+          "oklch(72% 0.1253 248.45)",
+          "oklch(84% 0.1253 248.45)",
+          "oklch(95% 0.1253 248.45)"
+        ]
+      },
+      "ibo-eight": {
+        "role": "semantic",
+        "displayName": "Ibo Eight",
+        "tonalRamp": [
+          "oklch(15% 0.1146 132.40)",
+          "oklch(26% 0.1146 132.40)",
+          "oklch(38% 0.1146 132.40)",
+          "oklch(49% 0.1146 132.40)",
+          "oklch(61% 0.1146 132.40)",
+          "oklch(72% 0.1146 132.40)",
+          "oklch(84% 0.1146 132.40)",
+          "oklch(95% 0.1146 132.40)"
+        ]
+      },
+      "ibo-five": {
+        "role": "semantic",
+        "displayName": "Ibo Five",
+        "tonalRamp": [
+          "oklch(15% 0.0746 78.93)",
+          "oklch(26% 0.0746 78.93)",
+          "oklch(38% 0.0746 78.93)",
+          "oklch(49% 0.0746 78.93)",
+          "oklch(61% 0.0746 78.93)",
+          "oklch(72% 0.0746 78.93)",
+          "oklch(84% 0.0746 78.93)",
+          "oklch(95% 0.0746 78.93)"
+        ]
+      },
+      "score-miss": {
+        "role": "semantic",
+        "displayName": "Score Miss",
+        "tonalRamp": [
+          "oklch(15% 0.0295 97.46)",
+          "oklch(26% 0.0295 97.46)",
+          "oklch(38% 0.0295 97.46)",
+          "oklch(49% 0.0295 97.46)",
+          "oklch(61% 0.0295 97.46)",
+          "oklch(72% 0.0295 97.46)",
+          "oklch(84% 0.0295 97.46)",
+          "oklch(95% 0.0295 97.46)"
+        ]
       }
     },
     "typographyMeta": {
@@ -253,6 +379,16 @@
         "name": "reduced-motion-scroll",
         "value": "auto",
         "purpose": "Shared reduced-motion rule disables smooth scrolling."
+      },
+      {
+        "name": "score-flight",
+        "value": "300ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Finite interruptible key-to-slot feedback; removed for reduced motion."
+      },
+      {
+        "name": "slot-acknowledgment",
+        "value": "360ms cubic-bezier(.16,1,.3,1)",
+        "purpose": "Acknowledge immediate score entry; reduced motion uses 120ms opacity."
       }
     ],
     "breakpoints": [
@@ -283,6 +419,14 @@
       "tonalRamps": "Synthesized OKLCH lightness ramps for swatch exploration; not additional production tokens.",
       "previewFonts": "Previews inherit local application font custom properties where available and fall back to Georgia/system sans-serif; they do not fetch remote fonts.",
       "previewContent": "All example scores and names are explicitly sample content."
+    },
+    "nativeMeta": {
+      "adaptiveLayer": "108dp",
+      "foregroundComposition": "64dp",
+      "guaranteedSafeCircle": "66dp",
+      "launcherViewport": "72dp",
+      "startup": "Static Ranch Horizon mark; no artificial delay",
+      "source": "assets/brand/ranch-horizon.svg + frozen ranch-source.png"
     }
   },
   "components": [
@@ -330,7 +474,7 @@
       "name": "Shared text field",
       "kind": "input",
       "refersTo": "field",
-      "description": "Inherited field geometry with the new readable shared palette; supporting-screen forms are not finalized by this preview.",
+      "description": "Readable local form field shared by setup, archer management, import and data tools.",
       "html": "<label class=\"ds-field-label\">Archer name<input class=\"ds-field\" placeholder=\"New archer name\" autocomplete=\"off\"></label>",
       "css": ".ds-field-label{display:block;color:var(--ink,#26281f);font:17px var(--body,system-ui,sans-serif)}.ds-field{display:block;width:100%;min-height:52px;margin-top:8px;padding:10px 14px;border:2px solid var(--rule,#d2ccb9);border-radius:12px;background:var(--tint,#e6dfcb);color:var(--ink,#26281f);caret-color:var(--od,#4b5320);font:1.1em var(--body,system-ui,sans-serif)}.ds-field::placeholder{color:var(--muted,#65614e)}.ds-field:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}.ds-field:hover{border-color:var(--rule,#d2ccb9)}"
     },
@@ -338,51 +482,65 @@
       "name": "Selected-state color",
       "kind": "chip",
       "refersTo": "chip-selected",
-      "description": "Shared selected-picker color treatment with inherited picker geometry. Detailed supporting-screen controls remain outside the approved Home composition.",
+      "description": "Selected picker/filter treatment used throughout setup and supporting workflows.",
       "html": "<button class=\"ds-chip\" aria-pressed=\"true\">Selected</button>",
-      "css": ".ds-chip{min-height:52px;padding:10px 16px;border:1px solid var(--od,#4b5320);border-radius:14px;background:var(--od,#4b5320);color:var(--paper,#f3eedf);font:700 1.1rem var(--body,system-ui,sans-serif);cursor:pointer}.ds-chip:hover{background:var(--tint,#e6dfcb)}.ds-chip:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}"
+      "css": ".ds-chip{min-height:52px;padding:10px 16px;border:1px solid var(--od,#4b5320);border-radius:14px;background:var(--od,#4b5320);color:var(--paper,#f3eedf);font:700 1.1rem var(--body,system-ui,sans-serif);cursor:pointer}.ds-chip:hover{background:var(--od,#4b5320)}.ds-chip:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}"
+    },
+    {
+      "name": "Vegas score slot",
+      "kind": "custom",
+      "description": "Labeled arrow slot with a clear next position and correction action.",
+      "html": "<div class=\"ds-slot-label\">Arrow 1<button class=\"ds-slot\" aria-label=\"Arrow 1: 10. Tap to clear\">10</button></div>",
+      "css": ".ds-slot-label{color:var(--muted,#65614e);font:.72rem system-ui}.ds-slot{display:block;width:100%;min-height:80px;margin-top:7px;padding:14px 5px;border:0;border-radius:12px;background:var(--tint,#e6dfcb);color:var(--ink,#26281f);font:500 2.6rem/1.1 Newsreader,Georgia,serif}.ds-slot:hover{background:var(--sheet,#fcf8ee)}.ds-slot:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}"
+    },
+    {
+      "name": "Semantic score badges",
+      "kind": "custom",
+      "description": "Bright Vegas rings receive dark labels; miss uses paper on the dark data fill.",
+      "html": "<div class=\"ds-score-badges\"><b>10</b><b>8</b><b>6</b><b>M</b></div>",
+      "css": ".ds-score-badges{display:flex;gap:8px}.ds-score-badges b{padding:6px 10px;border-radius:7px;background:#f5c84c;color:var(--score-ink,#11180d);font:700 1rem system-ui}.ds-score-badges b:nth-child(2){background:#ef5350}.ds-score-badges b:nth-child(3){background:#42a5f5}.ds-score-badges b:nth-child(4){background:#65614e;color:#f3eedf}"
     }
   ],
   "narrative": {
     "northStar": "Velocity OD",
-    "overview": "Velocity OD pairs the character of a ranch scorebook with the speed of a field instrument. Olive drab carries identity and continuity; warm paper carries records; orange marks the next deliberate action. The compact italic Ropers wordmark sits beside Ranch Horizon, whose aerial image is a fixed part of the identity.\n\nThis document records the implemented shared foundation, Home, and main navigation. Home gives unfinished rounds visual weight and keeps completed records quiet and readable. Scoring, supporting screens, completion effects, and native packaging have their own follow-up scope; inherited styling on those surfaces is not evidence of a newly approved visual pattern.",
+    "overview": "Velocity OD pairs the character of a ranch scorebook with the speed of a field instrument. Olive drab carries identity and continuity; warm paper carries records; orange marks the next deliberate action. The compact italic Ropers wordmark sits beside Ranch Horizon, whose aerial image is a fixed part of the identity.\n\nThis record covers the implemented Home, navigation, individual and group scoring, plotting, scorecards, records, analytics, data tools, completion presentation, and Android delivery. Real saved data drives every production summary and result.",
     "keyCharacteristics": [
       "Olive drab, warm paper, and purposeful orange.",
       "Compact italic brand typography; sans-serif routine controls.",
       "Large split round-format labels on unfinished rounds.",
-      "Flat tonal surfaces and a floating inset navigation dock.",
-      "Local font assets and real individual or group round data."
+      "Flat tonal surfaces, readable records, and a floating inset navigation dock.",
+      "Local fonts and source-derived Ranch Horizon web and native assets."
     ],
     "rules": [
       {
         "name": "The Action Color Rule",
-        "body": "Reserve orange for the primary action, its directional cue, and visible focus. Olive drab identifies the continuing round and main navigation.",
+        "body": "Reserve orange for the next deliberate action, meaningful score feedback, and visible focus; semantic target colors retain their own meanings.",
         "section": "colors"
       },
       {
         "name": "The Functional Type Rule",
-        "body": "Use sans-serif for routine controls, navigation, metadata, and archer names. Use Newsreader for identity, round-format display, section headings, and emphasized recent totals.",
+        "body": "Use sans-serif for routine controls and dense records; use Newsreader selectively for identity, hierarchy, and emphasized results.",
         "section": "typography"
       },
       {
         "name": "The Flat Surface Rule",
-        "body": "Use tonal contrast, spacing, and fine rules to establish hierarchy. The selected Home and navigation add no shadows.",
+        "body": "Use tonal contrast, spacing, and fine rules for application hierarchy; reserve rendering depth for the target and completion experience.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do keep the exact frozen ranch aerial in the Ranch Horizon identity asset.",
-      "Do preserve the compact italic Ropers wordmark and its quiet sans-serif descriptor.",
-      "Do render every unfinished round and every participating archer from stored data; show up to three completed rounds in Recent rounds.",
-      "Do keep routine controls in sans-serif, preserve visible focus, and allow enlarged text to reflow the dock.",
-      "Do retain real target ring colors independently of interface branding."
+      "Do keep the exact frozen ranch aerial and selected crop in every identity export.",
+      "Do preserve the compact italic wordmark and selective upright display numerals.",
+      "Do derive rounds, participants and results from stored data.",
+      "Do preserve keyboard focus, visible focus rings, enlarged-text reflow and safe-area clearance.",
+      "Do keep semantic target fills and verify foreground contrast in default, hover and pressed states."
     ],
     "donts": [
-      "Don't replace the ranch aerial with a generated landscape or remove it through simplification.",
-      "Don't treat inherited blue backgrounds, gradients, chart series colors, or older decorative treatments as approved Velocity OD patterns.",
-      "Don't apply the Home resume card composition indiscriminately to scoring or supporting screens.",
-      "Don't invent scores or round records in production; label component-preview examples as sample content.",
-      "Don't add display typography to routine controls or add a dock where setup, import, or active scoring owns the interaction."
+      "Don't replace the ranch aerial with generated scenery or an already branded export.",
+      "Don't reintroduce decorative navy gradients or change target colors to match the brand.",
+      "Don't apply the Home resume-card composition to every supporting record.",
+      "Don't hide dense data or remove recovery actions to imitate a prototype.",
+      "Don't treat browser or artifact checks as physical Android device observations."
     ]
   }
 }

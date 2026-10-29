@@ -16,6 +16,15 @@ colors:
   nav-muted: "#e3e3c9"
   nav-active: "#626b32"
   danger: "#ad2924"
+  score-ink: "#11180d"
+  vegas-gold: "#f5c84c"
+  vegas-red: "#ef5350"
+  vegas-blue: "#42a5f5"
+  ibo-eleven: "#a53b0b"
+  ibo-ten: "#1767a7"
+  ibo-eight: "#466d20"
+  ibo-five: "#765a2a"
+  score-miss: "#65614e"
 typography:
   wordmark:
     fontFamily: "Newsreader, Georgia, serif"
@@ -131,125 +140,100 @@ components:
 
 Velocity OD pairs the character of a ranch scorebook with the speed of a field instrument. Olive drab carries identity and continuity; warm paper carries records; orange marks the next deliberate action. The compact italic Ropers wordmark sits beside Ranch Horizon, whose aerial image is a fixed part of the identity.
 
-This document records the implemented shared foundation, Home, and main navigation. Home gives unfinished rounds visual weight and keeps completed records quiet and readable. Scoring, supporting screens, completion effects, and native packaging have their own follow-up scope; inherited styling on those surfaces is not evidence of a newly approved visual pattern.
+This record covers the implemented Home, navigation, individual and group scoring, plotting, scorecards, records, analytics, data tools, completion presentation, and Android delivery. Real saved data drives every production summary and result.
 
 **Key Characteristics:**
 
 - Olive drab, warm paper, and purposeful orange.
 - Compact italic brand typography; sans-serif routine controls.
 - Large split round-format labels on unfinished rounds.
-- Flat tonal surfaces and a floating inset navigation dock.
-- Local font assets and real individual or group round data.
+- Flat tonal surfaces, readable records, and a floating inset navigation dock.
+- Local fonts and source-derived Ranch Horizon web and native assets.
 
 ## Colors
 
-The palette feels like a field scorebook: olive drab and warm paper, with a clear orange action signal. The frontmatter is the normative value source; aliases in the shared stylesheet are compatibility mappings rather than additional palette roles.
-
 ### Primary
 
-- **Arrow Orange** (`arrow`): Start new round and the circular directional cue on unfinished rounds.
-- **Dark Orange Focus** (`arrow-hi`): visible keyboard focus on the light foundation; the navigation uses paper-colored focus against olive drab.
-- **Warm Orange Hover** (`arrow-hover`): pointer response on the primary action.
+Arrow Orange identifies primary actions, directional cues, score feedback, and focus. Warm Orange Hover answers pointer input. Dark Orange Focus provides visible focus on paper and the pressed primary-action background; pressed text switches to paper.
 
 ### Secondary
 
-- **Olive Drab** (`od`): unfinished-round surfaces, the wordmark, navigation, and selected controls.
-- **Lifted Olive** (`resume-hover`): unfinished-round hover response.
-- **Active Olive** (`nav-active`): active or hovered navigation destination.
+Olive Drab identifies unfinished rounds, the scoring header, navigation, and selected controls. Lifted Olive answers unfinished-round hover; Active Olive identifies the selected navigation destination. Paper labels stay legible on these darker surfaces.
 
 ### Neutral
 
-- **Warm Paper** (`paper`): page canvas and light text on olive drab; also exposed by the compatibility alias `cream`.
-- **Clean Sheet** (`sheet`): shared supporting surface.
-- **Field Ink** (`ink`): primary text, including text on orange actions.
-- **Quiet Olive Gray** (`muted`): metadata and secondary text on paper.
-- **Paper Rule** (`rule`): dividers and shared borders.
-- **Paper Tint** (`tint`): input backgrounds and quiet hover feedback.
-- **Pale Olive Text** (`nav-muted`): inactive navigation labels and metadata on unfinished rounds.
+Warm Paper is the page and dialog canvas; Clean Sheet supports fields and score controls. Field Ink is the routine foreground, including orange actions. Quiet Olive Gray supplies dates, notes and secondary text on paper; Pale Olive Text belongs on olive surfaces. Paper Rule and Paper Tint separate records without decorative depth.
 
-The shared **Danger Red** (`danger`) is a functional error/destructive role. Score-value colors and Vegas gold, red, and blue remain semantic and separate from brand palette decisions.
+### Semantic data
 
-**The The Action Color Rule Rule.** Reserve orange for the primary action, its directional cue, and visible focus. Olive drab identifies the continuing round and main navigation.
+Vegas gold, red and blue retain their target meanings. Score Ink labels these bright rings in plotting slots, Undo, dropped arrows and distribution bars. Miss and the darker IBO value colors use paper labels. Small score text must meet 4.5:1 against its actual fill; never use the page-background alias as a semantic foreground. The target loupe preserves its colored score labels on a dedicated dark backing. Danger Red remains an error/destructive role. Charts retain distinct data-series colors and labeled legends.
+
+**The Action Color Rule.** Reserve orange for the next deliberate action, meaningful score feedback, and visible focus; semantic target colors retain their own meanings.
 
 ## Typography
 
-**Display Font:** Newsreader, with Georgia and serif fallbacks. The regular and italic variable font files are shipped locally in `ibo-scorer/fonts/`, with a weight range of 200–800 and swap loading.
+Newsreader regular and italic variable fonts are bundled locally with their licenses. Use the italic display face for Ropers; upright Newsreader carries format numerals, section titles, running totals, score slots, and selected result summaries. Routine controls, archer names, table data, descriptions and navigation use the device sans-serif stack. Totals use tabular numerals. Keep tracking no tighter than the existing display floor (-0.04em).
 
-**Body Font:** The device system sans-serif stack.
-
-**Character:** Newsreader provides a compact, recognizable identity and distinctive format numerals. System sans-serif keeps frequent actions, names, and round details immediately legible. The wordmark is italic; the other display roles are upright.
-
-### Hierarchy
-
-- **Wordmark:** compact italic Ropers with a separate quiet sans-serif Archery Scorecard descriptor. Its baseline role is defined in the frontmatter; narrow screens reduce it to 34px.
-- **Headline:** a short sans-serif Home lead, limited to 22ch; narrow screens use 22px.
-- **Round format / number:** split Vegas / 300 or IBO / 3D display on unfinished rounds, with the number on its own line.
-- **Title:** serif Recent rounds heading. Recent round names use sans-serif (0.95rem, weight 650); emphasized recent totals use Newsreader (26px, weight 500).
-- **Body:** shared readable foundation; Home empty-state prose uses a quieter 0.9rem size, 1.6 line-height, and 55ch maximum width.
-- **Label / metadata:** compact navigation and supporting detail. Resume archer totals use tabular numerals; archer names remain sans-serif.
-
-**The The Functional Type Rule Rule.** Use sans-serif for routine controls, navigation, metadata, and archer names. Use Newsreader for identity, round-format display, section headings, and emphasized recent totals.
+**The Functional Type Rule.** Use sans-serif for routine controls and dense records; use Newsreader selectively for identity, hierarchy, and emphasized results.
 
 ## Layout
 
-Home is a single centered column capped at 640px. The brand row uses 24px horizontal padding, a 54px identity image, and a 12px gap. Its top padding respects the larger of 22px and the top safe area. The Home content uses 17px top padding and 24px gutters, reduced to 18px at widths of 350px or less.
+The app uses a centered column capped at 640px, normally with 24px gutters and 18px on phones 350px wide or narrower. Safe areas protect the header and bottom actions. Long names and descriptions wrap; wide score tables and charts scroll within their own containers.
 
-Unfinished rounds stack with 16px spacing; the primary action separates them from the paper record list. The composition supports every unfinished round and every archer in a group rather than a single featured person. Recent rounds shows at most three finished rounds, sorted by completion time, with View all providing history access.
+Home presents every unfinished individual or group round, then the new-round action and at most three recent completed rounds. Notes adapt to the surface: pale olive on unfinished cards, muted text on recent paper records. The four-destination dock is inset by at least 16px, capped at an effective 608px width. Measured labels switch it to two columns under enlarged text; its measured height sets content clearance. Setup, import and active scoring own their interaction space and omit this dock.
 
-The dock is inset by at least 16px horizontally and from the bottom safe area, with a maximum effective width of 608px. Four equal destinations normally form one row. Measured label widths switch the dock to two columns when enlarged text cannot fit; its measured height updates the content's bottom clearance. Do not replace this with a fixed-height assumption. Navigation is present on Home and supporting destinations, and omitted during new-round setup, import, and active scoring.
+Scoring has an olive header, wrap-safe round progress and running result, a horizontal end/target strip, per-archer entry sections, three labeled Vegas slots, and a three-column keypad. Miss spans the Vegas keypad width. The measured scoring dock preserves previous/next actions on short or enlarged-text screens. IBO retains its five score values and target navigation.
+
+History, archer records and import previews use open rows with fine rules. Analytics filters wrap and data graphics keep their labels and legends. Backup, restore and import retain explicit file actions and confirmation/recovery dialogs. Dialogs scroll independently, trap keyboard focus, support Escape cancellation and restore the initiating control.
 
 ## Elevation & Depth
 
-Depth comes from olive drab against paper, the tinted active state, fine dividers, and the dock's inset position. The selected Home surfaces use no shadows, gradients, or blur. Hover changes color directly; these styles introduce no timed animation. Reduced-motion preferences keep scrolling automatic.
+Tonal contrast, whitespace and fine rules provide the ordinary surface hierarchy. Home, navigation, score entry, dialogs and records use no decorative shadows or gradients. The target magnifier uses an outline and soft shadow to separate magnified target content from the face. Completion retains its approved target/arrow rendering rather than becoming a generic card effect.
 
-**The The Flat Surface Rule Rule.** Use tonal contrast, spacing, and fine rules to establish hierarchy. The selected Home and navigation add no shadows.
+**The Flat Surface Rule.** Use tonal contrast, spacing, and fine rules for application hierarchy; reserve rendering depth for the target and completion experience.
 
 ## Shapes
 
-Cards and controls have gently rounded corners. The unfinished-round card has a distinctive enlarged lower-right corner, while its arrow cue is circular and rotated upward by 35 degrees. Keep that silhouette specific to this Home pattern. The dock has a compact rounded outer container and smaller rounded destination states. Recent records stay open on the paper canvas, separated by a fine bottom rule rather than enclosed in repeated cards.
+Routine fields and primary controls use 12px corners; score keys use 9px and slots 12px. Dialogs use 16px corners. Home unfinished cards retain the distinctive enlarged lower-right corner; the inset main dock uses 13px corners with smaller destination states. Scoring's olive header has a 28px lower-right corner. These signature silhouettes belong to their specific surfaces.
 
 ## Components
 
-### Buttons
+### Buttons, fields and navigation
 
-The primary Home action is confident, orange, and full width, with a sans-serif label and plus icon. Its minimum height, padding, and corner values are in the frontmatter. Hover uses the warm orange token. The utility settings button is a quiet circular 48px target with tinted hover; View all and Backup and export remain text actions with at least 44px height. Keyboard focus uses a 3px outline with 3px offset; the unfinished card uses 4px offset. Shared disabled buttons use 0.55 opacity.
+Primary actions have orange fill, ink text, readable hover, and paper text on the dark pressed state. The Android update link has at least a 44px touch height. Secondary controls use sheet/tint or transparent surfaces; selected pickers and filters use olive with paper text. Fields use tint, ink, muted placeholders and an olive caret. Shared focus is a 3px dark-orange outline with 3px offset; olive surfaces use a paper outline. Disabled controls reduce opacity; busy controls communicate loading.
 
-### Chips
+The main dock uses four consistent outlined SVG icons and labels. The active destination exposes aria-current; route changes focus the destination heading. Data tools remain reachable from Home and supporting routes.
 
-The shared selected-state foundation uses olive drab with paper text and matching olive borders. This documents color compatibility only; scoring-specific chip geometry and behavior remain outside the Home scope.
+### Scoring and results
 
-### Cards / Containers
+Vegas slots identify arrow order and expose correction actions; a warm outline indicates the next slot. Entry updates scores immediately. Key-to-slot feedback lasts 300ms, with a 360ms slot acknowledgment; reduced motion removes spatial travel and uses a brief opacity acknowledgment. Feedback is finite, interruptible, and cleared by navigation or hiding. Group sections retain every archer and their totals.
 
-An unfinished round is one accessible button containing its split format label, progress, date, optional note, all participating archers, totals, and the relevant bonus count. Its orange arrow is a directional cue inside the same action. The upper-right title clearance reserves space for that cue. Hover uses the lifted olive token; result rows wrap so long names and group totals remain readable.
+Plotting keeps the actual gold/red/blue face, coordinates, current-end scores, magnifier, Undo and group measurements. Scorecards preserve standings, per-arrow values, totals and horizontally scrollable tables. Numeric colors communicate data rather than decorative branding.
 
-Recent records are full-width buttons on paper with fine dividers, sans-serif round names, quiet dates and archer names, and serif totals. A tinted hover signals interaction without changing the record-list structure. Empty states retain useful prose and the Start new round action rather than fabricated records.
+The completion dialog retains saving before presentation, rapid recap, final-arrow emphasis, Skip, scorecard exit, haptics and visibility cleanup. Its chrome follows olive/paper/orange. Android uses the existing non-WebGL renderer; reduced motion retains readable static results. Update reload waits until this presentation exits.
 
-### Inputs / Fields
+### Ranch Horizon and native delivery
 
-The shared foundation makes inherited text fields readable with tinted backgrounds, ink text, muted placeholders, an olive caret, and the common visible focus treatment. The inherited minimum height is 52px, with a fine paper-rule border. The field preview represents this shared compatibility treatment, not a finalized supporting-screen form composition.
+The maintained SVG references the exact frozen original ranch artwork and its selected aerial crop. Home shows the production self-contained mark at 54px beside Ropers. Never infer a new aerial from an exported logo.
 
-### Navigation
+Web favicon, 192/512 icons and maskable output are local. Android uses real 108dp split adaptive layers: full-bleed aerial background and a centered 64dp foreground carrying the arrow and cream arcs inside the 66dp safe circle. Round and existing density outputs remain source-derived. Static startup uses the same aerial identity with olive backing; paper is the webview canvas. System bars follow olive and paper. No startup hold is introduced.
 
-Four outlined icons and sans-serif labels identify Home, History, Analytics, and Archers. Each destination has a minimum 48px height with icon above label. The active destination uses `aria-current="page"`, paper text, and a lighter olive fill; hover shares this fill. Focus is a paper-colored 3px outline inset by 3px. Labels remain unbroken and the measured layout reflows into two rows when needed.
-
-### Ranch Horizon Identity
-
-Use the production `ibo-scorer/icons/ranch-horizon.svg` identity, including its frozen embedded ranch aerial. Preserve the approved crop and composition. Home shows it at 54px beside the italic Ropers wordmark; do not replace it with a new landscape. Identity preview generation must use the real asset rather than a synthetic approximation.
+The asset provenance guard and bundled fonts support offline delivery. Browser mask checks establish artifact appearance; physical launcher, startup and update-installation observations remain device validation.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- Do keep the exact frozen ranch aerial in the Ranch Horizon identity asset.
-- Do preserve the compact italic Ropers wordmark and its quiet sans-serif descriptor.
-- Do render every unfinished round and every participating archer from stored data; show up to three completed rounds in Recent rounds.
-- Do keep routine controls in sans-serif, preserve visible focus, and allow enlarged text to reflow the dock.
-- Do retain real target ring colors independently of interface branding.
+- Do keep the exact frozen ranch aerial and selected crop in every identity export.
+- Do preserve the compact italic wordmark and selective upright display numerals.
+- Do derive rounds, participants and results from stored data.
+- Do preserve keyboard focus, visible focus rings, enlarged-text reflow and safe-area clearance.
+- Do keep semantic target fills and verify foreground contrast in default, hover and pressed states.
 
 ### Don't:
 
-- Don't replace the ranch aerial with a generated landscape or remove it through simplification.
-- Don't treat inherited blue backgrounds, gradients, chart series colors, or older decorative treatments as approved Velocity OD patterns.
-- Don't apply the Home resume card composition indiscriminately to scoring or supporting screens.
-- Don't invent scores or round records in production; label component-preview examples as sample content.
-- Don't add display typography to routine controls or add a dock where setup, import, or active scoring owns the interaction.
+- Don't replace the ranch aerial with generated scenery or an already branded export.
+- Don't reintroduce decorative navy gradients or change target colors to match the brand.
+- Don't apply the Home resume-card composition to every supporting record.
+- Don't hide dense data or remove recovery actions to imitate a prototype.
+- Don't treat browser or artifact checks as physical Android device observations.

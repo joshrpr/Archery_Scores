@@ -70,3 +70,14 @@ tbody tr:nth-child(even) td { background: #e6dfcb66; }
 .main-nav button[aria-current=page], .main-nav button:hover { color: var(--cream); background: #626b32; }
 .main-nav :focus-visible { outline-color: var(--cream); outline-offset: -3px; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+/* Semantic score labels do not inherit the page-background compatibility alias.
+   Vegas rings are bright; IBO values and misses use the darker data palette. */
+:root { --score-ink: #11180d; --score-label: var(--paper); }
+.rg, .rr, .rb { --score-label: var(--score-ink); }
+.rm, .s11, .s10, .s8, .s5, .s0 { --score-label: var(--paper); }
+.pslot:not(.empty), .undo i, .g-dropped i, .g-bar i { color: var(--score-label); }
+.is-scoring .vbtns .s:active:not(:disabled) { background: var(--c); color: var(--score-label); }
+.undo:active:not(:disabled) { color: var(--ink); }
+.tf-loupe b { background: var(--score-ink); color: var(--paper); }
+.app-update .btn { color: var(--ink); min-height: 44px; }
+.primary:active:not(:disabled) { background: var(--arrow-hi); color: var(--paper); }

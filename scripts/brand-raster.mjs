@@ -2,14 +2,11 @@
 // Every output starts at the maintained SVG + frozen original artwork, never another export.
 import { chromium } from '@playwright/test';
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { createHash } from 'node:crypto';
-import { mark, sourceSha256 } from './brand-source.mjs';
+import { mark, sourceSha256, sha256 as sha, normalizedTextSha256 as shaText } from './brand-source.mjs';
 import './brand-web.mjs';
 const root = new URL('../', import.meta.url);
 const browser = await chromium.launch({headless:true});
 const outputs = {};
-const sha = bytes=>createHash('sha256').update(bytes).digest('hex');
-const shaText=bytes=>sha(bytes.toString('utf8').replace(/\r\n/g,'\n'));
 try {
   const page = await browser.newPage();
   await page.setContent('<!doctype html><canvas></canvas>');
