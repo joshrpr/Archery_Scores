@@ -184,6 +184,8 @@ Home presents every unfinished individual or group round, then the new-round act
 
 Scoring has an olive header, wrap-safe round progress and running result, a horizontal end/target strip, per-archer entry sections, three labeled Vegas slots, and a three-column keypad. Miss spans the Vegas keypad width. The measured scoring dock preserves previous/next actions on short or enlarged-text screens. IBO retains its five score values and target navigation.
 
+New-round setup initially selects the first active archer in the displayed alphabetical list. Archers can be deselected, replaced or added to the group; form updates preserve those deliberate choices. With no active archers, setup waits for one to be added.
+
 History, archer records and import previews use open rows with fine rules. Analytics filters wrap and data graphics keep their labels and legends. Backup, restore and import retain explicit file actions and confirmation/recovery dialogs. Dialogs scroll independently, trap keyboard focus, support Escape cancellation and restore the initiating control.
 
 ## Elevation & Depth

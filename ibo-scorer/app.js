@@ -386,13 +386,13 @@ function viewHome() {
 }
 
 function viewNew() {
+  const list = activeArchers();
   if (!draft) {
     const last = [...db.rounds].sort((a, b) => b.createdAt - a.createdAt)[0];
-    draft = { selected: [], targets: 20, note: '', type: last && isVegas(last) ? 'vegas' : 'ibo' };
+    draft = { selected: list.length ? [list[0].id] : [], targets: 20, note: '', type: last && isVegas(last) ? 'vegas' : 'ibo' };
   }
   const vegas = draft.type === 'vegas';
   draft.selected = draft.selected.filter(id => { const a = archerById(id); return a && !a.deleted; });
-  const list = activeArchers();
   return `${header('New round', '#/')}
   <main>
     <h2>Round</h2>

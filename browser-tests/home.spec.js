@@ -42,6 +42,11 @@ test('empty Home starts a real round and recent history opens the stored scoreca
   await page.getByRole('button',{name:'Start new round',exact:true}).click();
   await expect(page.getByRole('heading',{name:'New round',exact:true})).toBeVisible();
   await expect(page.getByRole('navigation',{name:'Main navigation'})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Start round',exact:true})).toBeDisabled();
+  await page.getByRole('textbox',{name:'New archer name',exact:true}).fill('First Archer');
+  await page.getByRole('button',{name:'Add',exact:true}).click();
+  await expect(page.getByRole('button',{name:/First Archer/})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('button',{name:'Start round with 1 archer',exact:true})).toBeEnabled();
   await page.getByRole('button',{name:'Back',exact:true}).click();
   await page.evaluate(({key,db})=>localStorage.setItem(key,JSON.stringify(db)),{key,db});
   await page.reload();
@@ -56,4 +61,49 @@ test('keyboard main navigation places focus at the destination heading', async (
   await page.getByRole('navigation',{name:'Main navigation'}).getByRole('button',{name:'History',exact:true}).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading',{name:'History',exact:true})).toBeFocused();
+});
+
+for (const format of ['IBO 3D', 'Vegas 300']) test(`new ${format} rounds start with the first listed active archer already selected`, async ({page}) => {
+  const archers = [
+    {id:'z',name:'Zoe Ridge',createdAt:1},
+    {id:'gone',name:'Aaron Retired',createdAt:2,deleted:true},
+    {id:'a',name:'Avery Ridge',createdAt:3}
+  ];
+  await page.addInitScript(({key,archers})=>localStorage.setItem(key,JSON.stringify({archers,rounds:[]})), {key,archers});
+  await page.goto('/');
+  await page.getByRole('button',{name:'Start new round',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'New round',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:/Avery Ridge/})).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('button',{name:/Zoe Ridge/})).toHaveAttribute('aria-pressed','false');
+  await expect(page.getByRole('button',{name:/Aaron Retired/})).toHaveCount(0);
+  await page.getByRole('radio',{name:new RegExp(format)}).click();
+  await page.getByRole('button',{name:'Start round with 1 archer',exact:true}).click();
+  await expect(page).toHaveURL(/#\/round\//);
+  const stored = await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+  expect(stored.rounds[0].archerIds).toEqual(['a']);
+  expect(stored.rounds[0].type).toBe(format === 'Vegas 300' ? 'vegas' : 'ibo');
+});
+
+test('the default archer can be deselected or replaced without being reselected on form updates', async ({page}) => {
+  await page.addInitScript(({key,db})=>localStorage.setItem(key,JSON.stringify(db)), {key,db});
+  await page.goto('/');
+  await page.getByRole('button',{name:'Start new round',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'New round',exact:true})).toBeVisible();
+  const avery = page.getByRole('button',{name:/Avery Ridge/});
+  await expect(avery).toHaveAttribute('aria-pressed','true');
+  await avery.click();
+  await page.getByRole('radio',{name:/Vegas 300/}).click();
+  await expect(avery).toHaveAttribute('aria-pressed','false');
+  await expect(page.getByRole('button',{name:'Start round',exact:true})).toBeDisabled();
+  await page.getByRole('button',{name:/Morgan Longbow/}).click();
+  await page.getByRole('radio',{name:/IBO 3D/}).click();
+  await expect(avery).toHaveAttribute('aria-pressed','false');
+  await page.getByRole('button',{name:'Start round with 1 archer',exact:true}).click();
+  const stored = await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+  expect(stored.rounds.at(-1).archerIds).toEqual(['b']);
+  await page.getByRole('button',{name:'Back',exact:true}).click();
+  await page.getByRole('button',{name:'Start new round',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'New round',exact:true})).toBeVisible();
+  await expect(avery).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByRole('button',{name:/Morgan Longbow/})).toHaveAttribute('aria-pressed','false');
 });
