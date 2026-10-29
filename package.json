@@ -8,7 +8,9 @@
     "dev": "node scripts/serve-app.mjs",
     "web": "node scripts/build-web.mjs",
     "sync": "npm run web && cap sync android",
-    "apk": "npm run sync && cd android && ./gradlew assembleRelease"
+    "apk": "npm run sync && cd android && ./gradlew assembleRelease",
+    "brand:raster": "node scripts/brand-raster.mjs",
+    "brand:check": "node scripts/verify-brand.mjs"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^8.0.1",

@@ -1,8 +1,5 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-// Always read the unbranded frozen artwork and the maintained vector composition.
-// Never read a generated logo/icon as an input to another export.
-const source = readFileSync(new URL('../assets/brand/ranch-source.png', import.meta.url));
-const master = readFileSync(new URL('../assets/brand/ranch-horizon.svg', import.meta.url), 'utf8');
-writeFileSync(new URL('../ibo-scorer/icons/ranch-horizon.svg', import.meta.url),
-  master.replace('ranch-source.png', 'data:image/png;base64,' + source.toString('base64')));
-console.log('Generated self-contained Ranch Horizon web mark from the frozen ranch source.');
+// Pure Node: safe to run in every web/Android build without a browser download.
+import { writeFileSync } from 'node:fs';
+import { mark } from './brand-source.mjs';
+writeFileSync(new URL('../ibo-scorer/icons/ranch-horizon.svg', import.meta.url), mark);
+console.log('Generated self-contained Ranch Horizon web mark from the frozen original artwork.');

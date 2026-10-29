@@ -14,6 +14,7 @@ const ASSETS = [
   './fonts/Newsreader.ttf',
   './fonts/Newsreader-Italic.ttf',
   './icons/ranch-horizon.svg',
+  './icons/favicon-32.png',
   './app.js',
   './completion.js',
   './finish.js',
