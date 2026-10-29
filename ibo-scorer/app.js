@@ -22,6 +22,56 @@ let draft = null;        // new-round form state
 let pendingImport = null; // rounds read from another app's export, awaiting confirmation
 let lastPath = null;
 let focusDestination = false;
+let keyboardAction = false;
+const scoreStatus = document.createElement('p');
+scoreStatus.className = 'score-status';
+scoreStatus.setAttribute('role', 'status');
+scoreStatus.setAttribute('aria-live', 'polite');
+document.body.appendChild(scoreStatus);
+const scoreMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let scoreEffects = [];
+function cancelScoreFeedback() {
+  scoreEffects.forEach(effect => effect.cancel());
+  scoreEffects = [];
+  document.querySelectorAll('.score-flight').forEach(node => node.remove());
+}
+scoreMotion.addEventListener('change', cancelScoreFeedback);
+document.addEventListener('visibilitychange', () => { if (document.hidden) cancelScoreFeedback(); });
+function announceScore(message) { scoreStatus.textContent = message; }
+function scoreFeedback(aid, k, from, value) {
+  if (document.hidden) return;
+  const row = [...app.querySelectorAll('.arow')].find(node => node.dataset.archer === aid);
+  const slot = k == null ? row?.querySelector('.s.sel') : row?.querySelector('[data-slot="' + k + '"]');
+  if (!slot) return;
+  const destination = slot.getBoundingClientRect();
+  if (scoreMotion.matches || !from) {
+    scoreEffects.push(slot.animate([{opacity:.55},{opacity:1}], {duration:120}));
+    return;
+  }
+  const ghost = document.createElement('span');
+  ghost.className = 'score-flight'; ghost.setAttribute('aria-hidden', 'true'); ghost.textContent = label(value);
+  ghost.style.left = (from.left + from.width / 2) + 'px';
+  ghost.style.top = (from.top + from.height / 2) + 'px';
+  document.body.appendChild(ghost);
+  const flight = ghost.animate([{transform:'translate(-50%, -50%) scale(.7)',opacity:.8},
+    {transform:'translate(calc(-50% + ' + (destination.left + destination.width / 2 - from.left - from.width / 2) + 'px), calc(-50% + ' + (destination.top + destination.height / 2 - from.top - from.height / 2) + 'px)) scale(1)',opacity:0}],
+    {duration:300,easing:'cubic-bezier(.16,1,.3,1)'});
+  flight.onfinish = () => ghost.remove();
+  scoreEffects.push(flight);
+  scoreEffects.push(slot.animate([{backgroundColor:'#f2621a'},{backgroundColor:getComputedStyle(slot).backgroundColor}],{duration:360,easing:'cubic-bezier(.16,1,.3,1)'}));
+}
+function focusScore(aid) {
+  if (!keyboardAction) return;
+  const rows = [...app.querySelectorAll('.arow')];
+  const row = rows.find(node => node.dataset.archer === aid);
+  const next = row?.querySelector('[data-action="vscore"]:not(:disabled), [data-action="score"]') ||
+    rows.map(node => node.querySelector('[data-action="vscore"]:not(:disabled)')).find(Boolean) ||
+    app.querySelector('.dock button:not(:disabled)[data-d="1"], .dock [data-action="finish"]');
+  next?.focus();
+}
+const scoringDockSize = new ResizeObserver(entries => {
+  for (const entry of entries) app.style.setProperty('--score-dock-height', entry.target.getBoundingClientRect().height + 'px');
+});
 function updateNavigationSize() {
   const navigation = app.querySelector('.main-nav');
   if (!navigation) return;
@@ -212,7 +262,11 @@ function header(title, backTo) {
 }
 
 function render() {
+  cancelScoreFeedback();
+  const focused = app.contains(document.activeElement) ? document.activeElement : null;
+  const focusData = focused?.dataset.action ? {...focused.dataset} : null;
   const { page, id } = route();
+  if (page !== 'round') announceScore('');
   let html;
   switch (page) {
     case 'new': html = viewNew(); break;
@@ -229,8 +283,19 @@ function render() {
   if (html == null) return;            // view redirected
   const showNavigation = !['round', 'new', 'import'].includes(page);
   app.classList.toggle('has-main-nav', showNavigation);
+  app.classList.toggle('is-scoring', page === 'round');
+  app.classList.toggle('is-scorecard', page === 'card');
+  scoringDockSize.disconnect();
   navigationSize.disconnect();
   app.innerHTML = html + (showNavigation ? mainNavigation(page === '' ? '' : page) : '');
+  const dock = app.querySelector('.dock');
+  if (dock) scoringDockSize.observe(dock);
+  if (page === 'round' && focusData && keyboardAction) {
+    const replacement = [...app.querySelectorAll('[data-action]')].find(node =>
+      Object.entries(focusData).every(([key,value]) => node.dataset[key] === value));
+    if (replacement && !replacement.disabled) replacement.focus({preventScroll:true});
+    else focusScore(focusData.aid);
+  }
   const navigation = app.querySelector('.main-nav');
   if (navigation) { updateNavigationSize(); navigationSize.observe(navigation); }
   if (focusDestination) {
@@ -242,7 +307,10 @@ function render() {
   const path = location.hash;
   if (path !== lastPath) { window.scrollTo(0, 0); lastPath = path; }
   const cur = app.querySelector('.chip.cur');
-  if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+  if (cur) {
+    const strip = cur.parentElement;
+    strip.scrollLeft += cur.getBoundingClientRect().left - strip.getBoundingClientRect().left - (strip.clientWidth - cur.offsetWidth) / 2;
+  }
   setWakeLock(page === 'round');
   Plot.bind(app, placeArrow);
   if (page === 'card') Groups.bind(app);
@@ -361,28 +429,28 @@ function viewRound(id) {
 
   const rows = r.archerIds.map(aid => vegas ? vegasRow(r, aid, t) : iboRow(r, aid, t)).join('');
 
-  return `${header(`${unit(r)} ${t + 1} <small>of ${r.targets}${editing ? ', editing' : ''}</small>`,
-                   editing ? `#/card/${r.id}` : '#/')}
-  <nav class="strip">${chips}</nav>
-  <main class="with-dock">
+  const solo = r.archerIds.length === 1 ? tally(r, r.archerIds[0]) : null;
+  return `<header class="round-top">
+    <div class="round-toolbar"><button class="back" data-action="nav" data-to="${editing ? '#/card/' + r.id : '#/'}" aria-label="Back">${uiIcon('arrow')}</button><span>${typeName(r)}${editing ? ' · Editing scores' : ''}</span></div>
+    <div class="score-head"><h1>${unit(r)} ${t + 1}<small>of ${r.targets}</small></h1>
+      <div class="running-total">${solo ? '<b>' + solo.total + '</b><span>' + solo.bonus + ' ' + bonusLabel(r) + ' · running total</span>' : '<b>' + r.archerIds.length + '</b><span>archers · group round</span>'}</div></div>
+  </header>
+  <nav class="strip" aria-label="${vegas ? 'Ends' : 'Targets'}">${chips}</nav>
+  <main class="with-dock scoring-main">
     ${vegas ? plotPanel(r, t) : ''}
     ${rows}
     ${vegas && blocked ? `<p class="muted small">Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.</p>` : ''}
     ${vegas
       ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
-      : `<div class="grid3">
-      <button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>
-      <button class="btn" data-action="add-target">+ Target</button>
-      <button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button>
-    </div>`}
-    <button class="big ${isLast ? 'go' : ''}" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
+      : `<div class="round-tools"><button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button><button class="btn" data-action="add-target">+ Target</button><button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button></div>`}
+    <button class="big" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
   </main>
   <div class="dock">
-    <button class="big" data-action="move" data-d="-1" ${t === 0 ? 'disabled' : ''}>◀ Prev</button>
+    <button class="big" data-action="move" data-d="-1" aria-label="Previous ${unit(r).toLowerCase()}" ${t === 0 ? 'disabled' : ''}>${uiIcon('arrow')}<span>Previous</span></button>
     ${!isLast
-      ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ▶</button>`
+      ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ${unit(r).toLowerCase()} ${uiIcon('arrow')}</button>`
       : vegas
-        ? `<button class="big go" data-action="finish">${editing ? 'Done editing' : 'Finish'}</button>`
+        ? `<button class="big primary" data-action="finish">${editing ? 'Done editing' : 'Finish'}</button>`
         : `<button class="big primary" data-action="add-target">+ Add target</button>`}
   </div>`;
 }
@@ -390,38 +458,34 @@ function viewRound(id) {
 function iboRow(r, aid, t) {
   const { total, elevens } = tally(r, aid);
   const v = r.scores[aid][t];
-  return `<div class="arow" data-v="${v == null ? '' : v}">
-    <div class="ahead">
-      <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="11s">${elevens}× 11</span><b>${total}</b></span>
-    </div>
-    <div class="sbtns">
+  return `<section class="arow" data-archer="${aid}" aria-label="${esc(nameOf(aid))}" data-v="${v == null ? '' : v}">
+    <div class="ahead"><h2 class="aname">${esc(nameOf(aid))}</h2>
+      <span class="atot"><b>${total}</b><span>points · ${elevens} 11s</span></span></div>
+    <div class="sbtns" role="group" aria-label="Target score">
       ${VALUES.map(x => `<button class="s s${x} ${v === x ? 'sel' : ''}" data-action="score"
-          data-aid="${aid}" data-v="${x}" aria-pressed="${v === x}">${label(x)}</button>`).join('')}
-    </div></div>`;
+          data-aid="${aid}" data-v="${x}" aria-label="${x === 0 ? 'Miss' : x}" aria-pressed="${v === x}">${x === 0 ? 'Miss' : label(x)}</button>`).join('')}
+    </div><p class="entry-caption">Tap the selected score to clear it.</p></section>`;
 }
 
-// Vegas: three arrow slots per end. Score buttons fill the next empty slot;
-// tapping a filled slot clears it so it can be re-entered.
+// Score buttons fill the first empty slot; clearing a slot keeps all other arrows.
 function vegasRow(r, aid, t) {
   const { total, xs } = tally(r, aid);
   const end = r.scores[aid][t];
   const next = end.indexOf(null);
   const full = next < 0;
-  const slots = end.map((v, k) => v == null
-    ? `<span class="slot empty ${k === next ? 'next' : ''}" aria-label="Arrow ${k + 1} not scored"></span>`
-    : `<button class="slot r${ring(v)}" data-action="vclear" data-aid="${aid}" data-k="${k}"
-        aria-label="Arrow ${k + 1}: ${label(v)}. Tap to clear">${label(v)}</button>`).join('');
-  return `<div class="arow vrow ${full ? 'full' : ''}">
-    <div class="ahead">
-      <span class="aname">${esc(nameOf(aid))}</span>
-      <span class="atot"><span class="elev" title="Xs">${xs}× X</span><b>${total}</b></span>
-    </div>
-    <div class="slots">${slots}<span class="endtot"><small>End</small>${endTotal(end)}</span></div>
-    <div class="sbtns vbtns">
+  const slots = end.map((v, k) => `<div class="arrow-label"><span>Arrow ${k + 1}</span>${v == null
+    ? `<span class="slot empty ${k === next ? 'next' : ''}" data-slot="${k}" aria-label="Arrow ${k + 1} not scored">—</span>`
+    : `<button class="slot r${ring(v)}" data-slot="${k}" data-action="vclear" data-aid="${aid}" data-k="${k}"
+        aria-label="Arrow ${k + 1}: ${label(v)}. Tap to clear">${label(v)}</button>`}</div>`).join('');
+  return `<section class="arow vrow ${full ? 'full' : ''}" data-archer="${aid}" aria-label="${esc(nameOf(aid))}">
+    <div class="ahead"><h2 class="aname">${esc(nameOf(aid))}</h2>
+      <span class="atot"><b>${total}</b><span>points · ${xs} Xs</span></span></div>
+    <div class="slots">${slots}</div>
+    <div class="entry-caption"><span>${full ? 'End complete' : 'Three arrows per end'}</span><b>End total · ${endTotal(end)}</b></div>
+    <div class="sbtns vbtns" role="group" aria-label="Arrow score">
       ${VEGAS_VALUES.map(x => `<button class="s r${ring(x)}" data-action="vscore"
-          data-aid="${aid}" data-v="${x}" ${full ? 'disabled' : ''}>${label(x)}</button>`).join('')}
-    </div></div>`;
+          data-aid="${aid}" data-v="${x}" aria-label="${x === 0 ? 'Miss' : x}" ${full ? 'disabled' : ''}>${x === 0 ? 'Miss' : label(x)}</button>`).join('')}
+    </div><p class="entry-caption">Tap a filled arrow to change its score.</p></section>`;
 }
 
 function viewCard(id) {
@@ -437,19 +501,19 @@ function viewCard(id) {
 
   return `${header(finished ? 'Scorecard' : 'Scorecard <small>in progress</small>',
                    finished ? '#/history' : `#/round/${r.id}`)}
-  <main>
+  <main class="scorecard-main">
     <div class="meta"><strong>${fmtDate(r.createdAt)}</strong>${r.note ? `<span>${esc(r.note)}</span>` : ''}
       <span class="badge type">${typeName(r)}</span><span class="muted">${unitsLabel(r)}</span></div>
 
     <h2>Standings</h2>
-    <div class="tablewrap"><table>
-      <thead><tr><th>#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
+    <div class="tablewrap" role="region" aria-label="Standings table" tabindex="0"><table aria-label="Standings">
+      <thead><tr><th scope="col">#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
       <tbody>${rank.map(x => `<tr class="${x.rank === 1 && finished ? 'first' : ''}">
         <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
       </tbody></table></div>
 
     <h2>Card</h2>
-    <div class="tablewrap"><table>
+    <div class="tablewrap" role="region" aria-label="Complete scorecard, scroll for all archers" tabindex="0"><table aria-label="Complete scorecard">
       <thead><tr><th>${vegas ? 'End' : 'Tgt'}</th>${r.archerIds.map(aid => `<th>${esc(nameOf(aid))}</th>`).join('')}</tr></thead>
       <tbody>${Array.from({ length: r.targets }, (_, i) =>
         `<tr><td class="muted" style="font-size:1rem">${i + 1}</td>${r.archerIds.map(aid => (vegas ? endCell : cell)(r.scores[aid][i])).join('')}</tr>`).join('')}
@@ -647,7 +711,7 @@ function plotPanel(r, t) {
     .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
   const tabs = r.archerIds.length > 1 ? `<div class="ptabs">${r.archerIds.map(id => {
     const done = !r.scores[id][t].includes(null);
-    return `<button class="${id === aid ? 'on' : ''} ${done ? 'done' : ''}" data-action="plot-archer" data-aid="${id}">${esc(nameOf(id))}</button>`;
+    return `<button class="${id === aid ? 'on' : ''} ${done ? 'done' : ''}" data-action="plot-archer" data-aid="${id}" aria-pressed="${id === aid}">${esc(nameOf(id))}</button>`;
   }).join('')}</div>` : '';
   return `<section class="plot">
     <div class="plot-head">${endStrip(r, aid, t)}${undoButton(r, t)}</div>
@@ -1043,29 +1107,38 @@ const actions = {
     go('#/round/' + r.id);
   },
 
-  score: d => {
+  score: (d, source) => {
     const r = currentRound(); if (!r) return;
     const v = Number(d.v);
     const arr = r.scores[d.aid];
     arr[r.current] = arr[r.current] === v ? null : v;   // tap again to clear
     if (arr[r.current] != null) Native.haptic.tap();
-    save(); render();
+    const entered = arr[r.current];
+    const from = source?.getBoundingClientRect();
+    const stored = save(); render();
+    announceScore(nameOf(d.aid) + ': target ' + (r.current + 1) + (entered == null ? ' cleared.' : ': ' + label(entered) + (stored ? ', saved.' : ', could not save.')));
+    if (stored && entered != null) scoreFeedback(d.aid, null, from, entered);
   },
 
-  vscore: d => {
+  vscore: (d, source) => {
     const r = currentRound(); if (!r || !isVegas(r)) return;
     const end = r.scores[d.aid][r.current];
     const k = end.indexOf(null); if (k < 0) return;
     end[k] = d.v === 'X' ? 'X' : Number(d.v);
     Native.haptic.tap();
-    save(); render();
+    const from = source?.getBoundingClientRect();
+    const stored = save(); render();
+    announceScore(nameOf(d.aid) + ', end ' + (r.current + 1) + ', Arrow ' + (k + 1) + ': ' + label(end[k]) + (stored ? ', saved.' : ', could not save.'));
+    if (stored) scoreFeedback(d.aid, k, from, end[k]);
   },
 
   vclear: d => {
     const r = currentRound(); if (!r || !isVegas(r)) return;
     r.scores[d.aid][r.current][Number(d.k)] = null;
     const pe = plotsOf(r, d.aid)[r.current]; pe[Number(d.k)] = null;
-    save(); render();
+    const stored = save(); render();
+    announceScore(nameOf(d.aid) + ', Arrow ' + (Number(d.k) + 1) + ' cleared. Enter a replacement score.' + (stored ? '' : ' Could not save.'));
+    focusScore(d.aid);
   },
 
   'plot-toggle': () => {
@@ -1097,6 +1170,9 @@ const actions = {
     if (to > r.current && to > lastOpen(r)) return;
     r.current = to;
     save(); render();
+    window.scrollTo(0, 0);
+    announceScore(unit(r) + ' ' + (to + 1) + ' of ' + r.targets);
+    focusScore(r.archerIds[0]);
   },
 
   jump: d => {
@@ -1105,6 +1181,9 @@ const actions = {
     if (to > r.current && to > lastOpen(r)) return;
     r.current = to;
     save(); render();
+    window.scrollTo(0, 0);
+    announceScore(unit(r) + ' ' + (to + 1) + ' of ' + r.targets);
+    focusScore(r.archerIds[0]);
   },
 
   'add-target': () => {
@@ -1127,7 +1206,7 @@ const actions = {
     save(); render();
   },
 
-  finish: () => completion.finish(),
+  finish: () => { cancelScoreFeedback(); return completion.finish(); },
 
   'edit-round': () => {
     const r = currentRound(); if (!r) return;
@@ -1213,10 +1292,12 @@ const forms = {
   }
 };
 
+app.addEventListener('pointerdown', () => { keyboardAction = false; });
 app.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled) return;
   if (e.detail === 0 && (el.dataset.action === 'nav' || el.dataset.action === 'new-round')) focusDestination = true;
+  keyboardAction = e.detail === 0;
   const fn = actions[el.dataset.action];
   if (fn) fn(el.dataset, el);
 });
