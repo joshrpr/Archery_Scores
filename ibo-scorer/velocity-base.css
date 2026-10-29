@@ -1,0 +1,72 @@
+@font-face { font-family: Newsreader; src: url('fonts/Newsreader.ttf'); font-weight: 200 800; font-display: swap; }
+@font-face { font-family: Newsreader; src: url('fonts/Newsreader-Italic.ttf'); font-style: italic; font-weight: 200 800; font-display: swap; }
+/* Shared Velocity OD foundation. Score and support views extend these tokens.
+   Target ring and score-value colors remain semantic, independent of branding. */
+:root {
+  --od: #4b5320;
+  --paper: #f3eedf;
+  --sheet: #fcf8ee;
+  --ink: #26281f;
+  --muted: #65614e;
+  --rule: #d2ccb9;
+  --tint: #e6dfcb;
+  --cream: #f3eedf;
+  --night: var(--paper);
+  --ridge: var(--sheet);
+  --ridge-2: var(--tint);
+  --line: var(--rule);
+  --sky: var(--od);
+  --sky-deep: #394116;
+  --arrow: #f2621a;
+  --arrow-hi: #aa3c0b;
+  --cloud: var(--ink);
+  --haze: var(--muted);
+  --hill: var(--muted);
+  --danger: #ad2924;
+  --display: Newsreader, Georgia, serif;
+  --body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --s11: #a53b0b;
+  --s10: #1767a7;
+  --s8: #466d20;
+  --s5: #765a2a;
+  --s0: #65614e;
+}
+html, body { font-size: 17px; background: var(--paper); color: var(--ink); }
+html { scrollbar-color: var(--od) var(--paper); }
+::selection { background: var(--arrow); color: var(--ink); }
+input, textarea { caret-color: var(--od); }
+a { color: var(--od); text-underline-offset: .2em; }
+input::placeholder { color: var(--muted); }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--arrow-hi); outline-offset: 3px; }
+button:disabled { opacity: .55; }
+button[aria-busy=true] { cursor: progress; }
+.btn, .big, .card-row, .pick-btn, .seg button { border-width: 1px; }
+.primary { color: var(--ink); }
+.primary:hover:not(:disabled) { background: #ff873d; border-color: #ff873d; }
+.btn:not(.primary):not(.danger):hover:not(:disabled), .card-row:hover:not(:disabled), .pick-btn:hover:not(:disabled) { background: var(--tint); }
+.top { border-bottom: 1px solid var(--rule); }
+.top h1 { white-space: normal; font-weight: 500; }
+.top .back { border: 0; background: transparent; }
+main h2 { color: var(--ink); }
+.pick-btn.on, .chip.cur, .seg .on { background: var(--od); color: var(--cream); border-color: var(--od); }
+.seg .on span { color: var(--cream); }
+.card-row.resume { background: var(--sheet); border-color: var(--od); }
+.order { background: var(--cream); color: var(--od); }
+.go { background: var(--od); border-color: var(--od); color: var(--cream); }
+.badge, .rank1 { color: var(--ink); }
+.dock { box-shadow: none; }
+th, td { border-bottom-color: var(--rule); }
+tbody tr:nth-child(even) td { background: #e6dfcb66; }
+.slot, .s.sel { color: var(--ink); }
+.slot.empty { color: var(--muted); }
+.s { color: var(--ink); }
+.modal-wrap { background: #26281f99; }
+.modal { background: var(--paper); }
+/* Main navigation is deliberately omitted where scoring or setup owns the dock. */
+.has-main-nav > main { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+.main-nav { position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px; padding: 9px max(12px, calc((100vw - 640px) / 2)) max(9px, env(safe-area-inset-bottom)); background: var(--od); color: var(--cream); }
+.main-nav button { min-width: 0; min-height: 60px; border: 0; border-radius: 6px; background: transparent; color: #e3e3c9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: .72rem; font-weight: 600; padding: 5px 3px; }
+.main-nav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.main-nav button[aria-current=page], .main-nav button:hover { color: var(--cream); background: #626b32; }
+.main-nav :focus-visible { outline-color: var(--cream); outline-offset: -3px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

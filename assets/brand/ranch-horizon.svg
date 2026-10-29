@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Ranch Horizon concept">
+<defs><image id="ranch-source" href="ranch-source.png" width="512" height="512"/></defs>
+<rect width="128" height="128" fill="#4b5320"/>
+<svg x="0" y="49" width="128" height="79" viewBox="48 200 416 280" preserveAspectRatio="xMidYMid slice"><use href="#ranch-source"/></svg>
+<g fill="none" stroke="#f3eedf" stroke-width="2.8" stroke-linecap="round"><path d="M39 58v-9a25 25 0 0 1 50 0v9"/><path d="M49 58v-9a15 15 0 0 1 30 0v9"/></g>
+<path d="m64 10 10 23-7-4v22h-6V29l-7 4ZM64 48l-7 6v8l7-6 7 6v-8Z" fill="#f2621a" stroke="#f3eedf" stroke-width="1.8" stroke-linejoin="round"/>
+</svg>

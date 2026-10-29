@@ -21,6 +21,16 @@ if (migrate(db)) save();
 let draft = null;        // new-round form state
 let pendingImport = null; // rounds read from another app's export, awaiting confirmation
 let lastPath = null;
+let focusDestination = false;
+function updateNavigationSize() {
+  const navigation = app.querySelector('.main-nav');
+  if (!navigation) return;
+  const widestLabel = Math.max(...[...navigation.querySelectorAll('button > span')].map(label => label.scrollWidth));
+  const columns = (navigation.clientWidth - 16) / 4 >= widestLabel + 12 ? 4 : 2;
+  navigation.style.setProperty('--main-nav-columns', columns);
+  app.style.setProperty('--main-nav-height', navigation.getBoundingClientRect().height + 'px');
+}
+const navigationSize = new ResizeObserver(updateNavigationSize);
 
 /* ---------- storage ---------- */
 function load() {
@@ -217,7 +227,17 @@ function render() {
     default: html = viewHome();
   }
   if (html == null) return;            // view redirected
-  app.innerHTML = html;
+  const showNavigation = !['round', 'new', 'import'].includes(page);
+  app.classList.toggle('has-main-nav', showNavigation);
+  navigationSize.disconnect();
+  app.innerHTML = html + (showNavigation ? mainNavigation(page === '' ? '' : page) : '');
+  const navigation = app.querySelector('.main-nav');
+  if (navigation) { updateNavigationSize(); navigationSize.observe(navigation); }
+  if (focusDestination) {
+    focusDestination = false;
+    const heading = app.querySelector('h1');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  }
   if (page === 'round' && isVegas(roundById(id) || {})) Celebration.preload();
   const path = location.hash;
   if (path !== lastPath) { window.scrollTo(0, 0); lastPath = path; }
@@ -230,38 +250,47 @@ function render() {
 }
 
 /* ---------- views ---------- */
+const navPaths = {
+  home: '<path d="m3 10 9-7 9 7v10h-6v-6H9v6H3z"/>',
+  history: '<path d="M4 5v5h5M4 10a8 8 0 1 1 0 5m8-9v6l4 2"/>',
+  stats: '<path d="M4 4v16h17M8 16v-5m5 5V7m5 9v-7"/>',
+  archers: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2"/>',
+  arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>'
+};
+const uiIcon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + navPaths[name] + '</svg>';
+function mainNavigation(page) {
+  const active = page === 'card' ? 'history' : page === 'archer' ? 'archers' : page;
+  return '<nav class="main-nav" aria-label="Main navigation">' +
+    [['','Home','home'],['history','History','history'],['stats','Analytics','stats'],['archers','Archers','archers']]
+      .map(([path,name,icon]) => '<button data-action="nav" data-to="#/' + path + '"' +
+        (active === path ? ' aria-current="page"' : '') + '>' + uiIcon(icon) + '<span>' + name + '</span></button>').join('') + '</nav>';
+}
+function homeRound(r, unfinished) {
+  const format = typeName(r), destination = unfinished ? 'round' : 'card';
+  return '<button class="home-round ' + (unfinished ? 'home-resume' : 'home-recent') + '" data-action="nav" data-to="#/' + destination + '/' + esc(r.id) + '" aria-label="' +
+    (unfinished ? 'Resume ' : 'View ') + format + ', ' + (unfinished ? unit(r) + ' ' + (r.current + 1) + ' of ' + r.targets + ', ' : '') + esc(r.archerIds.map(id => { const t = tally(r,id); return nameOf(id) + ', ' + t.total + ' points, ' + t.bonus + ' ' + bonusLabel(r); }).join('; ')) + ', ' + fmtDate(r.createdAt) + '">' +
+    '<span class="home-round-title">' + (unfinished ? (isVegas(r) ? 'Vegas<span>300</span>' : 'IBO<span>3D</span>') : format) + '</span>' +
+    (unfinished ? '<span class="home-resume-arrow">' + uiIcon('arrow') + '</span>' : '') +
+    '<span class="home-round-meta">' + (unfinished ? unit(r) + ' ' + (r.current + 1) + ' of ' + r.targets + ' · ' : '') + fmtDate(r.createdAt) + '</span>' +
+    (r.note ? '<span class="home-round-note">' + esc(r.note) + '</span>' : '') +
+    '<span class="home-results">' + r.archerIds.map(id => {
+      const t = tally(r,id);
+      return '<span class="home-result"><strong>' + esc(nameOf(id)) + '</strong><span><b>' + t.total + '</b> points <span class="home-bonus">' + t.bonus + ' ' + bonusLabel(r) + '</span></span></span>';
+    }).join('') + '</span></button>';
+}
 function viewHome() {
-  const open = db.rounds.filter(r => r.status !== 'finished').sort((a, b) => b.createdAt - a.createdAt);
-  return `<section class="hero">
-    <img class="hero-logo" src="icons/logo.webp" alt="" width="168" height="168">
-    <h1 class="brand"><span>Ropers</span>Archery Scorecard</h1>
-    <svg class="ridge" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" fill="#1e4175"/>
-      <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" fill="#0e2240"/>
-    </svg>
-  </section>
-  <main>
-    ${Native.isApp && !db.rounds.length && !db.archers.length ? `
-      <button class="card-row resume" data-action="nav" data-to="#/backup">
-        <div class="title">Moving from the web app?</div>
-        <div class="muted small">Save a backup in the web app, then tap here and choose Restore from backup file to bring your archers and scores across.</div>
-      </button>` : ''}
-    <button class="big primary" data-action="new-round">Start new round</button>
-    ${open.length ? `<h2>Pick up where you left off</h2>` + open.map(r => `
-      <button class="card-row resume" data-action="nav" data-to="#/round/${r.id}">
-        <div class="title">${unit(r)} ${r.current + 1} of ${r.targets}<span class="badge type">${typeName(r)}</span></div>
-        <div>${r.archerIds.map(id => esc(nameOf(id))).join(', ')}</div>
-        <div class="muted small">${fmtDate(r.createdAt)}${r.note ? `, ${esc(r.note)}` : ''}</div>
-      </button>`).join('') : ''}
-    <button class="big an-home" data-action="nav" data-to="#/stats">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M6 16V11M11 16V6M16 16v-7M21 16V9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-      Analytics</button>
-    <div class="grid2">
-      <button class="big" data-action="nav" data-to="#/history">History</button>
-      <button class="big" data-action="nav" data-to="#/archers">Archers</button>
-    </div>
-    <button class="btn" data-action="nav" data-to="#/backup">Backup and export</button>
-  </main>`;
+  const open = db.rounds.filter(r => r.status !== 'finished').sort((a,b) => b.createdAt-a.createdAt);
+  const recent = db.rounds.filter(r => r.status === 'finished').sort((a,b) => (b.finishedAt || b.createdAt)-(a.finishedAt || a.createdAt)).slice(0,3);
+  return '<header class="home-brandbar"><img src="icons/ranch-horizon.svg" alt="Ranch Horizon" width="54" height="54"><div class="home-wordmark">Ropers<span>Archery Scorecard</span></div><button class="home-settings" data-action="nav" data-to="#/backup" aria-label="Backup and export">' + uiIcon('settings') + '</button></header>' +
+    '<main class="home-main"><h1 class="home-heading">' + (open.length ? 'Pick up where you left off.' : 'Make your next round count.') + '</h1>' +
+    (Native.isApp && !db.rounds.length && !db.archers.length ? '<button class="card-row" data-action="nav" data-to="#/backup"><strong>Moving from the web app?</strong><span class="muted small">Restore a backup to bring your archers and scores across.</span></button>' : '') +
+    (open.length ? '<section class="home-open" aria-label="Unfinished rounds">' + open.map(r => homeRound(r,true)).join('') + '</section>' : '<p class="home-welcome">' + (db.rounds.length ? 'No unfinished rounds. Start fresh when you’re ready.' : 'Your scores, your archers, your progress. Start a round to begin your scorebook.') + '</p>') +
+    '<button class="home-new" data-action="new-round"><span>Start new round</span>' + uiIcon('plus') + '</button>' +
+    '<section class="home-history" aria-label="Recent rounds"><div class="home-section-heading"><h2>Recent rounds</h2><button class="link" data-action="nav" data-to="#/history">View all</button></div>' +
+    (recent.length ? recent.map(r => homeRound(r,false)).join('') : '<p class="home-empty">Finished rounds will appear here. Your scorecard is saved on this device.</p>') +
+    '</section><button class="home-backup" data-action="nav" data-to="#/backup">Backup and export</button></main>';
 }
 
 function viewNew() {
@@ -1187,6 +1216,7 @@ const forms = {
 app.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled) return;
+  if (e.detail === 0 && (el.dataset.action === 'nav' || el.dataset.action === 'new-round')) focusDestination = true;
   const fn = actions[el.dataset.action];
   if (fn) fn(el.dataset, el);
 });

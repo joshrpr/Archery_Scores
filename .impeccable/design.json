@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T01:30:55.138582+00:00",
+  "title": "Design System: Ropers Archery Scorecard — Velocity OD",
+  "extensions": {
+    "colorMeta": {
+      "od": {
+        "role": "secondary",
+        "displayName": "Olive Drab",
+        "tonalRamp": [
+          "oklch(15% 0.0739 117.12)",
+          "oklch(26% 0.0739 117.12)",
+          "oklch(38% 0.0739 117.12)",
+          "oklch(49% 0.0739 117.12)",
+          "oklch(61% 0.0739 117.12)",
+          "oklch(72% 0.0739 117.12)",
+          "oklch(84% 0.0739 117.12)",
+          "oklch(95% 0.0739 117.12)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "tonalRamp": [
+          "oklch(15% 0.0206 91.59)",
+          "oklch(26% 0.0206 91.59)",
+          "oklch(38% 0.0206 91.59)",
+          "oklch(49% 0.0206 91.59)",
+          "oklch(61% 0.0206 91.59)",
+          "oklch(72% 0.0206 91.59)",
+          "oklch(84% 0.0206 91.59)",
+          "oklch(95% 0.0206 91.59)"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Clean Sheet",
+        "tonalRamp": [
+          "oklch(15% 0.0139 88.68)",
+          "oklch(26% 0.0139 88.68)",
+          "oklch(38% 0.0139 88.68)",
+          "oklch(49% 0.0139 88.68)",
+          "oklch(61% 0.0139 88.68)",
+          "oklch(72% 0.0139 88.68)",
+          "oklch(84% 0.0139 88.68)",
+          "oklch(95% 0.0139 88.68)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Field Ink",
+        "tonalRamp": [
+          "oklch(15% 0.0163 117.67)",
+          "oklch(26% 0.0163 117.67)",
+          "oklch(38% 0.0163 117.67)",
+          "oklch(49% 0.0163 117.67)",
+          "oklch(61% 0.0163 117.67)",
+          "oklch(72% 0.0163 117.67)",
+          "oklch(84% 0.0163 117.67)",
+          "oklch(95% 0.0163 117.67)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Quiet Olive Gray",
+        "tonalRamp": [
+          "oklch(15% 0.0295 97.46)",
+          "oklch(26% 0.0295 97.46)",
+          "oklch(38% 0.0295 97.46)",
+          "oklch(49% 0.0295 97.46)",
+          "oklch(61% 0.0295 97.46)",
+          "oklch(72% 0.0295 97.46)",
+          "oklch(84% 0.0295 97.46)",
+          "oklch(95% 0.0295 97.46)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Paper Rule",
+        "tonalRamp": [
+          "oklch(15% 0.0266 92.43)",
+          "oklch(26% 0.0266 92.43)",
+          "oklch(38% 0.0266 92.43)",
+          "oklch(49% 0.0266 92.43)",
+          "oklch(61% 0.0266 92.43)",
+          "oklch(72% 0.0266 92.43)",
+          "oklch(84% 0.0266 92.43)",
+          "oklch(95% 0.0266 92.43)"
+        ]
+      },
+      "tint": {
+        "role": "neutral",
+        "displayName": "Paper Tint",
+        "tonalRamp": [
+          "oklch(15% 0.0278 90.92)",
+          "oklch(26% 0.0278 90.92)",
+          "oklch(38% 0.0278 90.92)",
+          "oklch(49% 0.0278 90.92)",
+          "oklch(61% 0.0278 90.92)",
+          "oklch(72% 0.0278 90.92)",
+          "oklch(84% 0.0278 90.92)",
+          "oklch(95% 0.0278 90.92)"
+        ]
+      },
+      "arrow": {
+        "role": "primary",
+        "displayName": "Arrow Orange",
+        "tonalRamp": [
+          "oklch(15% 0.1924 42.06)",
+          "oklch(26% 0.1924 42.06)",
+          "oklch(38% 0.1924 42.06)",
+          "oklch(49% 0.1924 42.06)",
+          "oklch(61% 0.1924 42.06)",
+          "oklch(72% 0.1924 42.06)",
+          "oklch(84% 0.1924 42.06)",
+          "oklch(95% 0.1924 42.06)"
+        ]
+      },
+      "arrow-hi": {
+        "role": "primary",
+        "displayName": "Dark Orange Focus",
+        "tonalRamp": [
+          "oklch(15% 0.1539 39.76)",
+          "oklch(26% 0.1539 39.76)",
+          "oklch(38% 0.1539 39.76)",
+          "oklch(49% 0.1539 39.76)",
+          "oklch(61% 0.1539 39.76)",
+          "oklch(72% 0.1539 39.76)",
+          "oklch(84% 0.1539 39.76)",
+          "oklch(95% 0.1539 39.76)"
+        ]
+      },
+      "arrow-hover": {
+        "role": "primary",
+        "displayName": "Warm Orange Hover",
+        "tonalRamp": [
+          "oklch(15% 0.1687 49.06)",
+          "oklch(26% 0.1687 49.06)",
+          "oklch(38% 0.1687 49.06)",
+          "oklch(49% 0.1687 49.06)",
+          "oklch(61% 0.1687 49.06)",
+          "oklch(72% 0.1687 49.06)",
+          "oklch(84% 0.1687 49.06)",
+          "oklch(95% 0.1687 49.06)"
+        ]
+      },
+      "resume-hover": {
+        "role": "secondary",
+        "displayName": "Lifted Olive",
+        "tonalRamp": [
+          "oklch(15% 0.0780 118.23)",
+          "oklch(26% 0.0780 118.23)",
+          "oklch(38% 0.0780 118.23)",
+          "oklch(49% 0.0780 118.23)",
+          "oklch(61% 0.0780 118.23)",
+          "oklch(72% 0.0780 118.23)",
+          "oklch(84% 0.0780 118.23)",
+          "oklch(95% 0.0780 118.23)"
+        ]
+      },
+      "nav-muted": {
+        "role": "neutral",
+        "displayName": "Pale Olive Text",
+        "tonalRamp": [
+          "oklch(15% 0.0345 107.07)",
+          "oklch(26% 0.0345 107.07)",
+          "oklch(38% 0.0345 107.07)",
+          "oklch(49% 0.0345 107.07)",
+          "oklch(61% 0.0345 107.07)",
+          "oklch(72% 0.0345 107.07)",
+          "oklch(84% 0.0345 107.07)",
+          "oklch(95% 0.0345 107.07)"
+        ]
+      },
+      "nav-active": {
+        "role": "secondary",
+        "displayName": "Active Olive",
+        "tonalRamp": [
+          "oklch(15% 0.0809 116.79)",
+          "oklch(26% 0.0809 116.79)",
+          "oklch(38% 0.0809 116.79)",
+          "oklch(49% 0.0809 116.79)",
+          "oklch(61% 0.0809 116.79)",
+          "oklch(72% 0.0809 116.79)",
+          "oklch(84% 0.0809 116.79)",
+          "oklch(95% 0.0809 116.79)"
+        ]
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "Danger Red",
+        "tonalRamp": [
+          "oklch(15% 0.1694 27.62)",
+          "oklch(26% 0.1694 27.62)",
+          "oklch(38% 0.1694 27.62)",
+          "oklch(49% 0.1694 27.62)",
+          "oklch(61% 0.1694 27.62)",
+          "oklch(72% 0.1694 27.62)",
+          "oklch(84% 0.1694 27.62)",
+          "oklch(95% 0.1694 27.62)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "wordmark": {
+        "displayName": "Ropers wordmark",
+        "purpose": "Compact italic brand identity.",
+        "fontStyle": "italic"
+      },
+      "headline": {
+        "displayName": "Home lead",
+        "purpose": "Short sans-serif lead above unfinished rounds."
+      },
+      "round-format": {
+        "displayName": "Round format",
+        "purpose": "Large upright format label on unfinished rounds."
+      },
+      "round-number": {
+        "displayName": "Round number",
+        "purpose": "Separate large 300 or 3D line."
+      },
+      "title": {
+        "displayName": "Section title",
+        "purpose": "Serif Recent rounds section heading."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Routine controls and readable shared foundation."
+      },
+      "label": {
+        "displayName": "Navigation label",
+        "purpose": "Main navigation destinations."
+      },
+      "metadata": {
+        "displayName": "Round metadata",
+        "purpose": "Progress and dates on olive drab."
+      }
+    },
+    "shadows": [
+      {
+        "name": "flat-home",
+        "value": "none",
+        "purpose": "Selected Home and navigation rely on tonal contrast, spacing, and rules."
+      }
+    ],
+    "motion": [
+      {
+        "name": "home-state-change",
+        "value": "none",
+        "purpose": "Home and navigation color states change directly; no timed transitions are introduced."
+      },
+      {
+        "name": "reduced-motion-scroll",
+        "value": "auto",
+        "purpose": "Shared reduced-motion rule disables smooth scrolling."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact-phone",
+        "value": "350px"
+      }
+    ],
+    "layoutMeta": {
+      "contentMaxWidth": "640px",
+      "dockMaxWidth": "608px",
+      "dockMinInset": "16px",
+      "navigationReflow": "App measures widest destination label: choose four columns when one quarter of inner width fits the label plus 12px, otherwise two; a ResizeObserver updates reserved content space.",
+      "safeArea": "Header and dock respect env(safe-area-inset-top/bottom)."
+    },
+    "provenance": {
+      "mode": "scan",
+      "sources": [
+        "PRODUCT.md",
+        "ibo-scorer/velocity-base.css",
+        "ibo-scorer/velocity-home.css",
+        "ibo-scorer/style.css (inherited geometry only)",
+        "ibo-scorer/app.js",
+        "ibo-scorer/index.html"
+      ],
+      "scope": "Approved Velocity OD shared foundation, Home, and main navigation only.",
+      "excludedDrift": "Inherited blue literals, gradients, chart-series styling, older decorations, and unfinished scoring/support/native detail are not canonized.",
+      "tonalRamps": "Synthesized OKLCH lightness ramps for swatch exploration; not additional production tokens.",
+      "previewFonts": "Previews inherit local application font custom properties where available and fall back to Georgia/system sans-serif; they do not fetch remote fonts.",
+      "previewContent": "All example scores and names are explicitly sample content."
+    }
+  },
+  "components": [
+    {
+      "name": "Start new round",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The full-width primary Home action.",
+      "html": "<button class=\"ds-primary\"><span>Start new round</span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg></button>",
+      "css": ".ds-primary{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:58px;padding:15px 18px;border:0;border-radius:12px;background:var(--arrow,#f2621a);color:var(--ink,#26281f);font:650 17px var(--body,system-ui,sans-serif);cursor:pointer}.ds-primary:hover{background:var(--arrow-hover,#ff873d)}.ds-primary:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}"
+    },
+    {
+      "name": "Backup utility",
+      "kind": "button",
+      "refersTo": "button-utility",
+      "description": "A quiet circular Home utility action.",
+      "html": "<button class=\"ds-utility\" aria-label=\"Backup and export\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7h16M4 17h16\"/><circle cx=\"9\" cy=\"7\" r=\"2\"/><circle cx=\"15\" cy=\"17\" r=\"2\"/></svg></button>",
+      "css": ".ds-utility{display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:50%;background:transparent;color:var(--od,#4b5320);cursor:pointer}.ds-utility:hover{background:var(--tint,#e6dfcb)}.ds-utility:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}"
+    },
+    {
+      "name": "Unfinished round",
+      "kind": "card",
+      "refersTo": "round-resume",
+      "description": "Sample content. Production renders every unfinished round and every participating archer.",
+      "html": "<button class=\"ds-resume\" aria-label=\"Sample content: Resume Vegas 300, Alex\"><span class=\"ds-format\">Vegas<span>300</span></span><span class=\"ds-arrow\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 12h15m-6-6 6 6-6 6\"/></svg></span><span class=\"ds-meta\">Sample content · End 4 of 10</span><span class=\"ds-results\"><strong>Alex</strong><span><b>86</b> points &nbsp; 2 X</span></span></button>",
+      "css": ".ds-resume{position:relative;display:block;width:100%;padding:24px;border:0;border-radius:16px 16px 54px 16px;background:var(--od,#4b5320);color:var(--paper,#f3eedf);text-align:left;font:17px var(--body,system-ui,sans-serif);cursor:pointer}.ds-format{display:block;padding-right:58px;font:500 58px/.91 var(--display,Newsreader,Georgia,serif);letter-spacing:-.04em}.ds-format>span{display:block;font-size:73px}.ds-arrow{position:absolute;right:20px;top:20px;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--arrow,#f2621a);color:var(--ink,#26281f);transform:rotate(-35deg)}.ds-meta{display:block;margin-top:12px;font-size:.78em;line-height:1.5;color:var(--nav-muted,#e3e3c9)}.ds-results{display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px 14px;margin-top:19px;padding-top:14px;border-top:1px solid #bfc69d66;font-size:.84em;font-variant-numeric:tabular-nums}.ds-results strong{font-weight:500}.ds-resume:hover{background:var(--resume-hover,#56602a)}.ds-resume:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:4px}"
+    },
+    {
+      "name": "Recent round",
+      "kind": "card",
+      "refersTo": "round-recent",
+      "description": "Sample content. Quiet paper records beneath unfinished rounds.",
+      "html": "<button class=\"ds-recent\" aria-label=\"Sample content: View IBO 3D, Alex\"><strong class=\"ds-recent-title\">IBO 3D</strong><span class=\"ds-recent-meta\">Sample content · Oct 28</span><span class=\"ds-recent-result\"><span>Alex</span><span><b>182</b> points &nbsp; 5 11s</span></span></button>",
+      "css": ".ds-recent{display:block;width:100%;padding:19px 0;border:0;border-bottom:1px solid var(--rule,#d2ccb9);background:transparent;text-align:left;color:var(--ink,#26281f);font:17px var(--body,system-ui,sans-serif);cursor:pointer}.ds-recent-title{display:block;font-size:.95em;font-weight:650;line-height:1.3}.ds-recent-meta{display:block;margin-top:5px;font-size:.75em;line-height:1.5;color:var(--muted,#65614e)}.ds-recent-result{display:flex;flex-wrap:wrap;justify-content:space-between;gap:3px 14px;margin-top:9px;font-size:.84em;color:var(--muted,#65614e);font-variant-numeric:tabular-nums}.ds-recent-result b{font:500 26px/1 var(--display,Newsreader,Georgia,serif);color:var(--ink,#26281f)}.ds-recent:hover{background:var(--tint,#e6dfcb)}.ds-recent:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}"
+    },
+    {
+      "name": "Inset main navigation",
+      "kind": "nav",
+      "refersTo": "main-navigation",
+      "description": "The four destinations; the production layout measures labels and switches to two columns under enlarged text.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><button aria-current=\"page\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 10 9-7 9 7v10h-6v-6H9v6H3z\"/></svg><span>Home</span></button><button><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 5v5h5M4 10a8 8 0 1 1 0 5m8-9v6l4 2\"/></svg><span>History</span></button><button><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 4v16h17M8 16v-5m5 5V7m5 9v-7\"/></svg><span>Analytics</span></button><button><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"9\" cy=\"8\" r=\"3\"/><path d=\"M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2\"/></svg><span>Archers</span></button></nav>",
+      "css": ".ds-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:8px;border-radius:13px;background:var(--od,#4b5320);color:var(--paper,#f3eedf);font:600 .72rem var(--body,system-ui,sans-serif)}.ds-nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:48px;padding:5px 3px;border:0;border-radius:6px;background:transparent;color:var(--nav-muted,#e3e3c9);font:inherit;cursor:pointer}.ds-nav svg{width:22px;height:22px;stroke-width:1.6}.ds-nav button[aria-current=page],.ds-nav button:hover{background:var(--nav-active,#626b32);color:var(--paper,#f3eedf)}.ds-nav button:focus-visible{outline:3px solid var(--paper,#f3eedf);outline-offset:-3px}@media(max-width:300px){.ds-nav{grid-template-columns:repeat(2,minmax(0,1fr))}}"
+    },
+    {
+      "name": "Shared text field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Inherited field geometry with the new readable shared palette; supporting-screen forms are not finalized by this preview.",
+      "html": "<label class=\"ds-field-label\">Archer name<input class=\"ds-field\" placeholder=\"New archer name\" autocomplete=\"off\"></label>",
+      "css": ".ds-field-label{display:block;color:var(--ink,#26281f);font:17px var(--body,system-ui,sans-serif)}.ds-field{display:block;width:100%;min-height:52px;margin-top:8px;padding:10px 14px;border:2px solid var(--rule,#d2ccb9);border-radius:12px;background:var(--tint,#e6dfcb);color:var(--ink,#26281f);caret-color:var(--od,#4b5320);font:1.1em var(--body,system-ui,sans-serif)}.ds-field::placeholder{color:var(--muted,#65614e)}.ds-field:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}.ds-field:hover{border-color:var(--rule,#d2ccb9)}"
+    },
+    {
+      "name": "Selected-state color",
+      "kind": "chip",
+      "refersTo": "chip-selected",
+      "description": "Shared selected-picker color treatment with inherited picker geometry. Detailed supporting-screen controls remain outside the approved Home composition.",
+      "html": "<button class=\"ds-chip\" aria-pressed=\"true\">Selected</button>",
+      "css": ".ds-chip{min-height:52px;padding:10px 16px;border:1px solid var(--od,#4b5320);border-radius:14px;background:var(--od,#4b5320);color:var(--paper,#f3eedf);font:700 1.1rem var(--body,system-ui,sans-serif);cursor:pointer}.ds-chip:hover{background:var(--tint,#e6dfcb)}.ds-chip:focus-visible{outline:3px solid var(--arrow-hi,#aa3c0b);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Velocity OD",
+    "overview": "Velocity OD pairs the character of a ranch scorebook with the speed of a field instrument. Olive drab carries identity and continuity; warm paper carries records; orange marks the next deliberate action. The compact italic Ropers wordmark sits beside Ranch Horizon, whose aerial image is a fixed part of the identity.\n\nThis document records the implemented shared foundation, Home, and main navigation. Home gives unfinished rounds visual weight and keeps completed records quiet and readable. Scoring, supporting screens, completion effects, and native packaging have their own follow-up scope; inherited styling on those surfaces is not evidence of a newly approved visual pattern.",
+    "keyCharacteristics": [
+      "Olive drab, warm paper, and purposeful orange.",
+      "Compact italic brand typography; sans-serif routine controls.",
+      "Large split round-format labels on unfinished rounds.",
+      "Flat tonal surfaces and a floating inset navigation dock.",
+      "Local font assets and real individual or group round data."
+    ],
+    "rules": [
+      {
+        "name": "The Action Color Rule",
+        "body": "Reserve orange for the primary action, its directional cue, and visible focus. Olive drab identifies the continuing round and main navigation.",
+        "section": "colors"
+      },
+      {
+        "name": "The Functional Type Rule",
+        "body": "Use sans-serif for routine controls, navigation, metadata, and archer names. Use Newsreader for identity, round-format display, section headings, and emphasized recent totals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Use tonal contrast, spacing, and fine rules to establish hierarchy. The selected Home and navigation add no shadows.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the exact frozen ranch aerial in the Ranch Horizon identity asset.",
+      "Do preserve the compact italic Ropers wordmark and its quiet sans-serif descriptor.",
+      "Do render every unfinished round and every participating archer from stored data; show up to three completed rounds in Recent rounds.",
+      "Do keep routine controls in sans-serif, preserve visible focus, and allow enlarged text to reflow the dock.",
+      "Do retain real target ring colors independently of interface branding."
+    ],
+    "donts": [
+      "Don't replace the ranch aerial with a generated landscape or remove it through simplification.",
+      "Don't treat inherited blue backgrounds, gradients, chart series colors, or older decorative treatments as approved Velocity OD patterns.",
+      "Don't apply the Home resume card composition indiscriminately to scoring or supporting screens.",
+      "Don't invent scores or round records in production; label component-preview examples as sample content.",
+      "Don't add display typography to routine controls or add a dock where setup, import, or active scoring owns the interaction."
+    ]
+  }
+}
