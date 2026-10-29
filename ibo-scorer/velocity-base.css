@@ -38,6 +38,7 @@ input, textarea { caret-color: var(--od); }
 a { color: var(--od); text-underline-offset: .2em; }
 input::placeholder { color: var(--muted); }
 button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--arrow-hi); outline-offset: 3px; }
+.file-btn:focus-within { outline-color: var(--arrow-hi); outline-offset: 3px; }
 button:disabled { opacity: .55; }
 button[aria-busy=true] { cursor: progress; }
 .btn, .big, .card-row, .pick-btn, .seg button { border-width: 1px; }
@@ -47,6 +48,9 @@ button[aria-busy=true] { cursor: progress; }
 .top { border-bottom: 1px solid var(--rule); }
 .top h1 { white-space: normal; font-weight: 500; }
 .top .back { border: 0; background: transparent; }
+.back { display: grid; place-items: center; }
+.back svg, .undo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.back svg { transform: rotate(180deg); }
 main h2 { color: var(--ink); }
 .pick-btn.on, .chip.cur, .seg .on { background: var(--od); color: var(--cream); border-color: var(--od); }
 .seg .on span { color: var(--cream); }

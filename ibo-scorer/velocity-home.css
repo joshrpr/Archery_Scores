@@ -7,13 +7,16 @@
 .home-settings:hover { background: var(--tint); }
 .home-main { padding: 17px 24px 32px; }
 .home-main svg, .home-settings svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-.home-heading { margin: 0 0 25px; max-width: 15ch; font: 500 39px/1.06 var(--display); letter-spacing: -.035em; text-wrap: balance; }
+.home-heading { margin: 0 0 20px; max-width: 22ch; font: 600 23px/1.2 var(--body); letter-spacing: -.035em; text-wrap: balance; }
 .home-round { display: block; width: 100%; border: 0; text-align: left; color: inherit; font: inherit; overflow-wrap: anywhere; }
 .home-resume { position: relative; margin: 0 0 16px; padding: 24px; background: var(--od); color: var(--cream); border-radius: 16px 16px 54px 16px; }
 .home-resume:hover { background: #56602a; }
+.home-resume:active { background: var(--sky-deep); }
 .home-resume:focus-visible { outline-offset: 4px; }
 .home-round-title { display: block; padding-right: 58px; font: 500 32px/1 var(--display); letter-spacing: -.025em; }
-.home-resume-arrow { position: absolute; right: 20px; top: 20px; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--arrow); color: var(--ink); }
+.home-resume .home-round-title { font-size: 58px; line-height: .91; letter-spacing: -.04em; }
+.home-resume .home-round-title > span { display: block; font-size: 73px; }
+.home-resume-arrow { position: absolute; right: 20px; top: 20px; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--arrow); color: var(--ink); transform: rotate(-35deg); }
 .home-round-meta, .home-round-note { display: block; margin-top: 12px; font-size: .78rem; line-height: 1.5; color: #e3e3c9; }
 .home-round-note { margin-top: 4px; }
 .home-results { display: block; margin-top: 19px; padding-top: 14px; border-top: 1px solid #bfc69d66; font-variant-numeric: tabular-nums; }
@@ -25,6 +28,7 @@
 .home-bonus { margin-left: 10px; }
 .home-new { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 58px; margin: 18px 0 32px; padding: 15px 18px; background: var(--arrow); color: var(--ink); border: 0; border-radius: 12px; font-weight: 650; }
 .home-new:hover { background: #ff873d; }
+.home-new:active { background: var(--arrow-hi); color: var(--paper); }
 .home-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
 .home-section-heading > h2 { font: 500 24px/1.2 var(--display); letter-spacing: -.02em; margin: 0; }
 .home-section-heading .link { min-height: 44px; font-size: .8rem; font-weight: 500; color: var(--od); }
@@ -39,20 +43,10 @@
 .home-backup:hover { color: var(--od); }
 .home-welcome, .home-empty { color: var(--muted); font-size: .9rem; line-height: 1.6; margin: 0; max-width: 55ch; }
 .home-empty { margin-top: 12px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
-@media(max-width: 350px) { .home-brandbar { gap: 9px; padding-left: 18px; padding-right: 18px; } .home-wordmark { font-size: 34px; } .home-main { padding-left: 18px; padding-right: 18px; } .home-heading { font-size: 35px; } .home-resume { padding: 20px; } }
-/* The selected Velocity composition: compact lead, large format, inset dock. */
-.home-heading { font: 600 23px/1.2 var(--body); max-width: 22ch; letter-spacing: -.035em; margin-bottom: 20px; }
-.home-resume .home-round-title { font-size: 58px; line-height: .91; letter-spacing: -.04em; }
-.home-resume .home-round-title > span { display: block; font-size: 73px; }
-.home-resume-arrow { transform: rotate(-35deg); }
-.main-nav { left: max(16px, calc((100vw - 608px) / 2)); right: max(16px, calc((100vw - 608px) / 2)); bottom: max(16px, env(safe-area-inset-bottom)); padding: 8px; border-radius: 13px; }
-.main-nav button { min-height: 48px; }
-@media(max-width: 350px) { .home-heading { font-size: 22px; } }
-/* Navigation labels wrap under enlarged text rather than colliding. */
-.main-nav button > span { max-width: 100%; overflow-wrap: anywhere; }
-/* At enlarged sizes the main destinations reflow into two comfortable rows. */
-.main-nav { font-size: .72rem; grid-template-columns: repeat(auto-fit, minmax(5.6em,1fr)); }
-.main-nav button { font-size: inherit; }
-.has-main-nav > main { padding-bottom: calc(var(--main-nav-height, 80px) + 48px + env(safe-area-inset-bottom)); }
-.main-nav { grid-template-columns: repeat(var(--main-nav-columns,4), minmax(0,1fr)); }
+@media(max-width: 350px) { .home-brandbar { gap: 9px; padding-left: 18px; padding-right: 18px; } .home-wordmark { font-size: 34px; } .home-main { padding-left: 18px; padding-right: 18px; } .home-heading { font-size: 22px; } .home-resume { padding: 20px; } }
+/* Measured labels reflow into two rows when text no longer fits four columns. */
+.main-nav { left: max(16px, calc((100vw - 608px) / 2)); right: max(16px, calc((100vw - 608px) / 2)); bottom: max(16px, env(safe-area-inset-bottom)); padding: 8px; border-radius: 13px; font-size: .72rem; grid-template-columns: repeat(var(--main-nav-columns,4), minmax(0,1fr)); }
+.main-nav button { min-height: 48px; font-size: inherit; }
+.main-nav button:active { background: var(--sky-deep); color: var(--paper); }
 .main-nav button > span { max-width: none; white-space: nowrap; overflow-wrap: normal; }
+.has-main-nav > main { padding-bottom: calc(var(--main-nav-height, 80px) + 48px + env(safe-area-inset-bottom)); }

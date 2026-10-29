@@ -200,9 +200,9 @@ Routine fields and primary controls use 12px corners; score keys use 9px and slo
 
 ### Buttons, fields and navigation
 
-Primary actions have orange fill, ink text, readable hover, and paper text on the dark pressed state. The Android update link has at least a 44px touch height. Secondary controls use sheet/tint or transparent surfaces; selected pickers and filters use olive with paper text. Fields use tint, ink, muted placeholders and an olive caret. Shared focus is a 3px dark-orange outline with 3px offset; olive surfaces use a paper outline. Disabled controls reduce opacity; busy controls communicate loading.
+Primary actions, including Home's new-round action, have orange fill, ink text, readable hover, and paper text on the dark pressed state. Unfinished rounds and navigation answer a press with deep olive. The Android update link has at least a 44px touch height. Secondary controls use sheet/tint or transparent surfaces; selected pickers and filters use olive with paper text. Fields use tint, ink, muted placeholders and an olive caret. Shared focus is a 3px dark-orange outline with 3px offset, including the visible labels around hidden file inputs; olive surfaces use a paper outline. Disabled controls reduce opacity; busy controls communicate loading.
 
-The main dock uses four consistent outlined SVG icons and labels. The active destination exposes aria-current; route changes focus the destination heading. Data tools remain reachable from Home and supporting routes.
+The main dock uses four consistent outlined SVG icons and labels. Back and Undo use the same authored outline style at 22px with a 1.6px stroke; their SVGs are hidden from accessibility names. The active destination exposes aria-current; route changes focus the destination heading. Data tools remain reachable from Home and supporting routes.
 
 ### Scoring and results
 

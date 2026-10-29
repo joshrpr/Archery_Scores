@@ -279,7 +279,7 @@ window.addEventListener('hashchange', () => {
 
 function header(title, backTo) {
   return `<header class="top">
-    ${backTo ? `<button class="back" data-action="nav" data-to="${backTo}" aria-label="Back">←</button>` : ''}
+    ${backTo ? `<button class="back" data-action="nav" data-to="${backTo}" aria-label="Back">${uiIcon('arrow')}</button>` : ''}
     <h1>${title}</h1></header>`;
 }
 
@@ -348,6 +348,7 @@ const navPaths = {
   archers: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2"/>',
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  undo: '<path d="M4 4v6h6M4 10a8 8 0 1 1 0 5"/>',
   settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/>'
 };
 const uiIcon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + navPaths[name] + '</svg>';
@@ -778,11 +779,11 @@ function undoTarget(r, t) {
 }
 function undoButton(r, t) {
   const u = undoTarget(r, t);
-  if (!u) return '<button class="undo" disabled aria-label="Nothing to undo"><span aria-hidden="true">↶</span> Undo</button>';
+  if (!u) return '<button class="undo" disabled aria-label="Nothing to undo">' + uiIcon('undo') + ' Undo</button>';
   const v = r.scores[u.aid][t][u.k];
   const who = r.archerIds.length > 1 ? esc(nameOf(u.aid)) + '’s ' : '';
   return `<button class="undo" data-action="plot-undo" aria-label="Undo ${who}arrow ${u.k + 1}, ${label(v)}">
-    <span aria-hidden="true">↶</span> Undo <i class="r${ring(v)}">${label(v)}</i></button>`;
+    ${uiIcon('undo')} Undo <i class="r${ring(v)}">${label(v)}</i></button>`;
 }
 
 // Called by Plot when a finger lifts off the face.
