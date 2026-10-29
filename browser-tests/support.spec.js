@@ -83,3 +83,27 @@ test('import preview preserves partial rounds, skips duplicates and makes parse 
   await expect(page.getByText('Already imported',{exact:true})).toHaveCount(10);
   await expect(page.getByRole('button',{name:'Nothing new to import',exact:true})).toBeDisabled();
 });
+
+test('a blank-score confirmation remains reachable on a short phone with 200% text and a long-name group', async ({page}) => {
+  const names=['Alexandra Mountain Ridge Longbow','Morgan','Jordan McAllister','Taylor West','Jamie'];
+  const archers=names.map((name,i)=>({id:'a'+i,name,createdAt:1}));
+  const round={id:'group',type:'vegas',createdAt:1,status:'in_progress',targets:10,current:4,archerIds:archers.map(a=>a.id),scores:Object.fromEntries(archers.map(a=>[a.id,Array.from({length:10},(_,i)=>i<4?[10,9,'X']:i===4?['X',null,null]:[null,null,null])]))};
+  await page.setViewportSize({width:320,height:568});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('/');
+  await page.evaluate(db=>localStorage.setItem('ibo-scorer-v1',JSON.stringify(db)),{archers,rounds:[round]});
+  await page.reload();
+  await page.goto('/#/round/group');
+  await page.reload();
+  await page.addStyleTag({content:'html,body{font-size:34px!important}'});
+  await page.getByRole('button',{name:'Finish round',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'Some arrows are blank'});
+  await expect(dialog).toContainText('Alexandra Mountain Ridge Longbow');
+  const finish=dialog.getByRole('button',{name:'Finish anyway',exact:true});
+  await finish.scrollIntoViewIfNeeded();
+  await expect(finish).toBeInViewport();
+  await finish.click();
+  await expect(page.getByRole('dialog',{name:'Vegas 300 round complete'})).toBeVisible();
+  await page.getByRole('button',{name:'See scorecard',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Scorecard',exact:true})).toBeVisible();
+});
