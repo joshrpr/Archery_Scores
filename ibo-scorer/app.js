@@ -13,7 +13,7 @@ const label = v => (v === 0 ? 'M' : String(v));
 const points = v => (v === 'X' ? 10 : v);
 // Vegas face colour for a value: gold (X-9), red (8-7), blue (6), miss.
 const ring = v => (v === 'X' || v >= 9 ? 'g' : v >= 7 ? 'r' : v === 6 ? 'b' : 'm');
-const SERIES_COLORS = ['#2f96eb', '#f2621a', '#6faf2f', '#d8bc84', '#ff6b6b', '#c792ff'];
+const SERIES_COLORS = ['#4b5320', '#aa3c0b', '#1767a7', '#765a2a', '#ad2924', '#74508c'];
 
 const app = document.getElementById('app');
 let db = load();
@@ -183,29 +183,51 @@ function addArcher(raw) {
 /* ---------- modal dialogs ---------- */
 function modal({ title, html = '', input = null, buttons }) {
   return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const wasInert = app.inert;
+    const previousOverflow = document.body.style.overflow;
     const wrap = document.createElement('div');
+    const titleId = 'dialog-title-' + uid();
     wrap.className = 'modal-wrap';
-    wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true">
-      <h2>${esc(title)}</h2>${html}
-      ${input ? `<input class="modal-input" maxlength="${input.max || 60}"
+    wrap.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="${titleId}">
+      <h2 id="${titleId}">${esc(title)}</h2>${html}
+      ${input ? `<input class="modal-input" aria-label="${esc(title)}" maxlength="${input.max || 60}"
           value="${esc(input.value || '')}" placeholder="${esc(input.placeholder || '')}">` : ''}
       <div class="modal-btns" style="${buttons.length === 1 ? 'grid-template-columns:1fr' : ''}">
         ${buttons.map((b, i) => `<button class="btn ${b.cls || ''}" data-i="${i}">${esc(b.label)}</button>`).join('')}
       </div></div>`;
     document.body.appendChild(wrap);
+    app.inert = true;
+    document.body.style.overflow = 'hidden';
     const inp = wrap.querySelector('input');
+    let finished = false;
     const cancel = () => finish({ value: false });
     const finish = btn => {
+      if (finished) return;
+      finished = true;
       window.removeEventListener('hashchange', cancel);
-      wrap.remove(); resolve({ value: btn.value, text: inp ? inp.value : null });
+      wrap.remove();
+      app.inert = wasInert;
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus && previousFocus.isConnected) previousFocus.focus({ preventScroll: true });
+      resolve({ value: btn.value, text: inp ? inp.value : null });
     };
     window.addEventListener('hashchange', cancel, { once: true });
-    if (inp) {
-      inp.focus(); inp.select();
-      inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') finish(buttons.find(b => b.value === true) || buttons[buttons.length - 1]);
-      });
-    }
+    const controls = [...wrap.querySelectorAll('input, button')];
+    (inp || controls[0]).focus();
+    if (inp) inp.select();
+    wrap.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      if (e.key === 'Enter' && e.target === inp) {
+        e.preventDefault();
+        finish(buttons.find(b => b.value === true) || buttons[buttons.length - 1]);
+      }
+      if (e.key === 'Tab') {
+        const first = controls[0], last = controls[controls.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
     wrap.addEventListener('click', e => {
       const b = e.target.closest('[data-i]');
       if (b) finish(buttons[+b.dataset.i]);
@@ -286,6 +308,7 @@ function render() {
   app.classList.toggle('is-scoring', page === 'round');
   app.classList.toggle('is-scorecard', page === 'card');
   scoringDockSize.disconnect();
+  app.dataset.page = page || 'home';
   navigationSize.disconnect();
   app.innerHTML = html + (showNavigation ? mainNavigation(page === '' ? '' : page) : '');
   const dock = app.querySelector('.dock');
@@ -384,12 +407,12 @@ function viewNew() {
     <div class="pick">
       ${list.length ? list.map(a => {
         const i = draft.selected.indexOf(a.id);
-        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" data-action="toggle-pick" data-id="${a.id}">
+        return `<button class="pick-btn ${i >= 0 ? 'on' : ''}" aria-pressed="${i >= 0}" data-action="toggle-pick" data-id="${a.id}">
           ${i >= 0 ? `<span class="order">${i + 1}</span>` : ''}${esc(a.name)}</button>`;
       }).join('') : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" aria-label="New archer name" placeholder="New archer name" autocomplete="off" maxlength="40" required>
       <button class="btn">Add</button>
     </form>
 
@@ -404,7 +427,7 @@ function viewNew() {
     <p class="muted small">You can also add or remove targets during the round.</p>`}
 
     <h2>Note (optional)</h2>
-    <input data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
+    <input aria-label="Round note (optional)" data-input="draft-note" value="${esc(draft.note)}" placeholder="e.g. Club shoot" maxlength="60">
 
     <button class="big primary" data-action="start-round" ${draft.selected.length ? '' : 'disabled'}>
       Start round${draft.selected.length ? ` with ${draft.selected.length} archer${draft.selected.length > 1 ? 's' : ''}` : ''}
@@ -578,7 +601,7 @@ function viewArchers() {
   return `${header('Archers', '#/')}
   <main>
     <form class="inline" data-form="add-archer">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" aria-label="New archer name" placeholder="New archer name" autocomplete="off" maxlength="40" required>
       <button class="btn">Add</button>
     </form>
     ${list.length ? list.map(a => {
@@ -656,19 +679,19 @@ function trendChart(rows) {
   const what = n => rows.find(r => r.key === n).what;
 
   const ticks = [lo, Math.round((lo + hi) / 2), hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${v}</text>`).join('');
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#d2ccb9"/>
+    <text x="${L - 6}" y="${y(v) + 5}" fill="#65614e" font-size="15" text-anchor="end">${v}</text>`).join('');
 
   const series = counts.map(n => {
     const pts = rows.map((r, i) => ({ r, i })).filter(p => p.r.key === n);
     const path = pts.map((p, k) => `${k ? 'L' : 'M'}${x(p.i).toFixed(1)},${y(p.r.total).toFixed(1)}`).join(' ');
     return `<path d="${path}" fill="none" stroke="${color(n)}" stroke-width="3" stroke-linejoin="round"/>` +
-      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#16325c" stroke-width="2">
+      pts.map(p => `<circle cx="${x(p.i)}" cy="${y(p.r.total)}" r="6" fill="${color(n)}" stroke="#fcf8ee" stroke-width="2">
         <title>${p.r.total}, ${fmtShort(p.r.r.createdAt)}</title></circle>`).join('');
   }).join('');
 
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
+  const xl = `<text x="${L}" y="${H - 10}" fill="#65614e" font-size="15">${fmtShort(rows[0].r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" fill="#65614e" font-size="15" text-anchor="end">${fmtShort(rows[rows.length - 1].r.createdAt)}</text>`;
 
   return `<div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Round totals over time">${grid}${series}${xl}</svg>
@@ -828,14 +851,14 @@ function groupTrend(rows, aid) {
     if (!p.length) return '';
     return `<path d="${p.map((q, k) => `${k ? 'L' : 'M'}${x(q.i).toFixed(1)},${y(q.v).toFixed(1)}`).join(' ')}"
       fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round"/>` +
-      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" stroke="#16325c" stroke-width="2">
+      p.map(q => `<circle cx="${x(q.i)}" cy="${y(q.v)}" r="5.5" fill="${color}" stroke="#fcf8ee" stroke-width="2">
         <title>${label} ${q.v.toFixed(1)} cm, ${fmtShort(q.q.x.r.createdAt)}</title></circle>`).join('');
   };
   const ticks = [0, hi / 2, hi];
-  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#2b5590"/>
-    <text x="${L - 6}" y="${y(v) + 5}" fill="#a9bcd6" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
-  const xl = `<text x="${L}" y="${H - 10}" fill="#a9bcd6" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
-    <text x="${W - R}" y="${H - 10}" fill="#a9bcd6" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
+  const grid = ticks.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#d2ccb9"/>
+    <text x="${L - 6}" y="${y(v) + 5}" fill="#65614e" font-size="15" text-anchor="end">${+v.toFixed(1)}</text>`).join('');
+  const xl = `<text x="${L}" y="${H - 10}" fill="#65614e" font-size="15">${fmtShort(pts[0].x.r.createdAt)}</text>
+    <text x="${W - R}" y="${H - 10}" fill="#65614e" font-size="15" text-anchor="end">${fmtShort(last.x.r.createdAt)}</text>`;
   return `<h2>Arrow groups <small class="muted">cm, lower is better</small></h2>${tiles}
   <div class="chart">
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Group size and centre offset over time">${grid}
@@ -859,7 +882,7 @@ function viewBackup() {
     <h2>Restore</h2>
     <p class="muted small">Replaces everything on this phone with the contents of a backup file. You will be asked to confirm first.</p>
     <label class="btn file-btn">Restore from backup file
-      <input type="file" accept=".json,application/json" data-input="import-json">
+      <input type="file" aria-label="Restore from backup file" accept=".json,application/json" data-input="import-json">
     </label>
 
     <h2>Spreadsheet</h2>
@@ -869,7 +892,7 @@ function viewBackup() {
     <h2>Import from another app</h2>
     <p class="muted small">Adds the Vegas 300 rounds from your old scoring app's export (.xlsx or .csv) to this phone. You pick the archer and see every round before anything is saved. Nothing already here is changed, and rounds you imported before are skipped.</p>
     <label class="btn file-btn">Import scores from a file
-      <input type="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" data-input="import-old">
+      <input type="file" aria-label="Import scores from a file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" data-input="import-old">
     </label>
   </main>`;
 }
@@ -925,11 +948,11 @@ function viewImport() {
 
     <h2>Whose scores are these?</h2>
     <div class="pick">
-      ${list.length ? list.map(a => `<button class="pick-btn ${a.id === p.archerId ? 'on' : ''}" data-action="import-archer" data-id="${a.id}">${esc(a.name)}</button>`).join('')
+      ${list.length ? list.map(a => `<button class="pick-btn ${a.id === p.archerId ? 'on' : ''}" aria-pressed="${a.id === p.archerId}" data-action="import-archer" data-id="${a.id}">${esc(a.name)}</button>`).join('')
         : '<p class="muted">No saved archers yet. Add one below.</p>'}
     </div>
     <form class="inline" data-form="add-and-pick-import">
-      <input name="name" placeholder="New archer name" autocomplete="off" maxlength="40">
+      <input name="name" aria-label="New archer name" placeholder="New archer name" autocomplete="off" maxlength="40" required>
       <button class="btn">Add</button>
     </form>
 
