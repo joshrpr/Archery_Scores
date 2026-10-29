@@ -11,6 +11,7 @@ const ASSETS = [
   './style.css',
   './velocity-base.css',
   './velocity-home.css',
+  './velocity-support.css',
   './fonts/Newsreader.ttf',
   './fonts/Newsreader-Italic.ttf',
   './icons/ranch-horizon.svg',
