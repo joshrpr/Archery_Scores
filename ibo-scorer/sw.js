@@ -19,6 +19,8 @@ const ASSETS = [
   './icons/ranch-aerial.svg',
   './icons/favicon-32.png',
   './app.js',
+  './surface-transition.js',
+  './surface-transition.css',
   './completion.js',
   './finish.js',
   './finish-scene.mjs',

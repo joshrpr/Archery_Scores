@@ -288,6 +288,7 @@ function render() {
   const focused = app.contains(document.activeElement) ? document.activeElement : null;
   const focusData = focused?.dataset.action ? {...focused.dataset} : null;
   const { page, id } = route();
+  const surfaceChange = window.SurfaceTransition?.capture(app, page, id);
   if (page !== 'round') announceScore('');
   let html;
   switch (page) {
@@ -309,6 +310,7 @@ function render() {
   app.classList.toggle('is-scorecard', page === 'card');
   scoringDockSize.disconnect();
   app.dataset.page = page || 'home';
+  app.dataset.roundId = page === 'round' ? id : '';
   navigationSize.disconnect();
   app.innerHTML = html + (showNavigation ? mainNavigation(page === '' ? '' : page) : '');
   const dock = app.querySelector('.dock');
@@ -338,6 +340,7 @@ function render() {
   Plot.bind(app, placeArrow);
   if (page === 'card') Groups.bind(app);
   if (page === 'stats') Stats.bind(app);
+  window.SurfaceTransition?.play(app, surfaceChange);
 }
 
 /* ---------- views ---------- */

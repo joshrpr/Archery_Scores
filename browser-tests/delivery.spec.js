@@ -49,6 +49,10 @@ test('offline reload keeps Ranch Horizon, local display fonts, navigation and sa
     const actual=await page.evaluate(async asset=>{const r=await fetch(asset);if(!r.ok)throw new Error(asset+' offline unavailable');return [...new Uint8Array(await crypto.subtle.digest('SHA-256',await r.arrayBuffer()))].map(b=>b.toString(16).padStart(2,'0')).join('');},asset);
     expect(actual).toBe(createHash('sha256').update(fs.readFileSync(resolve(root,asset))).digest('hex'));
   }
+  for (const asset of ['surface-transition.js','surface-transition.css']) {
+    const actual=await page.evaluate(async asset=>{const r=await fetch(asset);if(!r.ok)throw new Error(asset+' unavailable offline');return r.text();},asset);
+    expect(actual).toBe(fs.readFileSync(resolve(root,asset),'utf8') + (asset.endsWith('.css') ? '\n/* delivery revision 0 */\n' : ''));
+  }
   await page.getByRole('button',{name:/Resume IBO 3D/}).click();
   await expect(page).toHaveURL(/#\/round\/offline$/);
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('ibo-scorer-v1')))).toEqual(db);
