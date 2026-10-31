@@ -24,7 +24,7 @@ test('resume connects the real card to scoring, saves during motion, and returns
 test('real setup starts exactly one round before animating; interruption and repeated entry leave no hidden controls',async({page})=>{
   await page.getByRole('button',{name:'Start new round',exact:true}).click();
   await expect(page.getByRole('heading',{name:'New round',exact:true})).toBeVisible();
-  await expect(page.locator('.surface-transition')).toHaveCount(0);
+  await expect(page.locator('.surface-transition')).toHaveCount(1);
   await page.getByRole('button',{name:'Start round with 1 archer',exact:true}).click();
   await expect(page).toHaveURL(/#\/round\//);
   expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).rounds.length,key)).toBe(2);
@@ -57,4 +57,27 @@ test('reduced motion keeps entry feedback without spatial layers; keyboard navig
   await page.getByRole('button',{name:'Back',exact:true}).click();
   await expect(page.locator('.surface-transition')).toHaveCount(0);
   await expect(page.getByRole('heading',{name:'Pick up where you left off.',exact:true})).toBeVisible();
+});
+
+test('Home new-round entry and setup Back animate without creating rounds; reduced motion keeps setup focus',async({page})=>{
+  const start=page.getByRole('button',{name:'Start new round',exact:true});
+  await start.scrollIntoViewIfNeeded();
+  const scroll=await page.evaluate(()=>scrollY);
+  await start.click();
+  await expect(page.locator('#app')).toHaveAttribute('data-page','new');
+  await expect(page.locator('.surface-transition')).toHaveCount(1);
+  await expect(page.locator('main')).toHaveCSS('opacity','1');
+  await page.getByRole('button',{name:'Back',exact:true}).click();
+  await expect(page.locator('#app')).toHaveAttribute('data-page','home');
+  await expect(page.locator('.surface-transition')).toHaveCount(1);
+  await expect(page.locator('.surface-transition')).toHaveCount(0,{timeout:2000});
+  expect(Math.abs(await page.evaluate(()=>scrollY)-scroll)).toBeLessThan(3);
+  expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).rounds,key)).toEqual(db.rounds);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await start.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading',{name:'New round',exact:true})).toBeFocused();
+  await expect(page.locator('.surface-transition')).toHaveCount(0);
+  await page.getByRole('textbox',{name:'Round note (optional)',exact:true}).fill('Setup remains editable');
+  await expect(page.getByRole('textbox',{name:'Round note (optional)',exact:true})).toHaveValue('Setup remains editable');
 });

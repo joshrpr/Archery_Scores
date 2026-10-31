@@ -23,13 +23,15 @@ window.SurfaceTransition = (() => {
     cancel();
     if (document.hidden || !Element.prototype.animate) return null;
     const from = app.dataset.page;
-    const forward = page === 'round' && (from === 'home' || from === 'new');
-    const back = from === 'round' && (page === '' || page === 'home');
+    const setup = page === 'new' && from === 'home';
+    const setupBack = from === 'new' && (page === '' || page === 'home');
+    const forward = setup || (page === 'round' && (from === 'home' || from === 'new'));
+    const back = (from === 'round' || setupBack) && (page === '' || page === 'home');
     if (!forward && !back) return null;
-    const roundId = forward ? id : app.dataset.roundId;
+    const roundId = setup || setupBack ? null : forward ? id : app.dataset.roundId;
     const node = forward
-      ? (from === 'home' ? resume(app,id) : app.querySelector('[data-action="start-round"]'))
-      : app.querySelector('.round-top');
+      ? (setup ? app.querySelector('.home-new') : from === 'home' ? resume(app,id) : app.querySelector('[data-action="start-round"]'))
+      : app.querySelector(setupBack ? '.top' : '.round-top');
     if (!node) return null;
     const fromRect = rect(node);
     if (forward && !visible(fromRect)) return null;
@@ -37,8 +39,8 @@ window.SurfaceTransition = (() => {
       returns.set(roundId, scrollY);
       if (returns.size > 20) returns.delete(returns.keys().next().value);
     }
-    const label = forward ? node.querySelector('.home-round-title') : node.querySelector('.round-toolbar > span');
-    return {forward,roundId,fromRect,canAnimate:visible(fromRect),color:getComputedStyle(node).backgroundColor,
+    const label = node.querySelector(setup ? 'span' : setupBack ? 'h1' : forward ? '.home-round-title' : '.round-toolbar > span');
+    return {forward,setup:setup || setupBack,roundId,fromRect,canAnimate:visible(fromRect),color:getComputedStyle(node).backgroundColor,
       radius:getComputedStyle(node).borderRadius,label:label?.textContent || '',
       labelRect:label ? rect(label) : null,labelSize:label ? parseFloat(getComputedStyle(label).fontSize) : 0};
   }
@@ -48,7 +50,7 @@ window.SurfaceTransition = (() => {
     try {
       if (!change.forward && returns.has(change.roundId)) window.scrollTo(0, returns.get(change.roundId));
       if (!change.canAnimate) return;
-      let node = change.forward ? app.querySelector('.round-top') : resume(app,change.roundId);
+      let node = change.forward ? app.querySelector(change.setup ? '.top' : '.round-top') : change.setup ? app.querySelector('.home-new') : resume(app,change.roundId);
       if (!node) return;
       if (!visible(rect(node))) node = app.querySelector('.home-new');
       if (!node || !visible(rect(node))) return;
@@ -76,18 +78,18 @@ window.SurfaceTransition = (() => {
           {transform:'none',backgroundColor:getComputedStyle(node).backgroundColor,borderRadius:getComputedStyle(node).borderRadius}],{duration:duration*.82});
         animate(surface,[{opacity:1},{opacity:0}],{duration:duration*.25,delay:duration*.7});
         animate(node,[{opacity:0},{opacity:1}],{duration:duration*.4,delay:duration*.55});
-        const title = change.forward ? node.querySelector('.round-toolbar > span') : node.querySelector('.home-round-title');
+        const title = node.querySelector(change.setup ? (change.forward ? 'h1' : 'span') : change.forward ? '.round-toolbar > span' : '.home-round-title');
         if (title && change.labelRect && change.label) {
           const target = rect(title), text = document.createElement('span');
           text.className = 'surface-transition-title';
           text.textContent = change.forward ? title.textContent : change.label;
-          Object.assign(text.style,{left:target.left+'px',top:target.top+'px',font:getComputedStyle(title).font});
+          Object.assign(text.style,{left:target.left+'px',top:target.top+'px',font:getComputedStyle(title).font,color:getComputedStyle(title).color});
           layer.append(text);
           animate(text,[{transform:`translate(${change.labelRect.left-target.left}px,${change.labelRect.top-target.top}px) scale(${change.labelSize/parseFloat(getComputedStyle(title).fontSize)})`,opacity:1},
             {transform:'none',opacity:1}],{duration:duration*.82});
           animate(text,[{opacity:1},{opacity:1,offset:.6},{opacity:0}]);
         }
-        const content = change.forward ? app.querySelector('.scoring-main') : app.querySelector('.home-main');
+        const content = change.forward ? app.querySelector(change.setup ? 'main' : '.scoring-main') : app.querySelector('.home-main');
         if (content) animate(content,[{opacity:0,transform:`translateY(${change.forward?32:-12}px)`},{opacity:1,transform:'none'}],{duration:duration*.65,delay:duration*.25});
         if (change.forward) for (const control of app.querySelectorAll('.strip,.dock')) {
           animate(control,[{opacity:0},{opacity:1}],{duration:duration*.35,delay:duration*.5});
