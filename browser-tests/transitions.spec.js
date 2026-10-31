@@ -67,6 +67,7 @@ test('Home new-round entry and setup Back animate without creating rounds; reduc
   await expect(page.locator('#app')).toHaveAttribute('data-page','new');
   await expect(page.locator('.surface-transition')).toHaveCount(1);
   await expect(page.locator('main')).toHaveCSS('opacity','1');
+  await expect(page.locator('.top')).toHaveCSS('background-color','rgb(242, 98, 26)');
   await page.getByRole('button',{name:'Back',exact:true}).click();
   await expect(page.locator('#app')).toHaveAttribute('data-page','home');
   await expect(page.locator('.surface-transition')).toHaveCount(1);
@@ -80,4 +81,5 @@ test('Home new-round entry and setup Back animate without creating rounds; reduc
   await expect(page.locator('.surface-transition')).toHaveCount(0);
   await page.getByRole('textbox',{name:'Round note (optional)',exact:true}).fill('Setup remains editable');
   await expect(page.getByRole('textbox',{name:'Round note (optional)',exact:true})).toHaveValue('Setup remains editable');
+  await expect(page.locator('.top')).toHaveCSS('background-color','rgb(242, 98, 26)');
 });

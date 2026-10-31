@@ -48,6 +48,10 @@ button[aria-busy=true] { cursor: progress; }
 .top { border-bottom: 1px solid var(--rule); }
 .top h1 { white-space: normal; font-weight: 500; }
 .top .back { border: 0; background: transparent; }
+/* The Home action arrives here as a persistent orange setup surface. */
+#app[data-page='new'] > .top { background: var(--arrow); color: var(--ink); border-bottom: 0; border-radius: 0 0 28px 0; }
+#app[data-page='new'] > .top .back { color: var(--ink); }
+#app[data-page='new'] > .top :focus-visible { outline-color: var(--ink); }
 .back { display: grid; place-items: center; }
 .back svg, .undo svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .back svg { transform: rotate(180deg); }

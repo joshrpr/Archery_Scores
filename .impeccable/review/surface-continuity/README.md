@@ -5,7 +5,7 @@ Implements the user's approved motion study from `codex/prototype-surface-contin
 - `resume-phone.jpg`: the real Home card travelling toward the scoring header, captured during motion in the 390×844 browser viewport.
 - `scoring-phone.jpg`: settled real Vegas scoring at phone width.
 - `scoring-wide.jpg`: settled scoring at the default desktop width.
-- `setup.jpg`: settled real setup after Home's Start new round entrance. Setup-to-Home Back also uses the reverse surface.
+- `setup.jpg`: settled real setup after Home's Start new round entrance. The button becomes a persistent orange header with ink title/Back control; the form remains cream. Setup-to-Home Back also uses the reverse surface.
 
 These captures use a separate localhost origin with a clearly named Sample archer; they do not change scores in the user's existing preview. Browser screenshots establish layout and visual continuity, not physical Pixel performance.
 
