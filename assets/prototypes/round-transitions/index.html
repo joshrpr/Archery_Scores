@@ -1,0 +1,8 @@
+<!doctype html>
+<!-- Two throwaway Home-to-round motion studies. ?variant=surface or ?variant=slide. -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ropers · Round transitions</title>
+<link rel="stylesheet" href="/app/style.css"><link rel="stylesheet" href="/app/velocity-base.css"><link rel="stylesheet" href="/app/velocity-home.css"><link rel="stylesheet" href="/app/velocity-scoring.css"><link rel="stylesheet" href="prototype.css"></head>
+<body><div class="workbench"><aside class="notes"><a href="http://127.0.0.1:4190/">Back to the app</a><h1 id="concept">Surface continuity</h1><p id="description"></p><p class="sample-note">Motion prototype · Sample archer and round. Setup is preconfigured to isolate the transition; nothing is saved.</p><button id="play">Play Home → scoring</button><button id="return">Back to Home</button><label class="slow"><input id="slow" type="checkbox"> Slow motion</label><p id="status" role="status" aria-live="polite">Home · ready</p></aside>
+<div class="phone" aria-label="App transition preview"><div id="home" class="screen is-home has-main-nav"></div><div id="round" class="screen is-scoring" hidden inert></div><div id="morph" aria-hidden="true"></div></div></div>
+<nav class="prototype-switcher" aria-label="Transition concepts"><button id="previous" aria-label="Previous concept">←</button><span id="variant-label"></span><button id="next" aria-label="Next concept">→</button></nav>
+<script type="module" src="prototype.js"></script></body></html>

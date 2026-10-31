@@ -6,6 +6,7 @@
     "test": "node --test ibo-scorer/tests/*.test.js",
     "test:browser": "playwright test",
     "dev": "node scripts/serve-app.mjs",
+    "prototype:transitions": "node assets/prototypes/round-transitions/serve.mjs",
     "web": "node scripts/build-web.mjs",
     "sync": "npm run web && cap sync android",
     "apk": "npm run sync && cd android && ./gradlew assembleRelease",
