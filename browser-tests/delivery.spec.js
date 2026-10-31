@@ -44,9 +44,14 @@ test('offline reload keeps Ranch Horizon, local display fonts, navigation and sa
   await expect(page.getByRole('button',{name:/Resume IBO 3D/})).toContainText('11 points');
   expect(await page.evaluate(()=>{const image=document.querySelector('img[src="icons/ranch-horizon.svg"]');return image&&image.complete&&image.naturalWidth>0;})).toBe(true);
   expect(await page.evaluate(async()=>{await document.fonts.load('italic 500 32px Newsreader');return document.fonts.check('italic 500 32px Newsreader');})).toBe(true);
-  for(const asset of ['icons/favicon-32.png','icons/icon-192.png','icons/maskable-512.png','fonts/Newsreader.ttf','fonts/Newsreader-Italic.ttf']){
+  expect(await page.getByRole('img',{name:'The ranch aerial',exact:true}).evaluate(image=>image.complete&&image.naturalWidth>0)).toBe(true);
+  for(const asset of ['icons/ranch-aerial.svg','icons/favicon-32.png','icons/icon-192.png','icons/maskable-512.png','fonts/Newsreader.ttf','fonts/Newsreader-Italic.ttf']){
     const actual=await page.evaluate(async asset=>{const r=await fetch(asset);if(!r.ok)throw new Error(asset+' offline unavailable');return [...new Uint8Array(await crypto.subtle.digest('SHA-256',await r.arrayBuffer()))].map(b=>b.toString(16).padStart(2,'0')).join('');},asset);
     expect(actual).toBe(createHash('sha256').update(fs.readFileSync(resolve(root,asset))).digest('hex'));
+  }
+  for (const asset of ['surface-transition.js','surface-transition.css']) {
+    const actual=await page.evaluate(async asset=>{const r=await fetch(asset);if(!r.ok)throw new Error(asset+' unavailable offline');return r.text();},asset);
+    expect(actual).toBe(fs.readFileSync(resolve(root,asset),'utf8') + (asset.endsWith('.css') ? '\n/* delivery revision 0 */\n' : ''));
   }
   await page.getByRole('button',{name:/Resume IBO 3D/}).click();
   await expect(page).toHaveURL(/#\/round\/offline$/);
