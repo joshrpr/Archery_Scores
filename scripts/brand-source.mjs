@@ -9,3 +9,4 @@ if (sha256(source) !== sourceSha256) throw new Error('Frozen original ranch artw
 const master = readFileSync(new URL('../assets/brand/ranch-horizon.svg', import.meta.url), 'utf8');
 if ((master.match(/href="ranch-source.png"/g) || []).length !== 1 || /data:image/.test(master)) throw new Error('Master must reference the frozen original artwork exactly once, never a generated export.');
 export const mark = master.replace('ranch-source.png', 'data:image/png;base64,' + source.toString('base64'));
+export const aerial = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="48 200 416 280"><image width="512" height="512" href="data:image/png;base64,' + source.toString('base64') + '"/></svg>';

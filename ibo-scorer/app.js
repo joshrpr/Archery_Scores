@@ -376,10 +376,12 @@ function viewHome() {
   const open = db.rounds.filter(r => r.status !== 'finished').sort((a,b) => b.createdAt-a.createdAt);
   const recent = db.rounds.filter(r => r.status === 'finished').sort((a,b) => (b.finishedAt || b.createdAt)-(a.finishedAt || a.createdAt)).slice(0,3);
   return '<header class="home-brandbar"><img src="icons/ranch-horizon.svg" alt="Ranch Horizon" width="54" height="54"><div class="home-wordmark">Ropers<span>Archery Scorecard</span></div><button class="home-settings" data-action="nav" data-to="#/backup" aria-label="Backup and export">' + uiIcon('settings') + '</button></header>' +
+    '<div class="home-ranch-window"><img src="icons/ranch-aerial.svg" alt="The ranch aerial" width="416" height="280"></div>' +
     '<main class="home-main"><h1 class="home-heading">' + (open.length ? 'Pick up where you left off.' : 'Make your next round count.') + '</h1>' +
     (Native.isApp && !db.rounds.length && !db.archers.length ? '<button class="card-row" data-action="nav" data-to="#/backup"><strong>Moving from the web app?</strong><span class="muted small">Restore a backup to bring your archers and scores across.</span></button>' : '') +
-    (open.length ? '<section class="home-open" aria-label="Unfinished rounds">' + open.map(r => homeRound(r,true)).join('') + '</section>' : '<p class="home-welcome">' + (db.rounds.length ? 'No unfinished rounds. Start fresh when you’re ready.' : 'Your scores, your archers, your progress. Start a round to begin your scorebook.') + '</p>') +
+    (!open.length ? '<p class="home-welcome">' + (db.rounds.length ? 'No unfinished rounds. Start fresh when you’re ready.' : 'Your scores, your archers, your progress. Start a round to begin your scorebook.') + '</p>' : '') +
     '<button class="home-new" data-action="new-round"><span>Start new round</span>' + uiIcon('plus') + '</button>' +
+    (open.length ? '<section class="home-open" aria-label="Unfinished rounds">' + open.map(r => homeRound(r,true)).join('') + '</section>' : '') +
     '<section class="home-history" aria-label="Recent rounds"><div class="home-section-heading"><h2>Recent rounds</h2><button class="link" data-action="nav" data-to="#/history">View all</button></div>' +
     (recent.length ? recent.map(r => homeRound(r,false)).join('') : '<p class="home-empty">Finished rounds will appear here. Your scorecard is saved on this device.</p>') +
     '</section><button class="home-backup" data-action="nav" data-to="#/backup">Backup and export</button></main>';

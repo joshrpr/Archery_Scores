@@ -28,9 +28,9 @@ colors:
 typography:
   wordmark:
     fontFamily: "Newsreader, Georgia, serif"
-    fontSize: "39px"
+    fontSize: "42px"
     fontWeight: 500
-    lineHeight: 0.85
+    lineHeight: 0.9
     letterSpacing: "-0.04em"
   headline:
     fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -180,7 +180,7 @@ Newsreader regular and italic variable fonts are bundled locally with their lice
 
 The app uses a centered column capped at 640px, normally with 24px gutters and 18px on phones 350px wide or narrower. Safe areas protect the header and bottom actions. Long names and descriptions wrap; wide score tables and charts scroll within their own containers.
 
-Home presents every unfinished individual or group round, then the new-round action and at most three recent completed rounds. Notes adapt to the surface: pale olive on unfinished cards, muted text on recent paper records. The four-destination dock is inset by at least 16px, capped at an effective 608px width. Measured labels switch it to two columns under enlarged text; its measured height sets content clearance. Setup, import and active scoring own their interaction space and omit this dock.
+Home uses the selected Ranch Window composition: the compact Ranch Horizon header precedes a 230px-tall aerial window with the existing 16px/54px signature corners, followed by a 48px Newsreader headline and the orange 64px-minimum new-round action. The aerial is generated from the exact frozen source and selected crop, with no alternate landscape. Every unfinished individual or group round remains below the new-round action, followed by at most three recent completed rounds. Notes adapt to the surface: pale olive on unfinished cards, muted text on recent paper records. The four-destination dock is inset by at least 16px, capped at an effective 608px width. Measured labels switch it to two columns under enlarged text; its measured height sets content clearance. Setup, import and active scoring own their interaction space and omit this dock.
 
 Scoring has an olive header, wrap-safe round progress and running result, a horizontal end/target strip, per-archer entry sections, three labeled Vegas slots, and a three-column keypad. Miss spans the Vegas keypad width. The measured scoring dock preserves previous/next actions on short or enlarged-text screens. IBO retains its five score values and target navigation.
 
@@ -239,3 +239,4 @@ The asset provenance guard and bundled fonts support offline delivery. Browser m
 - Don't apply the Home resume-card composition to every supporting record.
 - Don't hide dense data or remove recovery actions to imitate a prototype.
 - Don't treat browser or artifact checks as physical Android device observations.
+
