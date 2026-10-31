@@ -239,4 +239,3 @@ The asset provenance guard and bundled fonts support offline delivery. Browser m
 - Don't apply the Home resume-card composition to every supporting record.
 - Don't hide dense data or remove recovery actions to imitate a prototype.
 - Don't treat browser or artifact checks as physical Android device observations.
-
