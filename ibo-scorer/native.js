@@ -64,15 +64,13 @@ const Native = (() => {
       a.href = url; a.download = name;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      return true;
+      return;
     }
     const { uri } = await P.Filesystem.writeFile({ path: name, data: text, directory: 'CACHE', encoding: 'utf8' });
     try {
       await P.Share.share({ title: name, files: [uri], dialogTitle: 'Save or send ' + name });
-      return true;
     } catch (e) {
       if (!/cancel/i.test(e && e.message)) throw e;   // closing the share sheet is fine
-      return false;
     }
   }
 

@@ -1,158 +1,318 @@
-'use strict';
+"use strict";
 
-/* =========================================================
-   Round complete: the walk up to the target.
-   After the last arrow you walk to the bale to pull your arrows,
-   and that is when you see the whole round at once. This plays
-   that moment: the face comes up close, the round's arrows are
-   in it (nock and fletching towards you, as you see them at the
-   bale), a last arrow thuds into the middle, and the result lands.
-   About four seconds; a tap skips straight to the end state.
-   ========================================================= */
+const Celebration = (() => {
+  const DURATION = 3600,
+    STRIKE = 1560;
+  const ease = (v) => 1 - Math.pow(1 - Math.max(0, Math.min(1, v)), 3);
+  const escape = (text) =>
+    String(text).replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c],
+    );
+  let instance = null,
+    sceneModule = null;
+  const preload = () =>
+    (sceneModule ||= (
+      window.Capacitor?.getPlatform?.() === "android" ||
+      /Android/i.test(navigator.userAgent)
+        ? import("./finish-canvas.mjs")
+        : import("./finish-scene.mjs")
+    ).catch(() => null));
 
-const Finish = (() => {
-  const f = v => +v.toFixed(2);
-  const esc = s => String(s).replace(/[&<>"']/g, c =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const reduced = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // An arrow in the bale seen end-on: the nock, with three vanes at 120°.
-  // The cock vane is orange like the app's arrow, the two hen vanes white.
-  function nock(x, y, s, cls = '', style = '') {
-    const vane = (deg, fill) => `<path d="M0 -0.28 L-0.2 -1.25 L0.2 -1.25 Z" fill="${fill}" transform="rotate(${deg})"/>`;
-    return `<g class="fin-nock ${cls}" style="${style}" transform="translate(${f(x)} ${f(y)}) scale(${s})">
-      <g class="fin-nock-in">${vane(0, '#f2621a')}${vane(120, '#f6f3ea')}${vane(240, '#f6f3ea')}
-      <circle r="0.36" fill="#0e2240" stroke="#f6f3ea" stroke-width="0.09"/></g></g>`;
-  }
-
-  // IBO has no paper face, so the round shows as a medallion in the app's
-  // score colours, one pin per target sitting in the band it scored.
-  const IBO_BANDS = [{ v: 5, r: 10, c: '#d8bc84' }, { v: 8, r: 7.2, c: '#6faf2f' }, { v: 10, r: 4.4, c: '#2f96eb' }, { v: 11, r: 1.8, c: '#f2621a' }];
-  function iboFace(tally) {
-    const rings = IBO_BANDS.map(b => `<circle r="${b.r}" fill="${b.c}" stroke="#0e2240" stroke-opacity=".35" stroke-width="0.08"/>`).join('');
-    const labels = IBO_BANDS.slice(0, 3).map(b => `<text y="${f(-b.r + 0.95)}" class="fin-band">${b.v}</text>`).join('');
-    // Pins spread round each band by the golden angle so a full band reads as a ring of arrows.
-    const mid = { 11: 1.0, 10: 3.1, 8: 5.8, 5: 8.6, 0: 10.55 };
-    const seen = {};
-    const pins = tally.map((v, i) => {
-      if (v == null) return '';
-      const k = seen[v] = (seen[v] || 0) + 1;
-      const a = k * 2.39996 + (v * 0.7);
-      const r = v === 11 ? Math.min(1.1, 0.35 * Math.sqrt(k)) : mid[v];
-      return nock(Math.cos(a) * r, Math.sin(a) * r, 0.62, 'fin-pin', `--d:${i}`);
-    }).join('');
-    return `<svg class="fin-face" viewBox="-11.5 -11.5 23 23" aria-hidden="true">
-      <circle r="11.2" fill="#0e2240" opacity=".35"/>${rings}${labels}${pins}</svg>`;
-  }
-
-  // Vegas: the real face, with the featured archer's plotted arrows end by end,
-  // framed close on the group the way you see it standing at the bale.
-  function vegasFace(arrows, view) {
-    const face = Target.faceSvg({ ariaLabel: '', view }).replace('class="tf "', 'class="tf fin-face" aria-hidden="true"');
-    const pins = arrows.map(a => nock(a.x, a.y, 0.62 * view / Target.VIEW_R + 0.18, 'fin-pin', `--d:${a.end}`)).join('');
-    return face.replace('</svg>', `${pins}</svg>`);
-  }
-
-  function html(s) {
-    const vegas = s.type === 'vegas';
-    const view = vegas ? (s.arrows.length ? Math.max(Target.fit(s.arrows), 7) : Target.VIEW_R) : 11.5;
-    const face = vegas ? vegasFace(s.arrows, view) : iboFace(s.tally);
-    const box = `${-view} ${-view} ${view * 2} ${view * 2}`;
-    const board = s.board.length > 1 ? `<ol class="fin-board">${s.board.map((b, i) => `
-      <li style="--i:${i}"><span class="fin-rank">${b.rank}${b.tie ? '=' : ''}</span>
-        <span class="fin-name">${esc(b.name)}${b.pb ? '<em>New best</em>' : ''}</span><b>${b.total}</b></li>`).join('')}</ol>` : '';
-    // Time between one end's (or target's) arrows and the next: the whole set lands in about 1.3 s.
-    const step = Math.min(130, Math.round(1300 / Math.max(1, s.type === 'vegas' ? 10 : s.tally.length)));
-    return `<div class="fin ${vegas ? 'vegas' : 'ibo'}" role="dialog" aria-modal="true" aria-label="Round complete. ${esc(s.head)}" style="--step:${step}ms">
-      <svg class="fin-ridge" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 38 L40 22 L70 34 L118 8 L160 30 L205 14 L250 32 L300 6 L345 28 L400 16 V70 H0Z" fill="#1e4175"/>
-        <path d="M0 56 L55 40 L110 52 L170 34 L230 50 L290 38 L350 52 L400 42 V70 H0Z" fill="#0e2240"/>
-      </svg>
-      <button class="fin-skip" data-fin="skip">Skip</button>
-      <div class="fin-stage">
-        <div class="fin-bale">${face}
-          <svg class="fin-hit" viewBox="${box}" aria-hidden="true">
-            <circle class="fin-ripple" r="${f(view * 0.1)}" fill="none" stroke="#f6f3ea" stroke-width="${f(view * 0.016)}"/>
-            ${nock(0, 0, f(view / 9), 'fin-last')}
-          </svg>
+  function play(data, { go, impact }) {
+    if (instance) return;
+    const root = document.createElement("section");
+    root.className = "finish-wrap";
+    root.setAttribute("role", "dialog");
+    root.setAttribute("aria-modal", "true");
+    root.setAttribute("aria-label", "Vegas 300 round complete");
+    root.tabIndex = -1;
+    root.innerHTML = `<div class="finish-stage">
+      <canvas class="finish-scene" aria-hidden="true" hidden></canvas>
+      <p class="finish-loading" role="status">Preparing celebration…</p>
+      <div class="finish-static" aria-hidden="true" hidden></div>
+      <button type="button" class="finish-skip">Skip</button>
+      <div class="finish-impact" aria-hidden="true" hidden>Final arrow · ${data.arrows[29].value === 0 ? "Miss" : escape(data.arrows[29].value)}</div>
+      <div class="finish-results" hidden>
+        <h2>Round complete</h2>
+        <p class="finish-archer">${escape(data.name)}</p>
+        <div class="finish-total" role="group" aria-label="${data.total} points, ${data.xs} Xs">
+          <strong aria-hidden="true">${data.total}</strong><span aria-hidden="true">${data.xs} Xs</span>
         </div>
+        <p class="finish-sub">Vegas 300 · 30 arrows</p>
+        ${data.illustrative ? '<p class="finish-sub finish-illustrative">Illustrative shot positions</p>' : ""}
+        <div class="finish-standings" tabindex="0" role="region" aria-label="Standings">
+          <table><thead><tr><th scope="col">Rank</th><th scope="col">Archer</th><th scope="col">Total</th><th scope="col">Xs</th></tr></thead>
+          <tbody>${data.standings.map((row) => `<tr${row.id === data.archerId ? ' class="featured"' : ""}><td>${row.rank}</td><th scope="row">${escape(row.name)}</th><td>${row.total}</td><td>${row.xs}</td></tr>`).join("")}</tbody></table>
+        </div>
+        <button type="button" class="finish-go">See scorecard</button>
       </div>
-      <div class="fin-copy">
-        <h2 class="fin-head">${esc(s.head)}</h2>
-        <div class="fin-total"><b data-count="${s.total}">${s.total}</b>${s.bonus != null ? `<span>${s.bonus}× ${s.bonusMark}</span>` : ''}</div>
-        <p class="fin-sub">${s.sub.map(t => `<span>${esc(t)}</span>`).join(' <i aria-hidden="true">·</i> ')}</p>
-        ${board}
-        <button class="big primary fin-go" data-fin="go">See scorecard</button>
-      </div>
+      <p class="finish-sr" role="status" aria-live="polite"></p>
     </div>`;
-  }
-
-  // Counts the big total up from zero as the result lands.
-  function countUp(el, ms) {
-    const to = +el.dataset.count;
-    const t0 = performance.now();
-    const step = now => {
-      const k = Math.min(1, (now - t0) / ms);
-      el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
-      if (k < 1 && !el.closest('.fin.skip')) requestAnimationFrame(step); else el.textContent = to;
+    const app = document.getElementById("app"),
+      previousFocus = document.activeElement;
+    const previous = {
+      inert: app.inert,
+      aria: app.getAttribute("aria-hidden"),
+      overflow: document.body.style.overflow,
     };
-    el.textContent = '0';
-    requestAnimationFrame(step);
-  }
-
-  // s: { type, head, sub[], total, bonus, bonusMark, board[], arrows[] | tally[] }.
-  // Resolves when the archer moves on to the scorecard.
-  function play(s, haptic = {}) {
-    return new Promise(resolve => {
-      document.querySelectorAll('.fin').forEach(n => n.remove());
-      const wrap = document.createElement('div');
-      wrap.innerHTML = html(s);
-      const el = wrap.firstElementChild;
-      document.body.appendChild(el);
-      const timers = [];
-      const later = (ms, fn) => timers.push(setTimeout(fn, ms));
-      const finishNow = () => {
-        timers.forEach(clearTimeout);
-        el.classList.add('skip', 'landed', 'settled');
-        el.querySelector('.fin-total b').textContent = s.total;
-        el.querySelector('.fin-go').focus({ preventScroll: true });
-      };
-      const close = () => {
-        timers.forEach(clearTimeout);
-        el.classList.add('out');
-        setTimeout(() => el.remove(), reduced() ? 0 : 220);
-        document.removeEventListener('keydown', onKey);
-        window.removeEventListener('hashchange', onHash);
-        resolve();
-      };
-      const onKey = e => {
-        if (e.key === 'Escape') close();
-        else if ((e.key === 'Enter' || e.key === ' ') && !el.classList.contains('settled')) { e.preventDefault(); finishNow(); }
-      };
-      // The phone's back button leaves the screen; the scorecard behind it is already the current page.
-      const startHash = location.hash;
-      const onHash = () => { if (location.hash !== startHash) close(); };
-      el.addEventListener('click', e => {
-        const b = e.target.closest('[data-fin]');
-        if (b && b.dataset.fin === 'go') return close();
-        if (!el.classList.contains('settled')) finishNow();
+    const canvas = root.querySelector("canvas"),
+      card = root.querySelector(".finish-results");
+    const skip = root.querySelector(".finish-skip"),
+      button = root.querySelector(".finish-go");
+    const count = root.querySelector(".finish-total strong"),
+      pill = root.querySelector(".finish-impact");
+    const still = root.querySelector(".finish-static");
+    const loading = root.querySelector(".finish-loading");
+    const announcement = root.querySelector(".finish-sr");
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    let scene = null,
+      frame = 0,
+      deadline = 0,
+      stopped = false,
+      sceneReady = false,
+      disposed = false,
+      hit = false,
+      announced = false;
+    let lastTime = 0,
+      backHandle = null;
+    let playbackStarted = null;
+    const removeGraphics = () => {
+      const old = scene;
+      scene = null;
+      try {
+        old?.dispose();
+      } catch (error) {
+        console.warn("Graphics cleanup unavailable", error);
+      }
+    };
+    const announce = () => {
+      if (announced) return;
+      announced = true;
+      announcement.textContent = `Round complete. ${data.name}, ${data.total} points, ${data.xs} Xs.`;
+    };
+    const staticFace = () => {
+      canvas.hidden = true;
+      if (!still.firstChild)
+        still.innerHTML = Target.faceSvg({
+          arrows: data.arrows.map((p) => ({
+            x: p.x,
+            y: p.y,
+            color: "#f2621a",
+          })),
+        });
+      still.hidden = false;
+    };
+    function paint(time) {
+      lastTime = time;
+      const reveal = time >= DURATION ? 1 : ease((time - 2900) / 350);
+      card.hidden = false;
+      card.style.visibility = reveal > 0 ? "visible" : "hidden";
+      card.inert = reveal === 0;
+      card.style.opacity = String(reveal);
+      card.style.transform = `translateY(${(1 - reveal) * 24}px)`;
+      const from = Math.floor(data.total * 0.88);
+      count.textContent = String(
+        Math.round(from + (data.total - from) * ease((time - 2900) / 600)),
+      );
+      button.disabled = time < 3320;
+      button.style.opacity = String(ease((time - 3200) / 250));
+      skip.hidden = time >= DURATION;
+      pill.hidden = time < STRIKE || time >= STRIKE + 600;
+      pill.style.opacity = String(
+        ease((time - STRIKE) / 100) * (1 - ease((time - STRIKE - 400) / 200)),
+      );
+      if (scene) {
+        const w = root.querySelector(".finish-stage").clientWidth,
+          h = root.clientHeight;
+        const cardHeight = card.getBoundingClientRect().height;
+        scene.draw(time, w, h, Math.max(85, (h - cardHeight - 28) * 0.5));
+      }
+    }
+    function settle(focus = true, fallback = false) {
+      if (disposed) return;
+      stopped = true;
+      loading.hidden = true;
+      cancelAnimationFrame(frame);
+      clearTimeout(deadline);
+      if (fallback || !scene || !sceneReady) {
+        removeGraphics();
+        staticFace();
+      }
+      try {
+        paint(DURATION);
+      } catch {
+        removeGraphics();
+        staticFace();
+        paint(DURATION);
+      }
+      announce();
+      if (focus && !document.hidden) button.focus({ preventScroll: true });
+    }
+    function dispose(restore = true) {
+      if (disposed) return;
+      disposed = true;
+      cancelAnimationFrame(frame);
+      clearTimeout(deadline);
+      canvas.removeEventListener("webglcontextlost", contextLost);
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("resize", resize);
+      reduced.removeEventListener("change", motionChange);
+      backHandle?.remove();
+      removeGraphics();
+      root.remove();
+      app.inert = previous.inert;
+      if (previous.aria === null) app.removeAttribute("aria-hidden");
+      else app.setAttribute("aria-hidden", previous.aria);
+      document.body.style.overflow = previous.overflow;
+      if (instance?.root === root) instance = null;
+      if (restore && previousFocus?.isConnected)
+        previousFocus.focus({ preventScroll: true });
+      document.dispatchEvent(new Event("celebrationend"));
+    }
+    function leave() {
+      if (disposed) return;
+      dispose(false);
+      go("#/card/" + data.roundId);
+      requestAnimationFrame(() => {
+        const heading = app.querySelector("h1");
+        if (heading && location.hash === "#/card/" + data.roundId) {
+          heading.tabIndex = -1;
+          heading.focus({ preventScroll: true });
+        }
       });
-      document.addEventListener('keydown', onKey);
-      window.addEventListener('hashchange', onHash);
+    }
+    function tick(now) {
+      if (disposed || stopped) return;
+      if (playbackStarted === null) playbackStarted = now;
+      const time = Math.min(DURATION, Math.max(0, now - playbackStarted));
+      try {
+        paint(time);
+        if (!hit && time >= STRIKE) {
+          hit = true;
+          if (time < STRIKE + 160 && !document.hidden) impact();
+        }
+        if (time >= DURATION) settle();
+        else frame = requestAnimationFrame(tick);
+      } catch {
+        settle(true, true);
+      }
+    }
+    function contextLost(event) {
+      event.preventDefault();
+      settle(true, true);
+    }
+    function visibility() {
+      if (document.hidden) settle(false);
+      else if (stopped) button.focus({ preventScroll: true });
+    }
+    function resize() {
+      try {
+        paint(lastTime);
+      } catch {
+        settle(true, true);
+      }
+    }
+    function motionChange() {
+      if (reduced.matches) settle(true, true);
+    }
 
-      if (reduced()) { finishNow(); return; }
-      // Walk up (CSS, 0-0.9s), arrows in (0.7s on), last arrow lands, result counts up.
-      const pinsDone = 700 + 1300;
-      later(pinsDone, () => el.classList.add('flying'));
-      later(pinsDone + 420, () => { el.classList.add('landed'); haptic.place && haptic.place(); });
-      later(pinsDone + 650, () => countUp(el.querySelector('.fin-total b'), 900));
-      later(pinsDone + 1700, () => {
-        el.classList.add('settled');
-        haptic.success && haptic.success();
-        el.querySelector('.fin-go').focus({ preventScroll: true });
-      });
+    instance = { root, dispose };
+    document.body.appendChild(root);
+    app.inert = true;
+    app.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "hidden";
+    skip.focus({ preventScroll: true });
+    skip.addEventListener("click", () => settle());
+    button.addEventListener("click", leave);
+    root.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        leave();
+      }
+      if (event.key !== "Tab") return;
+      const controls = [
+        ...root.querySelectorAll('button, [tabindex="0"]'),
+      ].filter(
+        (el) =>
+          !el.disabled && el.offsetParent !== null && !el.closest("[inert]"),
+      );
+      const first = controls[0],
+        last = controls[controls.length - 1];
+      if (
+        event.shiftKey &&
+        (document.activeElement === first || document.activeElement === root)
+      ) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    });
+    canvas.addEventListener("webglcontextlost", contextLost);
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("resize", resize);
+    reduced.addEventListener("change", motionChange);
+    const nativeApp =
+      window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.App;
+    if (nativeApp)
+      Promise.resolve(nativeApp.addListener("backButton", leave))
+        .then((handle) => {
+          if (disposed) handle.remove();
+          else backHandle = handle;
+        })
+        .catch(() => {});
+    if (reduced.matches || document.hidden) {
+      settle(!document.hidden, true);
+      return;
+    }
+    // Preparation has its own timeout. Driver setup and shader warm-up must
+    // not consume the user's 3.6-second sequence, especially on a second round.
+    deadline = setTimeout(() => settle(true, true), 8000);
+    preload().then(async (module) => {
+      if (disposed || stopped) return;
+      if (!module) {
+        settle(true, true);
+        return;
+      }
+      try {
+        scene = module.createScene(canvas, data);
+        const stage = root.querySelector(".finish-stage");
+        await scene.prepare?.(stage.clientWidth, root.clientHeight, 100);
+        if (disposed || stopped) return;
+        // Render the opening state while hidden: all expensive first-frame
+        // work finishes before either the clock or the visible scene starts.
+        paint(0);
+        sceneReady = true;
+        clearTimeout(deadline);
+        loading.hidden = true;
+        canvas.hidden = false;
+        deadline = setTimeout(() => settle(), 3900);
+        frame = requestAnimationFrame(tick);
+      } catch (error) {
+        if (!disposed && !stopped) {
+          console.warn("Celebration preparation failed", error);
+          settle(true, true);
+        }
+      }
     });
   }
-
-  return { play };
+  return {
+    play,
+    preload,
+    get active() {
+      return instance !== null;
+    },
+    dispose() {
+      instance?.dispose();
+    },
+  };
 })();

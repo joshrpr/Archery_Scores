@@ -1,0 +1,203 @@
+<!-- Throwaway appearance prototype. Three inspection views of one locked arrow design, not alternative product layouts. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+#vegas-arrow-study { --as-night:#071120; --as-panel:#0b192e; --as-line:#263b56; --as-cream:#f6f3ea; --as-muted:#a8bbd0; --as-copper:#d96b27; font:14px/1.5 Inter,system-ui,sans-serif; color:var(--as-cream); width:100%; }
+#vegas-arrow-study * { box-sizing:border-box; }
+#vegas-arrow-study [hidden] { display:none!important; }
+#vegas-arrow-study .as-shell { padding:20px; background:var(--as-night); border-radius:18px; max-width:880px; margin:0 auto; }
+#vegas-arrow-study .as-header { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:8px 12px; margin-bottom:16px; }
+#vegas-arrow-study h2 { margin:0; color:var(--as-cream); font:600 23px/1.1 'Barlow Condensed',sans-serif; }
+#vegas-arrow-study .as-tag { font-size:12px; color:var(--as-muted); letter-spacing:.06em; white-space:nowrap; }
+#vegas-arrow-study .as-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,320px); gap:20px; align-items:start; }
+#vegas-arrow-study .as-inspect { min-width:0; }
+#vegas-arrow-study .as-main { background:radial-gradient(ellipse at 48% 45%,#182c45,#091321 75%); border-radius:12px; overflow:hidden; position:relative; height:390px; }
+#vegas-arrow-study canvas { display:block; width:100%; }
+#vegas-arrow-study .as-main canvas { height:100%; touch-action:pan-y; }
+#vegas-arrow-study .as-loading { position:absolute; inset:0; display:grid; place-items:center; color:var(--as-muted); padding:30px; text-align:center; }
+#vegas-arrow-study .as-view-name { position:absolute; top:14px; left:16px; color:var(--as-muted); font-size:12px; pointer-events:none; }
+#vegas-arrow-study .as-switcher { display:flex; align-items:center; justify-content:center; gap:6px; margin:12px 0; }
+#vegas-arrow-study button { font:500 12px/1.3 Inter,system-ui,sans-serif; color:var(--as-muted); border:1px solid transparent; background:transparent; border-radius:7px; min-height:40px; padding:8px 11px; touch-action:manipulation; }
+#vegas-arrow-study button:hover { color:var(--as-cream); background:#142844; }
+#vegas-arrow-study button[aria-pressed="true"] { color:var(--as-cream); background:#1b3555; border-color:#53617a; }
+#vegas-arrow-study button:focus-visible,#vegas-arrow-study input:focus-visible { outline:2px solid #f4a76d; outline-offset:3px; }
+#vegas-arrow-study .as-turn-label { display:flex; justify-content:space-between; color:var(--as-muted); font-size:12px; margin:0 2px 4px; }
+#vegas-arrow-study input[type="range"] { width:100%; accent-color:var(--as-copper); min-height:28px; margin:0; }
+#vegas-arrow-study output { font-variant-numeric:tabular-nums; color:var(--as-cream); }
+#vegas-arrow-study .as-detail { font-size:12px; color:var(--as-muted); min-height:36px; margin:8px 0 0; }
+#vegas-arrow-study .as-phone-wrap { min-width:0; }
+#vegas-arrow-study .as-phone-label { margin:0 0 8px; font-size:12px; color:var(--as-muted); }
+#vegas-arrow-study .as-phone { background:linear-gradient(#0b192e,#10213a 50%,#071120); border-radius:16px; padding:16px 12px; overflow:hidden; }
+#vegas-arrow-study .as-phone canvas { aspect-ratio:1; width:100%; height:auto; }
+#vegas-arrow-study .as-phone-card { background:linear-gradient(#152b4a,#10213a); border:1px solid #2c405b; border-radius:15px; padding:14px; text-align:center; margin-top:14px; }
+#vegas-arrow-study .as-bar { width:30px; height:3px; background:var(--as-copper); margin:0 auto 10px; border-radius:3px; }
+#vegas-arrow-study .as-complete { font:600 12px/1.3 'Barlow Condensed',sans-serif; letter-spacing:.12em; color:#e3955c; }
+#vegas-arrow-study .as-score { display:flex; align-items:baseline; justify-content:center; gap:9px; margin:6px 0; }
+#vegas-arrow-study .as-score strong { font:700 64px/1 'Barlow Condensed',sans-serif; color:var(--as-cream); font-variant-numeric:tabular-nums; }
+#vegas-arrow-study .as-score span { font:600 15px/1.2 'Barlow Condensed',sans-serif; background:#203b5d; border:1px solid #795337; border-radius:5px; padding:4px 6px; }
+#vegas-arrow-study .as-round { font-size:12px; color:var(--as-muted); }
+#vegas-arrow-study .as-standing { display:flex; align-items:center; gap:10px; padding:10px 0; border-top:1px solid #30445f; margin-top:12px; font-size:12px; }
+#vegas-arrow-study .as-standing span:first-child { color:#e3955c; }
+#vegas-arrow-study .as-standing b { margin-left:auto; font-variant-numeric:tabular-nums; }
+#vegas-arrow-study .as-sample { font-size:12px; text-align:center; color:var(--as-muted); margin:10px 0 0; }
+#vegas-arrow-study .as-footer { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 12px; border-top:1px solid var(--as-line); padding-top:14px; margin-top:16px; font-size:12px; color:var(--as-muted); }
+@media(max-width:620px) {
+  #vegas-arrow-study .as-shell { padding:14px; }
+  #vegas-arrow-study .as-layout { grid-template-columns:minmax(0,1fr); gap:22px; }
+  #vegas-arrow-study .as-main { height:350px; }
+  #vegas-arrow-study .as-phone-wrap { width:min(100%,360px); justify-self:center; }
+}
+@media(pointer:coarse) { #vegas-arrow-study button { min-height:44px; } #vegas-arrow-study input[type="range"] { min-height:44px; } }
+</style>
+<div id="vegas-arrow-study">
+  <section class="as-shell" aria-label="Vegas arrow appearance prototype">
+    <div class="as-header"><h2>Arrow study</h2><span class="as-tag">VEGAS 300 · APPEARANCE</span></div>
+    <div class="as-layout">
+      <div class="as-inspect">
+        <div class="as-main">
+          <canvas data-main role="img" aria-label="Three-dimensional close-up of a carbon arrow with curved orange and ivory vanes and an orange slotted nock"></canvas>
+          <div class="as-view-name" data-view-name>Fletching / enlarged</div>
+          <div class="as-loading" data-loading>Preparing the arrow study…</div>
+        </div>
+        <div class="as-switcher" role="group" aria-label="Inspect arrow details">
+          <button type="button" class="cursor-interaction" data-view="fletching" aria-pressed="true">Fletching</button>
+          <button type="button" class="cursor-interaction" data-view="nock" aria-pressed="false">Nock</button>
+          <button type="button" class="cursor-interaction" data-view="contact" aria-pressed="false">Paper contact</button>
+        </div>
+        <label class="as-turn-label" for="as-turn"><span>Turn the arrow</span><output data-angle for="as-turn">−15°</output></label>
+        <input id="as-turn" data-turn type="range" min="-90" max="90" step="1" value="-15" aria-label="Turn the arrow">
+        <p class="as-detail" data-detail aria-live="polite">Curved vanes · cylindrical carbon shaft · ivory wrap</p>
+      </div>
+      <div class="as-phone-wrap">
+        <p class="as-phone-label" data-phone-label>At phone size</p>
+        <div class="as-phone">
+          <canvas data-phone role="img" aria-label="The same arrow embedded in a Vegas target, shown in the dusk round-complete screen"></canvas>
+          <div class="as-phone-card">
+            <div class="as-bar"></div><div class="as-complete">ROUND COMPLETE</div>
+            <div class="as-score"><strong>296</strong><span>22 Xs</span></div>
+            <div class="as-round">Vegas 300 · 30 arrows</div>
+            <div class="as-standing"><span>1.</span><span>Josh</span><b>296</b></div>
+          </div>
+        </div>
+        <p class="as-sample">Sample score · single-arrow appearance check</p>
+      </div>
+    </div>
+    <div class="as-footer"><span data-state>Fletching · rotation −15°</span><span>Prototype / appearance only</span></div>
+  </section>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+const root = document.getElementById('vegas-arrow-study');
+const loading = root.querySelector('[data-loading]');
+try {
+  const requestedView=new URLSearchParams(location.search).get('variant');
+  const state = {view:['fletching','nock','contact'].includes(requestedView)?requestedView:'fletching', turn:-15};
+  const TAU = Math.PI * 2;
+  let seed=619;
+  const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  const tex = (w,h,draw) => {const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;};
+  const carbon=tex(128,128,(c,w,h)=>{
+    c.fillStyle='#252a30';c.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=16)for(let x=0;x<w;x+=16){const flip=((x+y)/16)%2;c.fillStyle=flip?'#2a2e33':'#20252b';c.fillRect(x,y,16,16);c.strokeStyle=flip?'rgba(113,121,128,.14)':'rgba(4,9,14,.2)';c.lineWidth=1;for(let k=2;k<16;k+=3){c.beginPath();c.moveTo(x+(flip?k:0),y+(flip?0:k));c.lineTo(x+(flip?k:16),y+(flip?16:k));c.stroke();}}
+  });
+  carbon.wrapS=carbon.wrapT=THREE.RepeatWrapping;carbon.repeat.set(3,45);
+  const wrap=tex(512,512,(c,w,h)=>{
+    c.fillStyle='#eeeadd';c.fillRect(0,0,w,h);c.fillStyle='#d76a28';c.fillRect(0,8,w,24);c.fillRect(0,h-27,w,7);
+    for(const x of [90,345]){c.save();c.translate(x,365);c.rotate(-Math.PI/2);c.fillStyle='#253244';c.font='600 45px Arial';c.fillText('ROPERS',0,0);c.restore();}
+  });
+  const paper=tex(2048,2048,(c,w,h)=>{
+    c.fillStyle='#f2eee2';c.fillRect(0,0,w,h);const scale=w/23;
+    for(const [r,col] of [[10,'#2a7fd4'],[8,'#e8352b'],[4,'#ffd400']]){c.beginPath();c.arc(w/2,h/2,r*scale,0,TAU);c.fillStyle=col;c.fill();}
+    c.strokeStyle='rgba(18,22,25,.68)';c.lineWidth=2.7;
+    for(const r of [10,8,6,4,2,1]){c.beginPath();c.arc(w/2,h/2,r*scale,0,TAU);c.stroke();}
+    c.lineWidth=2;c.beginPath();c.moveTo(w/2-18,h/2);c.lineTo(w/2+18,h/2);c.moveTo(w/2,h/2-18);c.lineTo(w/2,h/2+18);c.stroke();
+    c.font='500 31px Arial';c.textAlign='center';c.textBaseline='middle';c.fillStyle='rgba(17,27,37,.70)';
+    for(const [r,label] of [[9,'6'],[7,'7'],[5,'8'],[3,'9']]){c.fillText(label,w/2-r*scale,h/2);c.fillText(label,w/2+r*scale,h/2);}
+    for(let i=0;i<26000;i++){const x=rand()*w,y=rand()*h;c.fillStyle=rand()>.5?'rgba(255,255,240,.045)':'rgba(47,34,19,.035)';c.fillRect(x,y,1+rand()*2,1+rand()*2);}
+  });
+  const foam=tex(256,256,(c,w,h)=>{c.fillStyle='#171d25';c.fillRect(0,0,w,h);for(let i=0;i<8500;i++){const v=12+Math.floor(rand()*27);c.fillStyle=`rgb(${v},${v+3},${v+7})`;c.fillRect(rand()*w,rand()*h,rand()*2+.4,rand()*2+.4);}});
+  foam.wrapS=foam.wrapT=THREE.RepeatWrapping;foam.repeat.set(4,4);
+  const tear=tex(512,512,(c,w,h)=>{
+    c.clearRect(0,0,w,h);const cx=w/2,cy=h/2;
+    c.beginPath();for(let i=0;i<=36;i++){const a=i/36*TAU,r=116+(rand()-.5)*23;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?c.lineTo(x,y):c.moveTo(x,y);}c.closePath();c.fillStyle='#16150e';c.fill();
+    for(let i=0;i<38;i++){const a=rand()*TAU,r=105+rand()*18,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;c.strokeStyle=i%3?'#e9dfba':'#827348';c.lineWidth=1.3+rand()*2;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*rand()*22,y+Math.sin(a)*rand()*22);c.stroke();}
+  });
+  const environment=tex(1024,512,(c,w,h)=>{
+    c.fillStyle='#384456';c.fillRect(0,0,w,h);
+    const panel=(x,y,r,col)=>{const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(56,68,86,0)');c.fillStyle=g;c.fillRect(0,0,w,h);};
+    panel(220,170,250,'#fff2d9');panel(800,200,190,'#b9d7ff');panel(500,55,145,'#eaf3ff');
+  });
+  environment.mapping=THREE.EquirectangularReflectionMapping;
+  const scene=new THREE.Scene();scene.environment=environment;scene.environmentIntensity=.7;
+  scene.add(new THREE.HemisphereLight(0xdce8ff,0x263047,1.35));
+  const key=new THREE.DirectionalLight(0xffead4,2.2);key.position.set(-30,80,35);key.target.position.set(0,30,0);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-45;key.shadow.camera.right=45;key.shadow.camera.top=45;key.shadow.camera.bottom=-45;key.shadow.camera.near=1;key.shadow.camera.far=180;key.shadow.bias=-.00008;key.shadow.normalBias=.015;scene.add(key,key.target);
+  const rim=new THREE.DirectionalLight(0x8ebfff,1.5);rim.position.set(20,60,-25);scene.add(rim);
+  const carbonMat=new THREE.MeshPhysicalMaterial({map:carbon,color:0xffffff,metalness:.12,roughness:.34,clearcoat:.65,clearcoatRoughness:.25});
+  const wrapMat=new THREE.MeshStandardMaterial({map:wrap,roughness:.62});
+  const collarMat=new THREE.MeshStandardMaterial({color:0x708394,metalness:.85,roughness:.26});
+  const orangeMat=new THREE.MeshPhysicalMaterial({color:0xf2621a,roughness:.39,metalness:0,clearcoat:.18});
+  const ivoryMat=new THREE.MeshPhysicalMaterial({color:0xf6f3ea,roughness:.48,metalness:0,clearcoat:.12});
+  const nockMat=new THREE.MeshPhysicalMaterial({color:0xf77927,roughness:.16,metalness:0,transmission:.62,thickness:.5,ior:1.48,clearcoat:.8,clearcoatRoughness:.16});
+  const arrow=new THREE.Group();scene.add(arrow);
+  function mesh(geometry,material,parent=arrow){const m=new THREE.Mesh(geometry,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+  mesh(new THREE.CylinderGeometry(.38,.38,64,64),carbonMat).position.y=32;
+  mesh(new THREE.ConeGeometry(.38,2.1,48),new THREE.MeshStandardMaterial({color:0x526070,metalness:.8,roughness:.3})).rotation.z=Math.PI;
+  mesh(new THREE.CylinderGeometry(.388,.388,7,64),wrapMat).position.y=59.9;
+  mesh(new THREE.CylinderGeometry(.405,.405,.18,64),collarMat).position.y=64.05;
+  mesh(new THREE.CylinderGeometry(.31,.29,1.25,48),nockMat).position.y=64.75;
+  const vaneShape=new THREE.Shape();vaneShape.moveTo(.39,56.7);vaneShape.lineTo(.39,62.85);vaneShape.bezierCurveTo(1.25,62.95,1.83,62.75,1.72,61.9);vaneShape.bezierCurveTo(1.62,60.8,1.28,57.4,.39,56.7);
+  const vaneGeometry=new THREE.ExtrudeGeometry(vaneShape,{depth:.055,bevelEnabled:true,bevelThickness:.018,bevelSize:.018,bevelSegments:3,curveSegments:36,steps:1});vaneGeometry.translate(0,0,-.0275);
+  const positions=vaneGeometry.attributes.position;
+  for(let i=0;i<positions.count;i++){const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i),a=(y-56.7)/6.15*.18;positions.setXYZ(i,x*Math.cos(a)+z*Math.sin(a),y,-x*Math.sin(a)+z*Math.cos(a));}vaneGeometry.computeVertexNormals();
+  for(let i=0;i<3;i++){
+    const v=mesh(vaneGeometry,i===0?orangeMat:ivoryMat);v.rotation.y=i*TAU/3;
+    const foot=mesh(new THREE.CylinderGeometry(.402,.402,6.2,24,1,true,Math.PI/2-.12,.24),i===0?orangeMat:ivoryMat);foot.position.y=59.8;foot.rotation.y=i*TAU/3;
+  }
+  const nockBodyProfile=[[0,65.15],[.3,65.15],[.35,65.28],[.395,65.65],[.395,66.35],[.38,66.55],[0,66.55]].map(([r,y])=>new THREE.Vector2(r,y));
+  mesh(new THREE.LatheGeometry(nockBodyProfile,64),nockMat);
+  const jawRadius=.39,jawGap=.145,jawAngle=Math.acos(jawGap/jawRadius);
+  const jawShape=new THREE.Shape();jawShape.moveTo(jawGap,-Math.sqrt(jawRadius*jawRadius-jawGap*jawGap));jawShape.absarc(0,0,jawRadius,-jawAngle,jawAngle,false);jawShape.closePath();
+  const jawGeometry=new THREE.ExtrudeGeometry(jawShape,{depth:.8,bevelEnabled:true,bevelThickness:.055,bevelSize:.045,bevelSegments:6,curveSegments:40});jawGeometry.rotateX(-Math.PI/2);jawGeometry.translate(0,66.53,0);
+  mesh(jawGeometry,nockMat);mesh(jawGeometry,nockMat).rotation.y=Math.PI;
+  for(const y of [65.3,65.48]){const ring=mesh(new THREE.TorusGeometry(.333,.018,10,64),nockMat);ring.rotation.x=Math.PI/2;ring.position.y=y;}
+  const backing=mesh(new THREE.BoxGeometry(25,1.8,25),new THREE.MeshStandardMaterial({map:foam,roughness:1}),scene);backing.position.y=4;
+  const paperEdge=mesh(new THREE.BoxGeometry(23,.06,23),new THREE.MeshStandardMaterial({color:0xe2dccc,roughness:1}),scene);paperEdge.position.y=4.97;
+  const face=mesh(new THREE.PlaneGeometry(23,23),new THREE.MeshBasicMaterial({map:paper,toneMapped:false}),scene);face.rotation.x=-Math.PI/2;face.position.y=5.012;face.receiveShadow=false;face.castShadow=false;
+  const faceShadow=mesh(new THREE.PlaneGeometry(23,23),new THREE.ShadowMaterial({color:0x11131a,opacity:.32}),scene);faceShadow.rotation.x=-Math.PI/2;faceShadow.position.y=5.018;faceShadow.castShadow=false;
+  const hole=mesh(new THREE.PlaneGeometry(1.8,1.8),new THREE.MeshStandardMaterial({map:tear,transparent:true,roughness:1,depthWrite:false,alphaTest:.02}),scene);hole.rotation.x=-Math.PI/2;hole.position.y=5.027;hole.castShadow=false;
+  const mainCanvas=root.querySelector('[data-main]'),phoneCanvas=root.querySelector('[data-phone]');
+  function renderer(canvas){const r=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});r.setPixelRatio(Math.min(devicePixelRatio||1,2));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.05;r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;r.setClearColor(0x071120,0);return r;}
+  const mainRenderer=renderer(mainCanvas),phoneRenderer=renderer(phoneCanvas);
+  const camera=new THREE.OrthographicCamera(-10,10,7.5,-7.5,.1,300);
+  const phoneCamera=new THREE.OrthographicCamera(-13.4,13.4,13.4,-13.4,.1,300);phoneCamera.position.set(5,114,9);phoneCamera.up.set(0,0,-1);phoneCamera.lookAt(0,5,0);
+  const views={
+    fletching:{name:'Fletching',position:[10,68,19],target:[0,60.7,0],span:14.4,roll:-.58,detail:'Curved vanes · cylindrical carbon shaft · ivory wrap'},
+    nock:{name:'Nock',position:[3,74,6],target:[0,66.1,0],span:4.8,roll:-.36,detail:'Open string groove · rounded jaws · translucent orange polymer'},
+    contact:{name:'Paper contact',position:[7,14,12],target:[0,5.2,0],span:5.2,roll:-.25,detail:'Embedded shaft · irregular puncture · paper fibers and contact shadow'}
+  };
+  function draw(){
+    const view=views[state.view],w=mainCanvas.clientWidth,h=mainCanvas.clientHeight,pw=phoneCanvas.clientWidth,ph=phoneCanvas.clientHeight;
+    if(!w||!h||!pw||!ph)return;
+    mainRenderer.setSize(w,h,false);phoneRenderer.setSize(pw,ph,false);
+    camera.left=-view.span*w/h/2;camera.right=view.span*w/h/2;camera.top=view.span/2;camera.bottom=-view.span/2;camera.up.set(0,1,0);camera.position.set(...view.position);camera.lookAt(...view.target);camera.rotateZ(view.roll);camera.updateProjectionMatrix();
+    arrow.rotation.y=THREE.MathUtils.degToRad(state.turn);
+    mainRenderer.render(scene,camera);phoneRenderer.render(scene,phoneCamera);
+    root.querySelector('[data-phone-label]').textContent=`At phone size · ${Math.round(root.querySelector('.as-phone').clientWidth)} px wide`;
+  }
+  function update(){
+    const view=views[state.view];root.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===state.view)));
+    root.querySelector('[data-view-name]').textContent=`${view.name} / enlarged`;
+    root.querySelector('[data-detail]').textContent=view.detail;
+    const angle=(state.turn<0?'−':state.turn>0?'+':'')+Math.abs(state.turn)+'°';root.querySelector('[data-angle]').textContent=angle;
+    root.querySelector('[data-state]').textContent=`${view.name} · rotation ${angle}`;draw();
+  }
+  function selectView(view){state.view=view;if(location.protocol==='http:'||location.protocol==='https:'){const url=new URL(location.href);url.searchParams.set('variant',view);history.replaceState(null,'',url);}update();}
+  root.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>selectView(b.dataset.view)));
+  root.querySelector('[data-turn]').addEventListener('input',e=>{state.turn=Number(e.target.value);update();});
+  root.addEventListener('keydown',e=>{if(e.target.matches('input,select,textarea,[contenteditable]'))return;if(e.key==='ArrowLeft'||e.key==='ArrowRight'){const keys=Object.keys(views),n=keys.indexOf(state.view);e.preventDefault();selectView(keys[(n+(e.key==='ArrowRight'?1:2))%3]);}});
+  const observer=new ResizeObserver(draw);observer.observe(root.querySelector('.as-main'));observer.observe(root.querySelector('.as-phone'));
+  loading.hidden=true;update();document.fonts.ready.then(draw);
+} catch(error) {
+  loading.hidden=false;loading.textContent='The 3D view could not start in this browser. Open the standalone preview in Chrome to inspect the arrow.';
+  console.error('Arrow appearance prototype:',error);
+}
+</script>

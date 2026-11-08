@@ -1,0 +1,4 @@
+/* A transient navigation surface, separate from score feedback and completion. */
+.surface-transition { position:fixed; inset:0; z-index:30; pointer-events:none; overflow:hidden; }
+.surface-transition-shape { position:absolute; transform-origin:0 0; }
+.surface-transition-title { position:absolute; transform-origin:0 0; color:var(--paper); white-space:nowrap; }

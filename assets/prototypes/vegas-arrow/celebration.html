@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vegas complete celebration prototype</title>
+<style>html{background:#101821}body{margin:0;padding:20px 12px}button{cursor:pointer}</style>
+</head>
+<body>
+<!-- Throwaway full-sequence prototype. Approved geometry and impact, a real 3D camera move, 29 instanced prior arrows, and an animated results card. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+#vegas-celebration { --vc-night:#071120; --vc-cream:#f6f3ea; --vc-muted:#a8bbd0; --vc-copper:#d96b27; font:14px/1.5 Inter,system-ui,sans-serif; color:var(--vc-cream); width:100%; }
+#vegas-celebration * { box-sizing:border-box; }
+#vegas-celebration [hidden] { display:none!important; }
+#vegas-celebration .vc-shell { max-width:880px; margin:auto; padding:20px; border-radius:18px; background:var(--vc-night); }
+#vegas-celebration .vc-heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px 12px; margin-bottom:18px; }
+#vegas-celebration h2 { margin:0; color:var(--vc-cream); font:600 24px/1.15 'Barlow Condensed',sans-serif; }
+#vegas-celebration .vc-tag { font-size:12px; color:var(--vc-muted); }
+#vegas-celebration .vc-layout { display:grid; grid-template-columns:minmax(0,360px) minmax(0,1fr); gap:24px; align-items:start; }
+#vegas-celebration .vc-phone { height:700px; width:100%; position:relative; overflow:hidden; border-radius:20px; background:radial-gradient(ellipse at 50% 34%,#17283b,#0b192e 55%,#071120); }
+#vegas-celebration canvas { width:100%; height:100%; display:block; }
+#vegas-celebration .vc-brand { position:absolute; left:18px; top:21px; color:#b2bfd2; font:600 12px/1.2 'Barlow Condensed',sans-serif; letter-spacing:.08em; pointer-events:none; }
+#vegas-celebration button,#vegas-celebration select { font:500 12px/1.3 Inter,system-ui,sans-serif; color:var(--vc-cream); background:#142a45; border:1px solid #354c68; border-radius:8px; min-height:42px; padding:9px 12px; touch-action:manipulation; }
+#vegas-celebration button:focus-visible,#vegas-celebration input:focus-visible,#vegas-celebration select:focus-visible { outline:2px solid #f4a76d; outline-offset:3px; }
+#vegas-celebration button:hover { background:#203a58; }
+#vegas-celebration button:disabled { opacity:.42; }
+#vegas-celebration .vc-skip { position:absolute; top:12px; right:12px; border-radius:999px; color:var(--vc-muted); background:#10223a; min-height:36px; padding:6px 12px; z-index:3; }
+#vegas-celebration .vc-card { position:absolute; left:16px; right:16px; bottom:16px; z-index:2; background:linear-gradient(#142b4b,#0e1e36); border:1px solid #304560; border-radius:18px; padding:16px; text-align:center; }
+#vegas-celebration .vc-bar { width:32px; height:4px; border-radius:4px; margin:0 auto 8px; background:var(--vc-copper); }
+#vegas-celebration .vc-title { margin:0; color:#e3955c; font:700 14px/1.3 'Barlow Condensed',sans-serif; letter-spacing:.12em; text-transform:uppercase; }
+#vegas-celebration .vc-total { display:flex; align-items:baseline; justify-content:center; gap:10px; margin:5px 0; }
+#vegas-celebration .vc-total strong { color:var(--vc-cream); font:800 72px/1 'Barlow Condensed',sans-serif; font-variant-numeric:tabular-nums; letter-spacing:-.025em; }
+#vegas-celebration .vc-total span { font:600 17px/1.2 'Barlow Condensed',sans-serif; padding:4px 8px; border-radius:6px; border:1px solid #825535; background:#1b3555; }
+#vegas-celebration .vc-sub { font-size:12px; color:var(--vc-muted); margin:4px 0 0; }
+#vegas-celebration .vc-board { list-style:none; padding:10px 0 0; margin:12px 0 0; border-top:1px solid #30435d; text-align:left; }
+#vegas-celebration .vc-board li { display:flex; align-items:center; gap:9px; padding:7px 9px; margin:4px 0 0; border-radius:8px; color:var(--vc-muted); font-size:13px; }
+#vegas-celebration .vc-board li:first-child { background:#1c385b; color:var(--vc-cream); outline:1px solid #815236; }
+#vegas-celebration .vc-rank { width:18px; color:#e3955c; }
+#vegas-celebration .vc-name { flex:1; min-width:0; }
+#vegas-celebration .vc-board b { font:700 19px/1.2 'Barlow Condensed',sans-serif; font-variant-numeric:tabular-nums; color:var(--vc-cream); }
+#vegas-celebration .vc-card .vc-go { width:100%; margin-top:14px; min-height:52px; background:var(--vc-copper); color:var(--vc-cream); border:0; border-radius:10px; font:700 22px/1.2 'Barlow Condensed',sans-serif; }
+#vegas-celebration .vc-pill { position:absolute; left:50%; top:344px; transform:translateX(-50%); white-space:nowrap; border:1px solid #ba682f; border-radius:999px; background:#10223b; color:var(--vc-cream); font:600 12px/1.3 'Barlow Condensed',sans-serif; padding:5px 11px; pointer-events:none; }
+#vegas-celebration .vc-loading { position:absolute; inset:0; z-index:5; display:grid; place-items:center; background:#0b192e; color:var(--vc-muted); padding:24px; text-align:center; }
+#vegas-celebration .vc-controls { min-width:0; padding-top:4px; }
+#vegas-celebration h3 { color:var(--vc-cream); font:600 20px/1.2 'Barlow Condensed',sans-serif; margin:0 0 14px; }
+#vegas-celebration .vc-playback { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+#vegas-celebration .vc-playback [data-play] { background:var(--vc-copper); color:#071120; border:0; font-weight:600; }
+#vegas-celebration .vc-speed { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 18px; font-size:12px; color:var(--vc-muted); }
+#vegas-celebration .vc-time-label { display:flex; justify-content:space-between; gap:8px; color:var(--vc-muted); font-size:12px; }
+#vegas-celebration output { color:var(--vc-cream); font-variant-numeric:tabular-nums; }
+#vegas-celebration input[type="range"] { width:100%; accent-color:var(--vc-copper); min-height:36px; margin:0; }
+#vegas-celebration .vc-checkpoints { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0 20px; }
+#vegas-celebration .vc-checkpoints button { background:#102139; text-align:left; color:var(--vc-muted); }
+#vegas-celebration .vc-checkpoints button[aria-pressed="true"] { color:var(--vc-cream); border-color:#ba7b4c; }
+#vegas-celebration .vc-check { display:flex; align-items:center; gap:9px; color:var(--vc-muted); font-size:12px; min-height:44px; }
+#vegas-celebration input[type="checkbox"] { accent-color:var(--vc-copper); width:17px; height:17px; }
+#vegas-celebration .vc-phase { color:#e8bb90; font:600 18px/1.3 'Barlow Condensed',sans-serif; margin:16px 0 6px; }
+#vegas-celebration .vc-state,#vegas-celebration .vc-note { font-size:12px; color:var(--vc-muted); margin:6px 0; }
+#vegas-celebration .vc-reference { margin-top:24px; padding-top:16px; border-top:1px solid #263b56; }
+#vegas-celebration .vc-footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; font-size:12px; color:var(--vc-muted); padding-top:16px; margin-top:18px; border-top:1px solid #263b56; }
+#vegas-celebration .vc-scorecard { position:absolute; inset:0; z-index:4; background:#0e2240; padding:24px 16px; overflow:auto; }
+#vegas-celebration .vc-scorecard h3 { margin-top:18px; font-size:28px; }
+#vegas-celebration .vc-scorecard table { width:100%; border-collapse:collapse; font-size:12px; color:var(--vc-cream); margin-top:14px; }
+#vegas-celebration .vc-scorecard th,#vegas-celebration .vc-scorecard td { text-align:left; padding:7px 4px; border-bottom:1px solid #2b4361; font-variant-numeric:tabular-nums; }
+#vegas-celebration .vc-scorecard td:last-child,#vegas-celebration .vc-scorecard th:last-child { text-align:right; }
+@media(max-width:700px) { #vegas-celebration .vc-shell { padding:14px; } #vegas-celebration .vc-layout { grid-template-columns:minmax(0,1fr); gap:22px; } #vegas-celebration .vc-phone { max-width:360px; justify-self:center; } }
+@media(pointer:coarse) { #vegas-celebration button,#vegas-celebration select { min-height:44px; } #vegas-celebration input[type="range"] { min-height:44px; } }
+</style>
+<div id="vegas-celebration">
+  <section class="vc-shell" aria-label="Vegas complete celebration prototype">
+    <div class="vc-heading"><h2>The full celebration</h2><span class="vc-tag">VEGAS 300 · 3.6 SECONDS</span></div>
+    <div class="vc-layout">
+      <div class="vc-phone" role="group" aria-label="Ropers Archery full round-complete preview">
+        <canvas data-scene role="img" aria-label="Thirty physical arrows in a Vegas target: the final arrow strikes, the camera pulls back and aligns behind the shafts, and the results appear"></canvas>
+        <button type="button" class="vc-skip cursor-interaction" data-skip>Skip</button>
+        <div class="vc-pill" data-pill aria-hidden="true">FINAL ARROW · X</div>
+        <div class="vc-card" data-card>
+          <div class="vc-bar" aria-hidden="true"></div><h3 class="vc-title">Round complete</h3>
+          <div class="vc-total"><strong data-total>296</strong><span data-bonus>7 Xs</span></div>
+          <p class="vc-sub">Vegas 300 · 30 arrows</p>
+          <ol class="vc-board"><li><span class="vc-rank">1.</span><span class="vc-name">Josh</span><b>296</b></li><li><span class="vc-rank">2.</span><span class="vc-name">Alex</span><b>294</b></li><li><span class="vc-rank">3.</span><span class="vc-name">Casey</span><b>289</b></li></ol>
+          <button type="button" class="vc-go cursor-interaction" data-scorecard-open>See scorecard</button>
+        </div>
+        <div class="vc-scorecard" data-scorecard hidden>
+          <button type="button" class="cursor-interaction" data-scorecard-close>Back to celebration</button>
+          <h3>Scorecard</h3><p class="vc-note" data-score-summary>Illustrative round · 296 points · 7 Xs</p>
+          <table><thead><tr><th>End</th><th>Arrows</th><th>Total</th><th>Running</th></tr></thead><tbody data-score-rows></tbody></table>
+        </div>
+        <div class="vc-loading" data-loading>Preparing the celebration…</div>
+      </div>
+      <div class="vc-controls">
+        <h3>Playback</h3>
+        <div class="vc-playback"><button type="button" class="cursor-interaction" data-play>Replay celebration</button><button type="button" class="cursor-interaction" data-pause>Pause</button></div>
+        <label class="vc-speed">Speed <select data-speed aria-label="Playback speed"><option value="1">Normal</option><option value="0.5">½ speed</option><option value="0.25">¼ speed</option></select></label>
+        <label class="vc-time-label" for="celebration-time"><span>Celebration timeline</span><output data-time-output for="celebration-time">0.00 / 3.60 s</output></label>
+        <input id="celebration-time" data-timeline type="range" min="0" max="3600" step="1" value="0" aria-label="Celebration timeline">
+        <div class="vc-checkpoints" role="group" aria-label="Inspect celebration stages"><button type="button" class="cursor-interaction" data-seek="1000">Impact</button><button type="button" class="cursor-interaction" data-seek="2050">Camera move</button><button type="button" class="cursor-interaction" data-seek="3000">Results reveal</button><button type="button" class="cursor-interaction" data-seek="3600">Complete</button></div>
+        <label class="vc-check"><input data-prior type="checkbox" checked> Show the earlier 29 arrows</label>
+        <p class="vc-phase" data-phase aria-live="polite">Ready</p><p class="vc-state" data-state>Normal speed</p>
+        <div class="vc-reference"><p class="vc-note">Approved arrow and impact. Continuous camera movement into the results.</p><p class="vc-note" data-sample>Illustrative 30-arrow round · 296 points · 7 Xs</p></div>
+      </div>
+    </div>
+    <div class="vc-footer"><span data-size>Phone preview</span><span>Prototype / full sequence</span></div>
+  </section>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+const root=document.getElementById('vegas-celebration'),loading=root.querySelector('[data-loading]');
+try {
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)'),DURATION=3600,STRIKE=1000,PAPER_Y=5.012,CONTACT_OFFSET=PAPER_Y+1.05;
+  const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),out=k=>1-Math.pow(1-clamp(k),3),inOut=k=>(k=clamp(k))<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+  const requested=new URLSearchParams(location.search).get('time');
+  const initial=requested!==null&&Number.isFinite(Number(requested))?clamp(Number(requested),0,DURATION):DURATION;
+  const state={time:initial,speed:1,playing:false,showPrior:true};
+  const TAU = Math.PI * 2;
+  let seed=619;
+  const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  const tex = (w,h,draw) => {const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=8;return t;};
+  const carbon=tex(128,128,(c,w,h)=>{
+    c.fillStyle='#252a30';c.fillRect(0,0,w,h);
+    for(let y=0;y<h;y+=16)for(let x=0;x<w;x+=16){const flip=((x+y)/16)%2;c.fillStyle=flip?'#2a2e33':'#20252b';c.fillRect(x,y,16,16);c.strokeStyle=flip?'rgba(113,121,128,.14)':'rgba(4,9,14,.2)';c.lineWidth=1;for(let k=2;k<16;k+=3){c.beginPath();c.moveTo(x+(flip?k:0),y+(flip?0:k));c.lineTo(x+(flip?k:16),y+(flip?16:k));c.stroke();}}
+  });
+  carbon.wrapS=carbon.wrapT=THREE.RepeatWrapping;carbon.repeat.set(3,45);
+  const wrap=tex(512,512,(c,w,h)=>{
+    c.fillStyle='#eeeadd';c.fillRect(0,0,w,h);c.fillStyle='#d76a28';c.fillRect(0,8,w,24);c.fillRect(0,h-27,w,7);
+    for(const x of [90,345]){c.save();c.translate(x,365);c.rotate(-Math.PI/2);c.fillStyle='#253244';c.font='600 45px Arial';c.fillText('ROPERS',0,0);c.restore();}
+  });
+  const paper=tex(2048,2048,(c,w,h)=>{
+    c.fillStyle='#f2eee2';c.fillRect(0,0,w,h);const scale=w/23;
+    for(const [r,col] of [[10,'#2a7fd4'],[8,'#e8352b'],[4,'#ffd400']]){c.beginPath();c.arc(w/2,h/2,r*scale,0,TAU);c.fillStyle=col;c.fill();}
+    c.strokeStyle='rgba(18,22,25,.68)';c.lineWidth=2.7;
+    for(const r of [10,8,6,4,2,1]){c.beginPath();c.arc(w/2,h/2,r*scale,0,TAU);c.stroke();}
+    c.lineWidth=2;c.beginPath();c.moveTo(w/2-18,h/2);c.lineTo(w/2+18,h/2);c.moveTo(w/2,h/2-18);c.lineTo(w/2,h/2+18);c.stroke();
+    c.font='500 31px Arial';c.textAlign='center';c.textBaseline='middle';c.fillStyle='rgba(17,27,37,.70)';
+    for(const [r,label] of [[9,'6'],[7,'7'],[5,'8'],[3,'9']]){c.fillText(label,w/2-r*scale,h/2);c.fillText(label,w/2+r*scale,h/2);}
+    for(let i=0;i<26000;i++){const x=rand()*w,y=rand()*h;c.fillStyle=rand()>.5?'rgba(255,255,240,.045)':'rgba(47,34,19,.035)';c.fillRect(x,y,1+rand()*2,1+rand()*2);}
+  });
+  const foam=tex(256,256,(c,w,h)=>{c.fillStyle='#171d25';c.fillRect(0,0,w,h);for(let i=0;i<8500;i++){const v=12+Math.floor(rand()*27);c.fillStyle=`rgb(${v},${v+3},${v+7})`;c.fillRect(rand()*w,rand()*h,rand()*2+.4,rand()*2+.4);}});
+  foam.wrapS=foam.wrapT=THREE.RepeatWrapping;foam.repeat.set(4,4);
+  const tear=tex(512,512,(c,w,h)=>{
+    c.clearRect(0,0,w,h);const cx=w/2,cy=h/2;
+    c.beginPath();for(let i=0;i<=36;i++){const a=i/36*TAU,r=116+(rand()-.5)*23;const x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?c.lineTo(x,y):c.moveTo(x,y);}c.closePath();c.fillStyle='#16150e';c.fill();
+    for(let i=0;i<38;i++){const a=rand()*TAU,r=105+rand()*18,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;c.strokeStyle=i%3?'#e9dfba':'#827348';c.lineWidth=1.3+rand()*2;c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*rand()*22,y+Math.sin(a)*rand()*22);c.stroke();}
+  });
+  const environment=tex(1024,512,(c,w,h)=>{
+    c.fillStyle='#384456';c.fillRect(0,0,w,h);
+    const panel=(x,y,r,col)=>{const g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(56,68,86,0)');c.fillStyle=g;c.fillRect(0,0,w,h);};
+    panel(220,170,250,'#fff2d9');panel(800,200,190,'#b9d7ff');panel(500,55,145,'#eaf3ff');
+  });
+  environment.mapping=THREE.EquirectangularReflectionMapping;
+  const scene=new THREE.Scene();scene.environment=environment;scene.environmentIntensity=.7;
+  scene.add(new THREE.HemisphereLight(0xdce8ff,0x263047,1.35));
+  const key=new THREE.DirectionalLight(0xffead4,2.2);key.position.set(-30,80,35);key.target.position.set(0,30,0);key.castShadow=true;key.shadow.mapSize.set(2048,2048);key.shadow.camera.left=-45;key.shadow.camera.right=45;key.shadow.camera.top=45;key.shadow.camera.bottom=-45;key.shadow.camera.near=1;key.shadow.camera.far=180;key.shadow.bias=-.00008;key.shadow.normalBias=.015;scene.add(key,key.target);
+  const rim=new THREE.DirectionalLight(0x8ebfff,1.5);rim.position.set(20,60,-25);scene.add(rim);
+  const carbonMat=new THREE.MeshPhysicalMaterial({map:carbon,color:0xffffff,metalness:.12,roughness:.34,clearcoat:.65,clearcoatRoughness:.25});
+  const wrapMat=new THREE.MeshStandardMaterial({map:wrap,roughness:.62});
+  const collarMat=new THREE.MeshStandardMaterial({color:0x708394,metalness:.85,roughness:.26});
+  const orangeMat=new THREE.MeshPhysicalMaterial({color:0xf2621a,roughness:.39,metalness:0,clearcoat:.18});
+  const ivoryMat=new THREE.MeshPhysicalMaterial({color:0xf6f3ea,roughness:.48,metalness:0,clearcoat:.12});
+  const nockMat=new THREE.MeshPhysicalMaterial({color:0xf77927,roughness:.16,metalness:0,transmission:.62,thickness:.5,ior:1.48,clearcoat:.8,clearcoatRoughness:.16});
+  const arrow=new THREE.Group();scene.add(arrow);
+  function mesh(geometry,material,parent=arrow){const m=new THREE.Mesh(geometry,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+  mesh(new THREE.CylinderGeometry(.38,.38,64,64,96),carbonMat).position.y=32;
+  mesh(new THREE.ConeGeometry(.38,2.1,48),new THREE.MeshStandardMaterial({color:0x526070,metalness:.8,roughness:.3})).rotation.z=Math.PI;
+  mesh(new THREE.CylinderGeometry(.388,.388,7,64),wrapMat).position.y=59.9;
+  mesh(new THREE.CylinderGeometry(.405,.405,.18,64),collarMat).position.y=64.05;
+  mesh(new THREE.CylinderGeometry(.31,.29,1.25,48),nockMat).position.y=64.75;
+  const vaneShape=new THREE.Shape();vaneShape.moveTo(.39,56.7);vaneShape.lineTo(.39,62.85);vaneShape.bezierCurveTo(1.25,62.95,1.83,62.75,1.72,61.9);vaneShape.bezierCurveTo(1.62,60.8,1.28,57.4,.39,56.7);
+  const vaneGeometry=new THREE.ExtrudeGeometry(vaneShape,{depth:.055,bevelEnabled:true,bevelThickness:.018,bevelSize:.018,bevelSegments:3,curveSegments:36,steps:1});vaneGeometry.translate(0,0,-.0275);
+  const positions=vaneGeometry.attributes.position;
+  for(let i=0;i<positions.count;i++){const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i),a=(y-56.7)/6.15*.18;positions.setXYZ(i,x*Math.cos(a)+z*Math.sin(a),y,-x*Math.sin(a)+z*Math.cos(a));}vaneGeometry.computeVertexNormals();
+  for(let i=0;i<3;i++){
+    const v=mesh(vaneGeometry,i===0?orangeMat:ivoryMat);v.rotation.y=i*TAU/3;
+    const foot=mesh(new THREE.CylinderGeometry(.402,.402,6.2,24,1,true,Math.PI/2-.12,.24),i===0?orangeMat:ivoryMat);foot.position.y=59.8;foot.rotation.y=i*TAU/3;
+  }
+  const nockBodyProfile=[[0,65.15],[.3,65.15],[.35,65.28],[.395,65.65],[.395,66.35],[.38,66.55],[0,66.55]].map(([r,y])=>new THREE.Vector2(r,y));
+  mesh(new THREE.LatheGeometry(nockBodyProfile,64),nockMat);
+  const jawRadius=.39,jawGap=.145,jawAngle=Math.acos(jawGap/jawRadius);
+  const jawShape=new THREE.Shape();jawShape.moveTo(jawGap,-Math.sqrt(jawRadius*jawRadius-jawGap*jawGap));jawShape.absarc(0,0,jawRadius,-jawAngle,jawAngle,false);jawShape.closePath();
+  const jawGeometry=new THREE.ExtrudeGeometry(jawShape,{depth:.8,bevelEnabled:true,bevelThickness:.055,bevelSize:.045,bevelSegments:6,curveSegments:40});jawGeometry.rotateX(-Math.PI/2);jawGeometry.translate(0,66.53,0);
+  mesh(jawGeometry,nockMat);mesh(jawGeometry,nockMat).rotation.y=Math.PI;
+  for(const y of [65.3,65.48]){const ring=mesh(new THREE.TorusGeometry(.333,.018,10,64),nockMat);ring.rotation.x=Math.PI/2;ring.position.y=y;}
+  // Bake each approved part's placement into its own geometry. The shared
+  // centerline then bends shaft, wrap, vanes, and nock as one continuous arrow.
+  const flexible=[];
+  for(const part of arrow.children){
+    part.updateMatrix();part.geometry=part.geometry.clone();part.geometry.applyMatrix4(part.matrix);
+    part.position.set(0,0,0);part.quaternion.identity();part.scale.set(1,1,1);part.frustumCulled=false;
+    const g=part.geometry;flexible.push({part,base:new Float32Array(g.attributes.position.array),normals:new Float32Array(g.attributes.normal.array)});
+  }
+  arrow.rotation.y=THREE.MathUtils.degToRad(-15);
+  const backing=mesh(new THREE.BoxGeometry(25,1.8,25),new THREE.MeshStandardMaterial({map:foam,roughness:1}),scene);backing.position.y=4;
+  const paperEdge=mesh(new THREE.BoxGeometry(23,.06,23),new THREE.MeshStandardMaterial({color:0xe2dccc,roughness:1}),scene);paperEdge.position.y=4.97;
+  const face=mesh(new THREE.PlaneGeometry(23,23),new THREE.MeshBasicMaterial({map:paper,toneMapped:false}),scene);face.rotation.x=-Math.PI/2;face.position.y=5.012;face.receiveShadow=false;face.castShadow=false;
+  const faceShadow=mesh(new THREE.PlaneGeometry(23,23),new THREE.ShadowMaterial({color:0x11131a,opacity:.32}),scene);faceShadow.rotation.x=-Math.PI/2;faceShadow.position.y=5.018;faceShadow.castShadow=false;
+  const hole=mesh(new THREE.PlaneGeometry(1.8,1.8),new THREE.MeshStandardMaterial({map:tear,transparent:true,roughness:1,depthWrite:false,alphaTest:.02}),scene);hole.rotation.x=-Math.PI/2;hole.position.y=5.027;hole.castShadow=false;
+  const pulse=mesh(new THREE.TorusGeometry(.6,.012,8,96),new THREE.MeshBasicMaterial({color:0xd96b27,transparent:true,opacity:0,depthWrite:false,toneMapped:false}),scene);pulse.rotation.x=-Math.PI/2;pulse.position.y=5.08;pulse.castShadow=false;pulse.receiveShadow=false;
+  const fibers=[];
+  for(let i=0;i<9;i++){
+    const angle=i*TAU/9+.11,petal=new THREE.Shape();petal.moveTo(-.018,0);petal.lineTo(.018,0);petal.lineTo(.007,.13+(i%3)*.025);petal.closePath();
+    const p=mesh(new THREE.ShapeGeometry(petal),new THREE.MeshStandardMaterial({color:i%3?0xece4c9:0xbcab78,side:THREE.DoubleSide,roughness:1}),scene);
+    p.position.set(Math.cos(angle)*.43,5.03,Math.sin(angle)*.43);p.rotation.set(-Math.PI/2,0,angle-Math.PI/2);p.castShadow=false;fibers.push({mesh:p,angle});
+  }
+
+  // A consistent illustrative round, spread on a small hexagonal lattice so
+  // shaft diameters remain plausible. Score labels come from the actual points.
+  const candidates=[];
+  for(let q=-4;q<=4;q++)for(let r=-4;r<=4;r++){
+    const x=.86*(q+r/2),z=.86*Math.sqrt(3)/2*r,radius=Math.hypot(x,z);
+    if(radius>.01&&radius<3)candidates.push({x,z,radius,angle:Math.atan2(z,x)});
+  }
+  const xs=candidates.filter(p=>p.radius<=1.4).sort((a,b)=>a.angle-b.angle);
+  const tens=candidates.filter(p=>p.radius>1.4&&p.radius<=2.4).sort((a,b)=>a.angle-b.angle);
+  const nines=candidates.filter(p=>p.radius>2.4&&p.radius<2.7).sort((a,b)=>a.angle-b.angle);
+  const priorPoints=[...xs,...Array.from({length:19},(_,i)=>tens[Math.floor(i*tens.length/19)]),...Array.from({length:4},(_,i)=>nines[Math.floor(i*nines.length/4)])];
+  let orderSeed=391;for(let i=priorPoints.length-1;i>0;i--){orderSeed=(orderSeed*1664525+1013904223)>>>0;const j=orderSeed%(i+1);[priorPoints[i],priorPoints[j]]=[priorPoints[j],priorPoints[i]];}
+  const points=[...priorPoints,{x:0,z:0,radius:0}],valueAt=p=>{const d=Math.hypot(p.x,p.z)-.4;return d<=1?'X':d<=2?10:9;};
+  const scores=points.map(valueAt),total=scores.reduce((s,v)=>s+(v==='X'?10:v),0),bonus=scores.filter(v=>v==='X').length;
+  root.querySelector('[data-total]').textContent=total;root.querySelector('[data-bonus]').textContent=`${bonus} Xs`;root.querySelector('[data-sample]').textContent=`Illustrative ${points.length}-arrow round · ${total} points · ${bonus} Xs`;
+  root.querySelector('[data-score-summary]').textContent=`Illustrative round · ${total} points · ${bonus} Xs`;
+  let running=0;root.querySelector('[data-score-rows]').innerHTML=Array.from({length:10},(_,i)=>{const end=scores.slice(i*3,i*3+3),sum=end.reduce((s,v)=>s+(v==='X'?10:v),0);running+=sum;return `<tr><td>${i+1}</td><td>${end.join(' · ')}</td><td>${sum}</td><td>${running}</td></tr>`;}).join('');
+  const earlier=new THREE.Group();scene.add(earlier);
+  const oldCarbon=new THREE.MeshStandardMaterial({map:carbon,color:0xa4adb9,metalness:.08,roughness:.56}),oldWrap=new THREE.MeshStandardMaterial({map:wrap,color:0xb6c0cd,roughness:.7}),oldIvory=new THREE.MeshStandardMaterial({color:0xc0c8d1,roughness:.6}),oldOrange=new THREE.MeshStandardMaterial({color:0xb65c2a,roughness:.55}),oldNock=new THREE.MeshStandardMaterial({color:0xc16c34,roughness:.38}),oldCollar=new THREE.MeshStandardMaterial({color:0x667688,metalness:.4,roughness:.5});
+  const pose=new THREE.Object3D(),instancePoses=priorPoints.map((p,i)=>{pose.position.set(p.x,-(.7+(i%7)*.61),p.z);pose.rotation.set(0,i*2.39996,0);pose.scale.set(1,1,1);pose.updateMatrix();return pose.matrix.clone();});
+  for(let i=0;i<flexible.length;i++){
+    const source=flexible[i].part;
+    if(i===1)continue; // buried points need no separate draw call
+    let geometry=source.geometry.clone();
+    if(i===0){geometry.dispose();geometry=new THREE.CylinderGeometry(.38,.38,64,12,1);geometry.translate(0,32,0);}
+    if(i===2){geometry.dispose();geometry=new THREE.CylinderGeometry(.388,.388,7,12);geometry.translate(0,59.9,0);}
+    const material=source.material===carbonMat?oldCarbon:source.material===wrapMat?oldWrap:source.material===ivoryMat?oldIvory:source.material===orangeMat?oldOrange:source.material===nockMat?oldNock:oldCollar;
+    const instanced=new THREE.InstancedMesh(geometry,material,priorPoints.length);instanced.castShadow=true;instanced.receiveShadow=true;instanced.frustumCulled=false;
+    instancePoses.forEach((matrix,j)=>instanced.setMatrixAt(j,matrix));instanced.instanceMatrix.needsUpdate=true;earlier.add(instanced);
+  }
+  const oldHoles=new THREE.InstancedMesh(new THREE.PlaneGeometry(1.8,1.8),hole.material.clone(),priorPoints.length);oldHoles.frustumCulled=false;
+  priorPoints.forEach((p,i)=>{pose.position.set(p.x,5.027,p.z);pose.rotation.set(-Math.PI/2,0,0);pose.scale.set(.85,.85,.85);pose.updateMatrix();oldHoles.setMatrixAt(i,pose.matrix);});oldHoles.instanceMatrix.needsUpdate=true;earlier.add(oldHoles);
+  const canvas=root.querySelector('[data-scene]'),phone=root.querySelector('.vc-phone'),card=root.querySelector('[data-card]'),score=root.querySelector('[data-total]'),pill=root.querySelector('[data-pill]'),skip=root.querySelector('[data-skip]'),go=root.querySelector('[data-scorecard-open]'),scorecard=root.querySelector('[data-scorecard]');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.setClearColor(0x071120,0);
+  // Every visible object is more than 60 units away. Keep the near plane close
+  // enough to preserve depth precision between paper, shadow, and tear layers.
+  const camera=new THREE.PerspectiveCamera(20,1,10,500);camera.up.set(0,0,-1);
+  const timeline=root.querySelector('[data-timeline]'),timeOutput=root.querySelector('[data-time-output]'),phaseLabel=root.querySelector('[data-phase]'),stateLabel=root.querySelector('[data-state]'),playButton=root.querySelector('[data-play]'),pauseButton=root.querySelector('[data-pause]');
+  let frame=0,lastTime=null,lastPhase='',lastWidth=0,lastHeight=0,lastBendTime=-1;
+  function phase(t){return t<600?'Approach':t<STRIKE?'Final arrow':t<1500?'Impact':t<2600?'Camera move':t<DURATION?'Results reveal':'Round complete';}
+  function bendAt(t){
+    if(t===lastBendTime)return;lastBendTime=t;
+    const dt=t-STRIKE;
+    let offset=36;
+    if(t>=760&&t<STRIKE)offset=CONTACT_OFFSET+(36-CONTACT_OFFSET)*(1-(t-760)/(STRIKE-760));
+    else if(t>=STRIKE)offset=CONTACT_OFFSET*Math.pow(1-clamp(dt/40),2);
+    arrow.position.y=offset;arrow.visible=t>=760;
+    const anchor=PAPER_Y-offset,length=67.4-anchor;
+    const decay=dt>=0&&dt<560?Math.exp(-dt/125):0;
+    const amplitudeX=dt>=0?1.8*decay*Math.sin(TAU*dt/115):0;
+    const amplitudeZ=dt>=0?.68*decay*Math.sin(TAU*dt/129):0;
+    for(const item of flexible){
+      const p=item.part.geometry.attributes.position,n=item.part.geometry.attributes.normal,a=p.array,b=n.array;
+      for(let i=0;i<a.length;i+=3){
+        const x=item.base[i],y=item.base[i+1],z=item.base[i+2],s=clamp((y-anchor)/length);
+        const shape=s*s*(3-s)/2,slope=(3*s-1.5*s*s)/length,dx=amplitudeX*shape,dz=amplitudeZ*shape;
+        const sx=amplitudeX*slope,sz=amplitudeZ*slope,il=1/Math.sqrt(1+sx*sx+sz*sz),qw=Math.sqrt((1+il)/2),qx=sz*il/(2*qw),qz=-sx*il/(2*qw);
+        const ry=2*(qz*x-qx*z);
+        a[i]=x-qz*ry+dx;a[i+1]=y+qw*ry;a[i+2]=z+qx*ry+dz;
+        const nx=item.normals[i],ny=item.normals[i+1],nz=item.normals[i+2],tx=-2*qz*ny,ty=2*(qz*nx-qx*nz),tz=2*qx*ny;
+        b[i]=nx+qw*tx-qz*ty;b[i+1]=ny+qw*ty+qz*tx-qx*tz;b[i+2]=nz+qw*tz+qx*ty;
+      }
+      p.needsUpdate=true;n.needsUpdate=true;
+    }
+    const hit=t>=STRIKE,penetration=clamp(dt/40),pulseProgress=clamp(dt/280);
+    hole.visible=hit;hole.scale.setScalar(.28+.72*penetration);
+    pulse.visible=hit&&dt<280;pulse.scale.setScalar(1+1.5*(1-Math.pow(1-pulseProgress,3)));pulse.material.opacity=.45*(1-pulseProgress);
+    for(const f of fibers){f.mesh.visible=hit;f.mesh.scale.setScalar(.45+.55*penetration);f.mesh.rotation.x=-Math.PI/2+(hit?.1+.18*Math.exp(-Math.max(0,dt)/85)*Math.sin(Math.max(0,dt)/24):0);}
+    root.dataset.time=t.toFixed(2);root.dataset.phase=phase(t);root.dataset.tailFlex=Math.hypot(amplitudeX,amplitudeZ).toFixed(4);root.dataset.entryOffset=offset.toFixed(4);
+  }
+
+  function draw(){
+    const started=performance.now(),w=phone.clientWidth,h=phone.clientHeight;if(!w||!h)return;
+    if(w!==lastWidth||h!==lastHeight){renderer.setSize(w,h,false);lastWidth=w;lastHeight=h;}
+    const intro=out(state.time/600),dock=inOut((state.time-1500)/1100),width=(30-3.2*intro)+(33.5-26.8)*dock,centerY=290+(155-290)*dock;
+    camera.position.set(8+(.25-8)*dock,200-22*intro+62*dock,12-intro+(.5-11)*dock);camera.lookAt(0,PAPER_Y,0);
+    const distance=camera.position.distanceTo(new THREE.Vector3(0,PAPER_Y,0));camera.fov=THREE.MathUtils.radToDeg(2*Math.atan(width/(w/h*2*distance)));camera.aspect=w/h;camera.setViewOffset(w,h,0,h/2-centerY,w,h);
+    bendAt(state.time);earlier.visible=state.showPrior;renderer.render(scene,camera);
+    const reveal=out((state.time-2600)/500);card.style.visibility=reveal>0?'visible':'hidden';card.inert=reveal===0;card.style.opacity=String(reveal);card.style.transform=`translateY(${(1-reveal)*24}px)`;
+    const count=out((state.time-2600)/800),from=Math.floor(total*.88);score.textContent=String(Math.round(from+(total-from)*count));
+    root.querySelectorAll('.vc-board li').forEach((row,i)=>{const k=out((state.time-2780-i*70)/220);row.style.opacity=String(k);row.style.transform=`translateY(${(1-k)*6}px)`;});
+    go.style.opacity=String(out((state.time-3000)/300));go.disabled=state.time<3100;
+    const pillIn=out((state.time-STRIKE)/100),pillOut=1-out((state.time-1400)/200);pill.style.opacity=String(pillIn*pillOut);pill.style.visibility=state.time>=STRIKE&&state.time<1600?'visible':'hidden';
+    skip.hidden=state.time>=DURATION;root.querySelector('[data-size]').textContent=`Phone preview · ${Math.round(w)} px wide`;
+    root.dataset.renderMs=(performance.now()-started).toFixed(2);root.dataset.priorCount=state.showPrior?String(priorPoints.length):'0';root.dataset.cameraDock=dock.toFixed(4);root.dataset.resultsOpacity=reveal.toFixed(4);
+  }
+  function update(){
+    const p=phase(state.time),speed=state.speed===1?'normal speed':state.speed===.5?'half speed':'quarter speed';timeline.value=String(Math.round(state.time));timeline.setAttribute('aria-valuetext',`${(state.time/1000).toFixed(2)} seconds, ${p.toLowerCase()}`);timeOutput.textContent=`${(state.time/1000).toFixed(2)} / 3.60 s`;
+    if(p!==lastPhase){phaseLabel.textContent=p;lastPhase=p;}playButton.textContent=state.time>0&&state.time<DURATION&&!state.playing?'Resume':'Replay celebration';pauseButton.disabled=!state.playing;
+    stateLabel.textContent=reduced.matches?'Reduced motion · scrub to inspect':`${state.playing?'Playing':state.time===DURATION?'Complete':'Paused'} · ${speed}`;
+    root.querySelectorAll('[data-seek]').forEach(b=>b.setAttribute('aria-pressed',String(Math.abs(state.time-Number(b.dataset.seek))<1)));draw();
+  }
+  function stop(){state.playing=false;cancelAnimationFrame(frame);frame=0;lastTime=null;}
+  function tick(now){if(!state.playing)return;if(lastTime!==null)state.time=Math.min(DURATION,state.time+(now-lastTime)*state.speed);lastTime=now;if(state.time>=DURATION)stop();update();if(state.playing)frame=requestAnimationFrame(tick);}
+  function play(fromStart=false){stop();scorecard.hidden=true;if(reduced.matches){state.time=DURATION;update();return;}if(fromStart||state.time>=DURATION)state.time=0;state.playing=true;lastTime=null;update();frame=requestAnimationFrame(tick);}
+  function seek(t){stop();scorecard.hidden=true;state.time=clamp(t,0,DURATION);update();}
+  function finishNow(){seek(DURATION);go.focus({preventScroll:true});}
+  playButton.addEventListener('click',()=>play(state.playing||state.time>=DURATION||state.time===0));pauseButton.addEventListener('click',()=>{stop();update();});
+  root.querySelector('[data-speed]').addEventListener('change',e=>{state.speed=Number(e.target.value);lastTime=null;update();});timeline.addEventListener('input',e=>seek(Number(e.target.value)));
+  root.querySelectorAll('[data-seek]').forEach(b=>b.addEventListener('click',()=>seek(Number(b.dataset.seek))));root.querySelector('[data-prior]').addEventListener('change',e=>{state.showPrior=e.target.checked;update();});
+  skip.addEventListener('click',finishNow);canvas.addEventListener('click',()=>{if(state.time<DURATION)finishNow();});
+  go.addEventListener('click',()=>{seek(DURATION);scorecard.hidden=false;root.querySelector('[data-scorecard-close]').focus({preventScroll:true});});root.querySelector('[data-scorecard-close]').addEventListener('click',()=>{scorecard.hidden=true;go.focus({preventScroll:true});});
+  root.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();if(!scorecard.hidden){scorecard.hidden=true;go.focus({preventScroll:true});}else finishNow();}else if(!e.target.matches('input,select,textarea,[contenteditable]')&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();seek(state.time+(e.key==='ArrowRight'?16:-16));}});
+  reduced.addEventListener('change',()=>{if(reduced.matches)seek(DURATION);});document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();update();}});
+  const visible=new IntersectionObserver(entries=>{if(!entries[0].isIntersecting&&state.playing){stop();update();}});visible.observe(root);
+  const observer=new ResizeObserver(draw);observer.observe(phone);loading.hidden=true;update();document.fonts.ready.then(draw);if(requested===null&&!reduced.matches)play(true);
+}catch(error){loading.hidden=false;loading.textContent='The 3D preview could not start. Open the standalone celebration in Chrome to view it.';console.error('Vegas celebration prototype:',error);}
+</script>
+
+</body>
+</html>

@@ -3,22 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0e2240">
+  <meta name="theme-color" content="#4b5320">
   <meta name="description" content="Offline IBO 3D and Vegas 300 archery scorecard for groups.">
   <title>Ropers Archery Scorecard</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script>
-    // Apply the saved screen colours before first paint (see THEMES in app.js).
-    try {
-      var t = localStorage.getItem('ibo-scorer-theme') || 'dark';
-      if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      document.documentElement.dataset.theme = t;
-    } catch (e) {}
-  </script>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="stats.css">
+  <link rel="stylesheet" href="finish.css">
+  <link rel="stylesheet" href="velocity-base.css">
+  <link rel="stylesheet" href="velocity-home.css">
+  <link rel="stylesheet" href="velocity-scoring.css">
+  <link rel="stylesheet" href="velocity-support.css">
+  <link rel="stylesheet" href="surface-transition.css">
 </head>
 <body>
   <div id="app"></div>
@@ -29,7 +27,9 @@
   <script src="groups.js"></script>
   <script src="stats.js"></script>
   <script src="import.js"></script>
+  <script src="completion.js"></script>
   <script src="finish.js"></script>
+  <script src="surface-transition.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "metadata": {
+    "name": "Ropers OD green prototypes",
+    "scope": "Three exploratory proposals; no production direction selected",
+    "sources": ["../scorebook-remix/remix.css", "od.css", "od.js"]
+  },
+  "colors": {
+    "odGreen": "#4b5320",
+    "orange": "#f2621a",
+    "paper": "#f3eedf",
+    "ink": "#26281f",
+    "paperMuted": "#65614e",
+    "fieldGround": "#202718",
+    "greenLabel": "#e3e3c9",
+    "fieldLabel": "#c8cbb1"
+  },
+  "motion": {
+    "sharedRoundMs": 380,
+    "sharedRoundEasing": "cubic-bezier(.16,1,.3,1)",
+    "homeSheetTiltDeg": -2,
+    "reducedMotion": "No sheet tilt or shared-element travel; brief score-opacity acknowledgment",
+    "unsupported": "Normal screen update with the inherited short continuity transition"
+  },
+  "breakpoints": {
+    "stackBelowPx": 861,
+    "intermediateMaximumPx": 1100,
+    "narrowMaximumPx": 350
+  }
+}
