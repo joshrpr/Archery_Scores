@@ -284,10 +284,12 @@ function header(title, backTo) {
 }
 
 function render() {
+  cancelHomePress();
   cancelScoreFeedback();
   const focused = app.contains(document.activeElement) ? document.activeElement : null;
   const focusData = focused?.dataset.action ? {...focused.dataset} : null;
   const { page, id } = route();
+  const surfaceChange = window.SurfaceTransition?.capture(app, page, id);
   if (page !== 'round') announceScore('');
   let html;
   switch (page) {
@@ -309,6 +311,7 @@ function render() {
   app.classList.toggle('is-scorecard', page === 'card');
   scoringDockSize.disconnect();
   app.dataset.page = page || 'home';
+  app.dataset.roundId = page === 'round' ? id : '';
   navigationSize.disconnect();
   app.innerHTML = html + (showNavigation ? mainNavigation(page === '' ? '' : page) : '');
   const dock = app.querySelector('.dock');
@@ -338,6 +341,7 @@ function render() {
   Plot.bind(app, placeArrow);
   if (page === 'card') Groups.bind(app);
   if (page === 'stats') Stats.bind(app);
+  window.SurfaceTransition?.play(app, surfaceChange);
 }
 
 /* ---------- views ---------- */
@@ -376,10 +380,12 @@ function viewHome() {
   const open = db.rounds.filter(r => r.status !== 'finished').sort((a,b) => b.createdAt-a.createdAt);
   const recent = db.rounds.filter(r => r.status === 'finished').sort((a,b) => (b.finishedAt || b.createdAt)-(a.finishedAt || a.createdAt)).slice(0,3);
   return '<header class="home-brandbar"><img src="icons/ranch-horizon.svg" alt="Ranch Horizon" width="54" height="54"><div class="home-wordmark">Ropers<span>Archery Scorecard</span></div><button class="home-settings" data-action="nav" data-to="#/backup" aria-label="Backup and export">' + uiIcon('settings') + '</button></header>' +
+    '<div class="home-ranch-window"><img src="icons/ranch-aerial.svg" alt="The ranch aerial" width="416" height="280"></div>' +
     '<main class="home-main"><h1 class="home-heading">' + (open.length ? 'Pick up where you left off.' : 'Make your next round count.') + '</h1>' +
     (Native.isApp && !db.rounds.length && !db.archers.length ? '<button class="card-row" data-action="nav" data-to="#/backup"><strong>Moving from the web app?</strong><span class="muted small">Restore a backup to bring your archers and scores across.</span></button>' : '') +
-    (open.length ? '<section class="home-open" aria-label="Unfinished rounds">' + open.map(r => homeRound(r,true)).join('') + '</section>' : '<p class="home-welcome">' + (db.rounds.length ? 'No unfinished rounds. Start fresh when you’re ready.' : 'Your scores, your archers, your progress. Start a round to begin your scorebook.') + '</p>') +
+    (!open.length ? '<p class="home-welcome">' + (db.rounds.length ? 'No unfinished rounds. Start fresh when you’re ready.' : 'Your scores, your archers, your progress. Start a round to begin your scorebook.') + '</p>' : '') +
     '<button class="home-new" data-action="new-round"><span>Start new round</span>' + uiIcon('plus') + '</button>' +
+    (open.length ? '<section class="home-open" aria-label="Unfinished rounds">' + open.map(r => '<div class="home-open-item">' + homeRound(r,true) + '<button class="home-round-options" data-action="home-round-options" data-id="' + esc(r.id) + '" aria-label="Options for ' + esc(typeName(r) + ', ' + r.archerIds.map(nameOf).join(', ') + ', ' + fmtDate(r.createdAt)) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></div>').join('') + '</section>' : '') +
     '<section class="home-history" aria-label="Recent rounds"><div class="home-section-heading"><h2>Recent rounds</h2><button class="link" data-action="nav" data-to="#/history">View all</button></div>' +
     (recent.length ? recent.map(r => homeRound(r,false)).join('') : '<p class="home-empty">Finished rounds will appear here. Your scorecard is saved on this device.</p>') +
     '</section><button class="home-backup" data-action="nav" data-to="#/backup">Backup and export</button></main>';
@@ -1091,6 +1097,28 @@ const completion = RoundCompletion.create({
 const actions = {
   nav: d => go(d.to),
 
+  'home-round-options': async d => {
+    const r = roundById(d.id);
+    if (homeDeletePending || route().page !== '' || !r || r.status === 'finished') return;
+    const position = [...app.querySelectorAll('.home-round-options')].findIndex(node => node.dataset.id === r.id);
+    homeDeletePending = true;
+    try {
+      const ok = await confirmBox('Delete unfinished round?',
+        '<p><strong>' + esc(typeName(r)) + '</strong> · ' + fmtDate(r.createdAt) + '</p>' +
+        '<p>' + esc(r.archerIds.map(nameOf).join(', ')) + (r.note ? ' · ' + esc(r.note) : '') + '</p>' +
+        '<p>This deletes the round and its scores for every archer in it. This cannot be undone.</p>', 'Delete round', true);
+      if (!ok || route().page !== '' || roundById(r.id)?.status === 'finished') return;
+      const before = db.rounds;
+      db.rounds = before.filter(x => x.id !== r.id);
+      if (!save()) { db.rounds = before; return; }
+      render();
+      const remaining = app.querySelectorAll('.home-round-options');
+      const destination = remaining[Math.min(position,remaining.length-1)] || app.querySelector('h1');
+      if (destination) { if (destination.tagName === 'H1') destination.tabIndex = -1; destination.focus(); }
+      announceScore('Unfinished round deleted.');
+    } finally { homeDeletePending = false; }
+  },
+
   'new-round': () => { draft = null; go('#/new'); },
 
   'stats-set': d => { Stats.set(d); render(); },
@@ -1316,8 +1344,46 @@ const forms = {
   }
 };
 
-app.addEventListener('pointerdown', () => { keyboardAction = false; });
+let homePress = null, blockedHomeClick = null, homeDeletePending = false;
+function cancelHomePress() {
+  if (homePress) clearTimeout(homePress.timer);
+  homePress = null;
+}
+app.addEventListener('pointerdown', e => {
+  keyboardAction = false;
+  cancelHomePress();
+  blockedHomeClick = null;
+  const card = e.target.closest('.home-resume');
+  if (!card || e.button !== 0 || !e.isPrimary) return;
+  const press = {card,id:e.pointerId,x:e.clientX,y:e.clientY};
+  press.timer = setTimeout(() => {
+    homePress = null;
+    if (!card.isConnected || app.inert) return;
+    blockedHomeClick = {card,until:Date.now()+1500};
+    const id = card.closest('.home-open-item').querySelector('.home-round-options').dataset.id;
+    actions['home-round-options']({id});
+  },550);
+  homePress = press;
+});
+window.addEventListener('pointermove', e => {
+  if (homePress && (e.pointerId !== homePress.id || Math.hypot(e.clientX-homePress.x,e.clientY-homePress.y) > 10)) cancelHomePress();
+}, {passive:true});
+for (const event of ['pointerup','pointercancel','blur','scroll']) window.addEventListener(event,cancelHomePress,{capture:true,passive:true});
+document.addEventListener('visibilitychange',cancelHomePress);
+app.addEventListener('contextmenu', e => {
+  const card = e.target.closest('.home-resume');
+  if (!card) return;
+  e.preventDefault();
+  cancelHomePress();
+  blockedHomeClick = {card,until:Date.now()+1500};
+  actions['home-round-options']({id:card.closest('.home-open-item').querySelector('.home-round-options').dataset.id});
+});
 app.addEventListener('click', e => {
+  if (e.detail !== 0 && blockedHomeClick && Date.now() < blockedHomeClick.until && e.target.closest('.home-resume') === blockedHomeClick.card) {
+    blockedHomeClick = null;
+    e.preventDefault();
+    return;
+  }
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled) return;
   if (e.detail === 0 && (el.dataset.action === 'nav' || el.dataset.action === 'new-round')) focusDestination = true;

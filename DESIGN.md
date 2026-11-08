@@ -28,9 +28,9 @@ colors:
 typography:
   wordmark:
     fontFamily: "Newsreader, Georgia, serif"
-    fontSize: "39px"
+    fontSize: "42px"
     fontWeight: 500
-    lineHeight: 0.85
+    lineHeight: 0.9
     letterSpacing: "-0.04em"
   headline:
     fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -180,11 +180,15 @@ Newsreader regular and italic variable fonts are bundled locally with their lice
 
 The app uses a centered column capped at 640px, normally with 24px gutters and 18px on phones 350px wide or narrower. Safe areas protect the header and bottom actions. Long names and descriptions wrap; wide score tables and charts scroll within their own containers.
 
-Home presents every unfinished individual or group round, then the new-round action and at most three recent completed rounds. Notes adapt to the surface: pale olive on unfinished cards, muted text on recent paper records. The four-destination dock is inset by at least 16px, capped at an effective 608px width. Measured labels switch it to two columns under enlarged text; its measured height sets content clearance. Setup, import and active scoring own their interaction space and omit this dock.
+Home uses the selected Ranch Window composition: the compact Ranch Horizon header precedes a 230px-tall aerial window with the existing 16px/54px signature corners, followed by a 48px Newsreader headline and the orange 64px-minimum new-round action. The aerial is generated from the exact frozen source and selected crop, with no alternate landscape. Every unfinished individual or group round remains below the new-round action, followed by at most three recent completed rounds. Notes adapt to the surface: pale olive on unfinished cards, muted text on recent paper records. The four-destination dock is inset by at least 16px, capped at an effective 608px width. Measured labels switch it to two columns under enlarged text; its measured height sets content clearance. Setup, import and active scoring own their interaction space and omit this dock.
 
 Scoring has an olive header, wrap-safe round progress and running result, a horizontal end/target strip, per-archer entry sections, three labeled Vegas slots, and a three-column keypad. Miss spans the Vegas keypad width. The measured scoring dock preserves previous/next actions on short or enlarged-text screens. IBO retains its five score values and target navigation.
 
 New-round setup initially selects the first active archer in the displayed alphabetical list. Archers can be deselected, replaced or added to the group; form updates preserve those deliberate choices. With no active archers, setup waits for one to be added.
+
+Unfinished Home rounds offer a 44px options control beside the format, plus a 550ms long press on the resume card. Both open the same confirmation identifying the round and all affected archers. Cancellation is the default; confirmed deletion stays on Home and removes the card only after storage succeeds. Movement, scrolling, release, pointer cancellation, hiding, and rerendering cancel a pending hold. The hold release never also resumes the round. Ordinary taps continue into scoring, and completed recent rounds do not expose Home deletion.
+
+Home's Start new round action uses Surface Continuity to become the setup header over 520ms. That header retains the action's orange fill with ink text and Back control, and the cream form appears below it. Entering scoring from a Home resume card or the completed setup uses the same transition: the source control becomes the olive scoring header. Returning Home from setup or scoring reverses the surface over 420ms and restores the originating action's scroll position when available. Routing and saving remain immediate; new input, another render, resizing, hiding the app or a changed motion preference cancels the visual layer. Reduced motion uses 120ms opacity feedback without spatial movement. Direct scoring links and routine score updates do not run navigation choreography.
 
 History, archer records and import previews use open rows with fine rules. Analytics filters wrap and data graphics keep their labels and legends. Backup, restore and import retain explicit file actions and confirmation/recovery dialogs. Dialogs scroll independently, trap keyboard focus, support Escape cancellation and restore the initiating control.
 
