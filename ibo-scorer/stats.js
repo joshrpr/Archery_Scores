@@ -34,7 +34,9 @@ const Analytics = (() => {
       if (v === 'X' || v === 11) bonus++;
       if (v === 0) misses++;
     }
-    const slots = r.scores[aid].length || 1;
+    // IBO points per target count only the targets shot: a round finished
+    // early keeps its blank targets blank instead of scoring them as misses.
+    const slots = (vegas ? r.scores[aid].length : n) || 1;
     return {
       r, aid, vegas, total, bonus, misses, n, slots,
       value: vegas ? total : total / slots,

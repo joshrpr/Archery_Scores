@@ -32,6 +32,14 @@ test('summary counts Xs as 10 and IBO value is per target', () => {
   assert.strictEqual(i.value, 29 / 4);
 });
 
+test('IBO blank targets are left out of points per target, not counted as misses', () => {
+  const i = A.summarize(iboRound('i', 1, [11, 10, null, null]), 'a');
+  assert.strictEqual(i.total, 21);
+  assert.strictEqual(i.slots, 2);
+  assert.strictEqual(i.value, 21 / 2);
+  assert.strictEqual(i.misses, 0);
+});
+
 test('kpis: best, rates and recent-vs-prior delta', () => {
   const rows = [100, 110, 120, 130, 140, 150, 160, 170].map((s, n) => ({ value: s, bonus: n, n: 30, misses: 3, group: null, r: {} }));
   const k = A.kpis(rows);

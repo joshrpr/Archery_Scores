@@ -116,6 +116,22 @@ const roundById = id => db.rounds.find(r => r.id === id);
 const fmtDate = ts => new Date(ts).toLocaleDateString(undefined,
   { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 const fmtShort = ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const startOfDay = ts => new Date(ts).setHours(0, 0, 0, 0);
+const daysAgo = ts => {
+  const d = Math.round((startOfDay(Date.now()) - startOfDay(ts)) / 864e5);
+  return d <= 0 ? 'today' : d === 1 ? 'yesterday' : `${d} days ago`;
+};
+// Runs of numbers as ranges: [6, 7, 8, 12] -> "6–8, 12".
+const ranges = ns => ns.reduce((out, n) => {
+  const run = out[out.length - 1];
+  if (run && run[1] === n - 1) run[1] = n; else out.push([n, n]);
+  return out;
+}, []).map(([a, b]) => (a === b ? `${a}` : `${a}–${b}`)).join(', ');
+
+/* ---------- backup status ---------- */
+// A finished round that no saved backup file holds yet.
+const backupDue = r => r.status === 'finished' && (r.finishedAt || r.createdAt) > (db.lastBackupAt || 0);
+const unbackedRounds = () => db.rounds.filter(backupDue);
 
 /* ---------- round types ---------- */
 const isVegas = r => r.type === 'vegas';
@@ -131,7 +147,8 @@ const slotDone = (r, aid, i) => (isVegas(r)
 // Vegas: every archer needs all three arrows on an end before the round can
 // move past it. The furthest end the round may be on right now.
 const lastOpen = r => {
-  if (!isVegas(r)) return r.targets - 1;
+  // A finished round may have blank ends left on purpose; editing reaches them all.
+  if (!isVegas(r) || r.status === 'finished') return r.targets - 1;
   for (let i = 0; i < r.targets; i++) if (!r.archerIds.every(aid => slotDone(r, aid, i))) return i;
   return r.targets - 1;
 };
@@ -386,9 +403,21 @@ function viewHome() {
     (!open.length ? '<p class="home-welcome">' + (db.rounds.length ? 'No unfinished rounds. Start fresh when you’re ready.' : 'Your scores, your archers, your progress. Start a round to begin your scorebook.') + '</p>' : '') +
     '<button class="home-new" data-action="new-round"><span>Start new round</span>' + uiIcon('plus') + '</button>' +
     (open.length ? '<section class="home-open" aria-label="Unfinished rounds">' + open.map(r => '<div class="home-open-item">' + homeRound(r,true) + '<button class="home-round-options" data-action="home-round-options" data-id="' + esc(r.id) + '" aria-label="Options for ' + esc(typeName(r) + ', ' + r.archerIds.map(nameOf).join(', ') + ', ' + fmtDate(r.createdAt)) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></div>').join('') + '</section>' : '') +
+    backupCard() +
     '<section class="home-history" aria-label="Recent rounds"><div class="home-section-heading"><h2>Recent rounds</h2><button class="link" data-action="nav" data-to="#/history">View all</button></div>' +
     (recent.length ? recent.map(r => homeRound(r,false)).join('') : '<p class="home-empty">Finished rounds will appear here. Your scorecard is saved on this device.</p>') +
-    '</section><button class="home-backup" data-action="nav" data-to="#/backup">Backup and export</button></main>';
+    '</section><button class="home-backup" data-action="nav" data-to="#/backup">Backup and export</button>' +
+    (db.lastBackupAt && !unbackedRounds().length ? '<p class="muted small backup-note">Last backup ' + daysAgo(db.lastBackupAt) + '</p>' : '') + '</main>';
+}
+
+// Home nudge while finished rounds exist only on this phone.
+function backupCard() {
+  const n = unbackedRounds().length;
+  if (!n) return '';
+  return `<button class="card-row due" data-action="export-json">
+    <strong>${n} finished round${n === 1 ? '' : 's'} not backed up</strong>
+    <span class="muted small">${db.lastBackupAt ? `Last backup ${daysAgo(db.lastBackupAt)}.` : 'Until you save a backup, your scores are only on this phone.'} Tap to save a backup file now.</span>
+  </button>`;
 }
 
 function viewNew() {
@@ -469,13 +498,13 @@ function viewRound(id) {
   <main class="with-dock scoring-main">
     ${vegas ? plotPanel(r, t) : ''}
     ${rows}
-    ${vegas && blocked ? `<p class="muted small">Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.</p>` : ''}
     ${vegas
       ? `<button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button>`
       : `<div class="round-tools"><button class="btn" data-action="nav" data-to="#/card/${r.id}">Scorecard</button><button class="btn" data-action="add-target">+ Target</button><button class="btn" data-action="remove-target" ${r.targets <= 1 ? 'disabled' : ''}>− Target</button></div>`}
-    <button class="big" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>
+    ${editing || (isLast && !vegas) ? `<button class="big" data-action="finish">${editing ? 'Done editing' : 'Finish round'}</button>` : ''}
   </main>
   <div class="dock">
+    ${vegas && blocked ? `<p class="dock-note" role="status">Enter all ${VEGAS_ARROWS} arrows${r.archerIds.length > 1 ? ' for every archer' : ''} to go on to end ${t + 2}.</p>` : ''}
     <button class="big" data-action="move" data-d="-1" aria-label="Previous ${unit(r).toLowerCase()}" ${t === 0 ? 'disabled' : ''}>${uiIcon('arrow')}<span>Previous</span></button>
     ${!isLast
       ? `<button class="big primary" data-action="move" data-d="1" ${blocked ? 'disabled' : ''}>Next ${unit(r).toLowerCase()} ${uiIcon('arrow')}</button>`
@@ -528,19 +557,27 @@ function viewCard(id) {
   const endCell = end => end.every(v => v == null) ? '<td class="vnull">–</td>'
     : `<td class="vend"><span class="arr">${end.map(v => v == null ? '<i>·</i>'
         : `<i class="r${ring(v)}">${label(v)}</i>`).join('')}</span><b>${endTotal(end)}</b></td>`;
+  const tied = n => rank.filter(x => x.rank === n).length > 1;
+  const bests = finished ? newBests(r) : [];
 
   return `${header(finished ? 'Scorecard' : 'Scorecard <small>in progress</small>',
                    finished ? '#/history' : `#/round/${r.id}`)}
   <main class="scorecard-main">
     <div class="meta"><strong>${fmtDate(r.createdAt)}</strong>${r.note ? `<span>${esc(r.note)}</span>` : ''}
       <span class="badge type">${typeName(r)}</span><span class="muted">${unitsLabel(r)}</span></div>
+    ${backupDue(r) ? `
+      <button class="card-row due" data-action="export-json">
+        <strong>Save a backup of this round</strong>
+        <span class="muted small">Until you do, it is only on this phone. Tap to save a backup file.</span>
+      </button>` : ''}
 
     <h2>Standings</h2>
     <div class="tablewrap" role="region" aria-label="Standings table" tabindex="0"><table aria-label="Standings">
       <thead><tr><th scope="col">#</th><th class="name">Archer</th><th>Total</th><th>${bonusLabel(r)}</th></tr></thead>
       <tbody>${rank.map(x => `<tr class="${x.rank === 1 && finished ? 'first' : ''}">
-        <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}</td><td class="name">${esc(nameOf(x.id))}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
+        <td>${x.rank === 1 && finished ? '<span class="rank1">1</span>' : x.rank}${tied(x.rank) ? '=' : ''}</td><td class="name">${esc(nameOf(x.id))}${bests.includes(x.id) ? ' <span class="badge pb">New best</span>' : ''}</td><td><b>${x.total}</b></td><td>${x.bonus}</td></tr>`).join('')}
       </tbody></table></div>
+    ${bests.length ? `<p class="pb-note">${bests.map(aid => `<b>${esc(nameOf(aid))}</b>`).join(' and ')} shot a new personal best for ${vegas ? 'Vegas 300' : `${r.targets} targets`}.</p>` : ''}
 
     <h2>Card</h2>
     <div class="tablewrap" role="region" aria-label="Complete scorecard, scroll for all archers" tabindex="0"><table aria-label="Complete scorecard">
@@ -557,7 +594,8 @@ function viewCard(id) {
 
     ${finished
       ? `<button class="big" data-action="edit-round">Edit scores</button>`
-      : `<button class="big primary" data-action="nav" data-to="#/round/${r.id}">Back to scoring</button>`}
+      : `<button class="big primary" data-action="nav" data-to="#/round/${r.id}">Back to scoring</button>
+         <button class="btn" data-action="finish">Finish round now</button>`}
     <div class="grid2">
       <button class="btn" data-action="edit-note">${r.note ? 'Edit note' : 'Add note'}</button>
       <button class="btn danger" data-action="delete-round">Delete round</button>
@@ -603,8 +641,22 @@ function personalBests(rows) {
 }
 const markOf = x => (x.vegas ? 'X' : '11');
 
+// Archers whose score in this finished round beats every earlier round of
+// the same kind they shot. A first round of a kind is not called a best.
+function newBests(r) {
+  return r.archerIds.filter(aid => {
+    const rows = archerRounds(aid);
+    const me = rows.find(x => x.r.id === r.id);
+    if (!me) return false;
+    const before = rows.filter(x => x.key === me.key && x.r.id !== r.id && x.r.createdAt < r.createdAt);
+    return before.length > 0 && before.every(x => me.total > x.total || (me.total === x.total && me.bonus > x.bonus));
+  });
+}
+
 function viewArchers() {
   const list = activeArchers();
+  const removed = db.archers.filter(a => a.deleted &&
+    !list.some(x => x.name.toLowerCase() === a.name.toLowerCase()));
   return `${header('Archers', '#/')}
   <main>
     <form class="inline" data-form="add-archer">
@@ -620,6 +672,10 @@ function viewArchers() {
         ${pbs ? `<div class="scores-line">${pbs}</div>` : ''}
       </button>`;
     }).join('') : '<p class="empty">No archers yet. Add one above.</p>'}
+    ${removed.length ? `<h2>Removed archers</h2>
+      <p class="muted small">Their scores are still kept. Bring one back to see their stats again.</p>
+      ${removed.map(a => `<div class="removed-row"><span>${esc(a.name)}</span>
+        <button class="btn" data-action="restore-archer" data-id="${a.id}">Bring back</button></div>`).join('')}` : ''}
   </main>`;
 }
 
@@ -717,10 +773,10 @@ function plotsOf(r, aid) {
 const hasPlots = (r, aid) => !!(r.plots && r.plots[aid] && r.plots[aid].some(e => e.some(Boolean)));
 const plotAid = r => (r.archerIds.includes(r.plotAid) ? r.plotAid : r.archerIds[0]);
 
-function groupLine(g, what) {
+function groupLine(g, what, extra = '') {
   if (!g) return '';
   return `<div class="gline">${g.n > 1 ? `<span><small>${what}</small><b>${Target.fmtCm(g.spread)}</b></span>` : ''}
-    <span><small>Centre</small><b>${Target.fmtCm(g.offset)}</b> ${Target.direction(g.cx, g.cy)}</span></div>`;
+    <span><small>Centre</small><b>${Target.fmtCm(g.offset)}</b> ${Target.direction(g.cx, g.cy)}</span>${extra}</div>`;
 }
 
 function plotPanel(r, t) {
@@ -736,7 +792,12 @@ function plotPanel(r, t) {
   const fresh = justPlaced && justPlaced.aid === aid && justPlaced.end === t ? justPlaced.k : -1;
   justPlaced = null;
   const now = end.map((p, k) => p && { ...p, label: k + 1, color: '#f2621a', r: 0.62, cls: k === fresh ? 'new' : '' }).filter(Boolean);
-  const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: now.length > 1 ? Target.group(now) : null,
+  // The group circle covers every arrow plotted so far this round, so you
+  // watch the round's group build end by end.
+  const sofar = plots.slice(0, t + 1).flat().filter(Boolean);
+  const roundGroup = Target.group(sofar);
+  const endGroup = Target.group(now);
+  const face = Target.faceSvg({ arrows: [...earlier, ...now], showGroup: sofar.length > 1 ? roundGroup : null,
     ariaLabel: `Target face for ${nameOf(aid)}, end ${t + 1}` })
     .replace('<svg ', `<svg data-plot="1" data-aid="${aid}" `);
   const tabs = r.archerIds.length > 1 ? `<div class="ptabs">${r.archerIds.map(id => {
@@ -750,7 +811,8 @@ function plotPanel(r, t) {
     <p class="muted small plot-hint">${full
       ? 'End complete. Use Undo, or tap any arrow score below to clear it and plot again.'
       : `Press where ${r.archerIds.length > 1 ? esc(nameOf(aid)) + '’s ' : ''}arrow ${r.scores[aid][t].indexOf(null) + 1} landed. Slide slowly to fine-tune, then lift to place.`}</p>
-    ${groupLine(Target.group(now), 'This end')}
+    ${groupLine(roundGroup, 'Round so far', endGroup && endGroup.n > 1 && t > 0
+      ? `<span><small>This end</small><b>${Target.fmtCm(endGroup.spread)}</b></span>` : '')}
     <div class="plot-foot"><button class="link" data-action="plot-toggle">Use score buttons only</button></div>
   </section>`;
 }
@@ -877,10 +939,14 @@ function groupTrend(rows, aid) {
 
 function viewBackup() {
   const finished = db.rounds.filter(r => r.status === 'finished').length;
+  const unbacked = unbackedRounds().length;
   return `${header('Backup and export', '#/')}
   <main>
     <p class="muted">${activeArchers().length} archer${activeArchers().length === 1 ? '' : 's'},
       ${db.rounds.length} round${db.rounds.length === 1 ? '' : 's'} (${finished} finished) on this phone.</p>
+    <p class="backup-status${unbacked ? ' due' : ''}">${db.lastBackupAt
+      ? `Last backup ${fmtDate(db.lastBackupAt)} (${daysAgo(db.lastBackupAt)}).`
+      : 'No backup saved yet.'}${unbacked ? ` ${unbacked} finished round${unbacked === 1 ? ' is' : 's are'} not in a backup.` : ''}</p>
 
     <h2>Backup</h2>
     <p class="muted small">Saves every archer, round and score to one file. Keep it somewhere safe, like Google Drive, so you can restore after a new phone or a reinstall.${Native.isApp ? ' Pick Drive or Files from the share menu that opens.' : ''}</p>
@@ -979,9 +1045,12 @@ const BACKUP_APP = 'ropers-archery-scorecard';
 const BACKUP_FORMAT = 1;
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Resolves true once the file is saved or shared, false if it was not.
 function download(name, text, type) {
-  Native.saveFile(name, text, type).catch(e =>
-    alertBox('Could not save the file', `<p>${esc(e && e.message || 'Something went wrong.')}</p>`));
+  return Native.saveFile(name, text, type).catch(e => {
+    alertBox('Could not save the file', `<p>${esc(e && e.message || 'Something went wrong.')}</p>`);
+    return false;
+  });
 }
 
 function backupText() {
@@ -1052,9 +1121,11 @@ function scorecardsCsv() {
 }
 
 async function importBackup(file) {
-  let data;
+  let data, exportedAt;
   try {
-    data = parseBackup(JSON.parse(await file.text()));
+    const obj = JSON.parse(await file.text());
+    data = parseBackup(obj);
+    exportedAt = Date.parse(obj && obj.exportedAt);
   } catch (e) {
     alertBox('Could not restore', `<p>${esc(e instanceof SyntaxError ? 'The file is not a valid backup.' : e.message)}</p>`);
     return;
@@ -1066,6 +1137,8 @@ async function importBackup(file) {
     'Replace and restore', true);
   if (!ok) return;
   migrate(data);
+  // The phone now holds exactly what this backup holds.
+  if (exportedAt) data.lastBackupAt = exportedAt;
   db = data;
   draft = null;
   save();
@@ -1085,10 +1158,15 @@ const completion = RoundCompletion.create({
   confirm: async (r, gaps, editing) => {
     if (gaps.length) {
       const u = unit(r).toLowerCase();
-      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${u}${g.missing.length > 1 ? 's' : ''} ${g.missing.join(', ')}</li>`).join('');
-      return confirmBox(isVegas(r) ? 'Some arrows are blank' : 'Some targets are blank',
-        `<ul>${list}</ul><p>Blank ${isVegas(r) ? 'arrows' : 'targets'} will be scored as <b>0 (miss)</b>.</p>`,
-        editing ? 'Save as 0' : 'Finish anyway');
+      const list = gaps.map(g => `<li><b>${esc(nameOf(g.aid))}</b>: ${g.missing.length} ${u}${g.missing.length > 1 ? 's' : ''} ${isVegas(r) ? 'not finished' : 'blank'} <span class="nowrap">(${ranges(g.missing)})</span></li>`).join('');
+      const { value } = await modal({
+        title: isVegas(r) ? 'Some ends are not finished' : 'Some targets are blank',
+        html: `<ul>${list}</ul><p>Blanks stay blank on the scorecard and do not count as misses. You can fill them in later with Edit scores.</p>`,
+        buttons: [
+          { label: editing ? 'Keep editing' : 'Keep scoring', value: false, cls: 'primary' },
+          { label: editing ? 'Save with blanks' : 'Finish with blanks', value: true }]
+      });
+      return value === true;
     }
     return editing || confirmBox('Finish round?', '<p>You can still edit scores afterwards from History.</p>', 'Finish');
   }
@@ -1277,7 +1355,9 @@ const actions = {
   'delete-round': async () => {
     const r = currentRound(); if (!r) return;
     if (!(await confirmBox('Delete this round?',
-        `<p>${fmtDate(r.createdAt)}${r.note ? ' · ' + esc(r.note) : ''}</p><p>This cannot be undone.</p>`,
+        `<p><b>${typeName(r)}</b>, ${fmtDate(r.createdAt)}${r.note ? ' · ' + esc(r.note) : ''}</p>
+         <ul>${ranking(r).map(x => `<li>${esc(nameOf(x.id))}: <b>${x.total}</b></li>`).join('')}</ul>
+         <p>This cannot be undone.</p>`,
         'Delete', true))) return;
     db.rounds = db.rounds.filter(x => x.id !== r.id);
     save();
@@ -1298,7 +1378,11 @@ const actions = {
     save(); render();
   },
 
-  'export-json': () => download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'),
+  'export-json': async () => {
+    if (!(await download(`ropers-archery-backup-${today()}.json`, backupText(), 'application/json'))) return;
+    db.lastBackupAt = Date.now();
+    save(); render();
+  },
 
   'import-archer': d => { if (pendingImport) { pendingImport.archerId = d.id; render(); } },
 
@@ -1322,11 +1406,17 @@ const actions = {
   'delete-archer': async d => {
     const a = archerById(d.id); if (!a) return;
     if (!(await confirmBox(`Delete ${a.name}?`,
-        '<p>Their stats and personal bests will be removed. Their name will still appear on past group scorecards so other archers’ rounds stay complete.</p>',
+        '<p>They leave the archer list and stats. Their scores are kept, so past group scorecards stay complete, and you can bring them back from Archers.</p>',
         'Delete', true))) return;
     a.deleted = true;
     save();
     go('#/archers');
+  },
+
+  'restore-archer': d => {
+    const a = archerById(d.id); if (!a) return;
+    delete a.deleted;
+    save(); render();
   }
 };
 
