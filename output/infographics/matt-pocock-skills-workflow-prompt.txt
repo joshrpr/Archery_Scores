@@ -1,0 +1,60 @@
+Use case: infographic-diagram.
+Create a polished, exceptionally legible professional infographic for a software team explaining how to use Matt Pocock's engineering skills on ANY project. Deliver a high resolution portrait poster, approximately 2:3 aspect ratio. Editorial information design: warm ivory background, dark navy typography, restrained teal and orange accents, crisp fine connector lines, generous spacing, strong hierarchy, beautiful typography, subtle flat icons. Contemporary technical field-guide look. No photography or decorative characters. All text must be spelled exactly, ample font size, no text overflowing containers. This is an independent team guide; no invented logos, endorsements, or references to archery or any particular application.
+
+Design a coherent flow diagram with a clear reading order. Main area: start from a single first step, branch SMALL CHANGE versus LARGER FEATURE, and rejoin at verification. Show small path going directly to implement and larger path through spec, tickets, implement. Use distinct visible arrows, not just a list. Include the optional whole-spec implementation as a clearly alternative option, not an extra required step.
+
+Exact text content (organize in clear visual hierarchy; preserve all skill names and use $ notation):
+TOP small eyebrow: "TEAM FIELD GUIDE"
+TITLE: "From idea to shipped change"
+SUBTITLE: "A practical guide to Matt Pocock’s skills"
+
+A slim setup strip:
+"ONCE PER PROJECT"
+"$setup-matt-pocock-skills"
+"Configure the issue tracker, triage labels, and domain documentation."
+
+MAIN FIRST STEP:
+"01  Clarify the idea"
+"$grill-with-docs"
+"Explore the code. Resolve behavior, scope, and edge cases together."
+Small supporting caption: "Capture agreed terminology and significant decisions."
+
+BRANCH LEFT headed "SMALL CHANGE"
+"$implement"
+"Build the agreed change in the same conversation."
+
+BRANCH RIGHT headed "LARGER FEATURE"
+"02  Write the spec"
+"$to-spec"
+"Turn the discussion into a specification in the issue tracker."
+Arrow down:
+"03  Break down the work"
+"$to-tickets"
+"Approve small, working slices with clear dependencies."
+Arrow down:
+"04  Build the tickets"
+"$implement #123"
+"Work one ready ticket at a time in a fresh session."
+Small adjacent alternative:
+"Or: $implement-spec"
+"Coordinate agents across the whole ticket graph."
+
+REJOIN shared finishing strip:
+"VERIFY THE RESULT"
+"Tests → Code review → Fix findings"
+"Implementation skills call for testing and review."
+
+BOTTOM compact two-column helper area:
+"OTHER STARTING POINTS"
+"Incoming reports → $triage"
+"Unsure where to start? → $ask-matt"
+
+"WHAT RUNS AUTOMATICALLY?"
+"You invoke the main workflow skills."
+"They bring in supporting skills as needed."
+"A ready-for-agent label does not start a worker."
+
+FOOTER takeaway in small but readable type:
+"Keep clarification, spec, and ticket planning in one conversation. Let approved tickets carry context into implementation."
+
+Prioritize precise text, elegant diagram topology, readable dense information with generous margins, a finished shareable infographic suitable for a team wiki or Slack. Do not add any other text.
