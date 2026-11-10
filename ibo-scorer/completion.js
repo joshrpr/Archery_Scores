@@ -77,17 +77,7 @@ const RoundCompletion = (() => {
           const oldStatus = r.status,
             oldFinishedAt = r.finishedAt,
             oldScores = r.scores;
-          // Copy before filling blanks so a failed write can be retried intact.
-          if (gaps.length) {
-            r.scores = Object.fromEntries(
-              Object.entries(r.scores).map(([aid, scores]) => [
-                aid,
-                deps.isVegas(r)
-                  ? scores.map((end) => end.map((v) => (v == null ? 0 : v)))
-                  : scores.map((v) => (v == null ? 0 : v)),
-              ]),
-            );
-          }
+          // Blanks stay blank: a round cut short is not a run of misses.
           r.status = "finished";
           r.finishedAt = oldFinishedAt || Date.now();
           if (!deps.save()) {
